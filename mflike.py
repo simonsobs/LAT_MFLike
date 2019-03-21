@@ -29,12 +29,11 @@ class MFLike:
                 dnu[-1] = nu[-1] - nu[-2]
             bnu = t.Nz
             self.bpasses.append([nu, dnu, bnu])
-            self.meannu.append(np.sum(dnu*nu*bnu) / np.sum(dnu*bnu))
+            #self.meannu.append(np.sum(dnu*nu*bnu) / np.sum(dnu*bnu))
 
-        #Get ell sampling
+        #Get ell sampling and windows
         self.bpw_l = self.s.binning.windows[0].ls
-        _,_,_,self.ell_b,_ = self.order[0]
-        self.n_bpws = len(self.ell_b)
+        _, _, _, self.ell_b, _ = self.order[0]
         self.windows = s.binning.windows
 
         #Get power spectra and covariances
@@ -83,7 +82,11 @@ class MFLike:
             fg_pspectra[key] = normed_plaw(self.bpw_l, *pspec_params)
         return fg_pspectra
     
+    # setup foreground model here takes (f1, f2, ell, params)
+    # param dict
+
     def model(self, params):
+        # param list
         """
         Defines the total model and integrates over the bandpasses and windows. 
         """
@@ -91,44 +94,26 @@ class MFLike:
         fg_scaling = self.integrate_seds(params)
         fg_p_spectra = self.evaluate_power_spectra(params)
         
-        cls_array_list = np.zeros([self.n_bpws,self.nmaps,self.nmaps])
-        for t1 in range(self.nfreqs) :
-            for t2 in range(t1, self.nfreqs) :
-                windows = self.windows[self.vector_indices[t1, t2]]
+        model_cls = []
+        
+        # zip param names, param list 
 
-                model = cmb_bmodes.copy()
-                for component in self.fg_model.components:
-                    sed_power_scaling = fg_scaling[component][t1] * fg_scaling[component][t2]
-                    p_amp = params[self.parameters.amp_index[component]]
-                    model += p_amp * sed_power_scaling * fg_p_spectra[component]
-                
-                    config_component = self.config['fg_model'][component]
-                    if 'cross' in config_component.keys():
-                        epsilon = config_component['cross']['param']
-                        epsilon_index = self.parameters.param_index[epsilon]
-                        cross_name = config_component['cross']['name']
+        for t1, t2, typ, ells, ndx in self.order:
+            window = self.windows[ndx]
+            model0 = fg_model(f1, f2, ells, typ, params_dict)
+            
+            model = np.dot(window, model)
+            model_cls.append(model)
 
-                        cross_scaling = fg_scaling[component][t1] * fg_scaling[cross_name][t2] + \
-                                        fg_scaling[cross_name][t1] * fg_scaling[component][t2]
-                        cross_spectrum = np.sqrt(fg_p_spectra[component] * fg_p_spectra[cross_name])
-                        cross_amp = np.sqrt(p_amp * params[self.parameters.amp_index[cross_name]])
-
-                        model += params[epsilon_index] * cross_amp * cross_scaling * cross_spectrum
-                        
-                model = np.dot(windows, model)
-                cls_array_list[:, t1, t2] = model
-
-                if t1 != t2:
-                    cls_array_list[:, t2, t1] = model
-        return cls_array_list
-
+        return model_cls
 
     def chi_sq_dx(self, params):
         """
         Chi^2 likelihood. 
         """
         model_cls = self.model(params)
-        return self.matrix_to_vector(self.bbdata - model_cls).flatten()
+        dx = self.data - model_cls
+        return -0.5 * np.einsum('i, ij, j', dx, self.invcov, dx)
 
 
 
