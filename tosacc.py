@@ -6,8 +6,7 @@ datadir = 'actpol_2f_full_s1315_sim_v3_forpy/data/data_act/2019/shared/'
 tracer_names = np.array(["A90", "A150"])
 exp_names = np.array(["ACT", "ACT"])
 
-#corr_ordering = np.array([['A90_T', 'A90_T'], ['A90_T', 'A150_T'], ['A150_T', 'A150_T'], ['A90_T', 'A90_E'], ['A90_T', 'A150_E'], ['A90_E', 'A150_T'], ['A150_T', 'A150_E'], ['A90_E', 'A90_E'], ['A90_E', 'A150_E'], ['A150_E', 'A150_E']])
-corr_ordering = np.array([['A90_T', 'A90_T'], ['A90_T', 'A150_T'], ['A150_T', 'A150_T'], ['A90_T', 'A90_E'], ['A90_T', 'A150_E'], ['A150_T', 'A90_E'], ['A150_T', 'A150_E'], ['A90_E', 'A90_E'], ['A90_E', 'A150_E'], ['A150_E', 'A150_E']])
+corr_ordering = np.array([['A90_T', 'A90_T'], ['A90_T', 'A150_T'], ['A150_T', 'A150_T'], ['A90_T', 'A90_E'], ['A90_T', 'A150_E'], ['A90_E', 'A150_T'], ['A150_T', 'A150_E'], ['A90_E', 'A90_E'], ['A90_E', 'A150_E'], ['A150_E', 'A150_E']])
 
 def get_tracer_from_name(name, exp_sample=None):
     if name=='A90':
@@ -32,6 +31,7 @@ precis = sacc.Precision(cov)
 windows = {}
 windows['TT'] = np.loadtxt(datadir + 'TT_C_ell_bpwf_v2_lmin2.dat')
 windows['TE'] = np.loadtxt(datadir + 'TE_C_ell_bpwf_v2_lmin2.dat')
+windows['ET'] = np.loadtxt(datadir + 'TE_C_ell_bpwf_v2_lmin2.dat')
 windows['EE'] = np.loadtxt(datadir + 'EE_C_ell_bpwf_v2_lmin2.dat')
 
 nells = windows['TT'].shape[0]
