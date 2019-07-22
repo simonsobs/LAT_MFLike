@@ -1,2 +1,2 @@
-# SOLAT_mflike
+# LAT_mflike
 Multifrequency Likelihood 
