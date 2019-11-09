@@ -1,4 +1,5 @@
-*LAT Multifrequency Likelihood*
+=================================
+LAT Multifrequency Likelihood
 =================================
 External likelihood using cobaya. 
 
