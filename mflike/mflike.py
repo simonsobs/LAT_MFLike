@@ -17,15 +17,6 @@ from cobaya.tools import are_different_params_lists
 class mflike(Likelihood):
 
     def initialize(self):
-        try:
-            import fgspectra
-        except:
-            self.log.info("Installing pre-requisites...")
-            from cobaya.install import pip_install
-            gh_http = "git+https://github.com/simonsobs/fgspectra"
-            exit_status = pip_install(gh_http)
-            if exit_status:
-                raise LoggedError(self.log, "Failed installing '%s'.", gh_http)
         if not self.data_folder:
             raise LoggedError(
                 self.log, "No data folder has been set. Set the "
