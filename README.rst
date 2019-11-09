@@ -1,4 +1,4 @@
-#+TITLE: LAT Multifrequency Likelihood 
+#TITLE: LAT Multifrequency Likelihood 
 External likelihood using cobaya. 
 
 * Installating the code
