@@ -1,6 +1,9 @@
 # A simple cobaya likelihood for SO
+
 likelihood:
-  so.toy_likelihood:
+  mflike.mflike:
+    class_name: mflike
+    python_path: /mnt/zfsusers/mabitbol/LAT_MFLike
     data_folder: null
 
     sim_id: null
@@ -87,3 +90,6 @@ params:
       max: 10.60
     proposal: 0.6
     latex: T_d
+
+sampler:
+  mcmc:
