@@ -3,10 +3,10 @@ LAT Multifrequency Likelihood
 =============================
 
 
-External likelihood using ```cobaya`` <https://github.com/CobayaSampler/cobaya>`_.
+External likelihood using `cobaya <https://github.com/CobayaSampler/cobaya>`_.
 
-1 Installing the code
----------------------
+Installing the code
+-------------------
 
 You first need to clone this repository to some location
 
@@ -24,8 +24,8 @@ The ``--develop`` option allow the developer to make changes within the ``mflike
 to reinstall at every changes. If you plan to just use the likelihood and do not develop it, you can
 remove the ``--develop`` option.
 
-2 Testing the code
-------------------
+Testing the code
+----------------
 
 You can test the ``mflike`` likelihood by doing
 
