@@ -1,8 +1,7 @@
 # A simple cobaya likelihood for SO
 
 likelihood:
-  mflike.mflike:
-    class_name: mflike
+  mflike.MFLike:
     python_path: /mnt/zfsusers/mabitbol/LAT_MFLike
     data_folder: null
 

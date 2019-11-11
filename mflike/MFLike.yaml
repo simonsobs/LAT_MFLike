@@ -1,6 +1,6 @@
 # A simple cobaya likelihood for SO/LAT
 likelihood:
-  mflike.mflike:
+  __self__:
     data_folder: null
 
     sim_id: null

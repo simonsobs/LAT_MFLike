@@ -10,5 +10,5 @@ setup(name="mflike",
           "cobaya @ git+ssh://git@github.com/CobayaSampler/cobaya@external_modules#egg=cobaya",
           "sacc"
       ],
-      package_data={"mflike": ["mflike.yaml"]},
+      package_data={"mflike": ["MFLike.yaml"]},
 )

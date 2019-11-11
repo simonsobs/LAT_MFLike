@@ -14,13 +14,14 @@ from cobaya.likelihood import Likelihood
 from cobaya.log import LoggedError
 from cobaya.tools import are_different_params_lists
 
-class mflike(Likelihood):
+
+class MFLike(Likelihood):
 
     def initialize(self):
         if not self.data_folder:
             raise LoggedError(
                 self.log, "No data folder has been set. Set the "
-                "likelihood property 'data_folder'.")
+                          "likelihood property 'data_folder'.")
 
         # State requisites to the theory code
         self.requested_cls = ["tt", "te", "ee"]
@@ -51,21 +52,21 @@ class mflike(Likelihood):
         # Compute chi2
         if self.select == "tt-te-ee":
             th_vec = np.concatenate(
-                [np.dot(self.Bbl[s, spec], Dls[s]+fg_model[s, "all", spec[1], spec[3]])
+                [np.dot(self.Bbl[s, spec], Dls[s] + fg_model[s, "all", spec[1], spec[3]])
                  for s in self.requested_cls for spec in self.spec_list])
         else:
             th_vec = np.concatenate(
-                [np.dot(self.Bbl[select, spec], Dls[select]+fg_model[select, "all", spec[1], spec[3]])
+                [np.dot(self.Bbl[self.select, spec], Dls[self.select] + fg_model[self.select, "all", spec[1], spec[3]])
                  for spec in self.spec_list])
 
         delta = self.data_vec - th_vec
-        logp = -0.5*np.dot(delta, self.inv_cov.dot(delta))
+        logp = -0.5 * np.dot(delta, self.inv_cov.dot(delta))
         self.log.debug("X² value computed = {}".format(logp))
         return logp
 
     def _prepare_data(self):
         self.Bbl = {}
-        self.data_vec = {s:[] for s in self.requested_cls}
+        self.data_vec = {s: [] for s in self.requested_cls}
         self.spec_list = []
 
         # Internal function to check for file existence
@@ -73,7 +74,7 @@ class mflike(Likelihood):
             if not os.path.exists(fname):
                 raise LoggedError(
                     self.log, "The {} file was not found within "
-                    "{} directory.".format(os.path.basename(fname), self.data_folder))
+                              "{} directory.".format(os.path.basename(fname), self.data_folder))
             return fname
 
         # Load cross power spectra
@@ -97,7 +98,7 @@ class mflike(Likelihood):
                                         self.data_folder, spec_name, s.upper())))
                                 if s == "te":
                                     self.data_vec[s] = np.append(
-                                        self.data_vec[s], (ps["te"]+ps["et"])/2)
+                                        self.data_vec[s], (ps["te"] + ps["et"]) / 2)
                                 else:
                                     self.data_vec[s] = np.append(self.data_vec[s], ps[s])
                             self.spec_list += [spec]
@@ -112,16 +113,16 @@ class mflike(Likelihood):
             for count, s in enumerate(self.requested_cls):
                 if select == s:
                     n_bins = int(cov_mat.shape[0])
-                    cov_mat = cov_mat[count*n_bins//3:(count+1)*n_bins//3,
-                                      count*n_bins//3:(count+1)*n_bins//3]
+                    cov_mat = cov_mat[count * n_bins // 3:(count + 1) * n_bins // 3,
+                              count * n_bins // 3:(count + 1) * n_bins // 3]
         # Store inverted covariance matrix
         self.inv_cov = np.linalg.inv(cov_mat)
 
     def _read_spectra(self, fname):
         data = np.loadtxt(fname)
         l = data[:, 0]
-        spectra = ["tt","te","tb","et","bt","ee","eb","be","bb"]
-        ps = {f: data[:, c+1] for c,f in enumerate(spectra)}
+        spectra = ["tt", "te", "tb", "et", "bt", "ee", "eb", "be", "bb"]
+        ps = {f: data[:, c + 1] for c, f in enumerate(spectra)}
         return l, ps
 
     def _get_foreground_model(self, fg_params):
@@ -141,11 +142,11 @@ class mflike(Likelihood):
         from fgspectra import power as fgp
         from fgspectra import frequency as fgf
         cirrus = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
-        ksz    = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.kSZ_bat())
-        cibp   = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
-        radio  = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
-        tsz    = fgc.FactorizedCrossSpectrum(fgf.ThermalSZ(), fgp.tSZ_150_bat())
-        cibc   = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerLaw())
+        ksz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.kSZ_bat())
+        cibp = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
+        radio = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
+        tsz = fgc.FactorizedCrossSpectrum(fgf.ThermalSZ(), fgp.tSZ_150_bat())
+        cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerLaw())
 
         model = {}
         model["tt", "kSZ"] = fg_params["a_kSZ"] * ksz(
@@ -165,7 +166,7 @@ class mflike(Likelihood):
             {"ell": l, "ell_0": ell_0, "alpha": 2 - fg_params["n_CIBC"]})
 
         components = foregrounds["components"]
-        component_list = {s:components[s] for s in self.requested_cls}
+        component_list = {s: components[s] for s in self.requested_cls}
         fg_model = {}
         for c1, f1 in enumerate(all_freqs):
             for c2, f2 in enumerate(all_freqs):
