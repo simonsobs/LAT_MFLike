@@ -111,7 +111,7 @@ class MFLike(Likelihood):
             self.data_vec = np.concatenate([self.data_vec[s] for s in self.requested_cls])
         else:
             for count, s in enumerate(self.requested_cls):
-                if select == s:
+                if self.select == s:
                     n_bins = int(cov_mat.shape[0])
                     cov_mat = cov_mat[count * n_bins // 3:(count + 1) * n_bins // 3,
                               count * n_bins // 3:(count + 1) * n_bins // 3]
