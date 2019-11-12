@@ -18,9 +18,9 @@ Then you can install the ``mflike`` likelihood and its dependencies *via*
 
 .. code:: shell
 
-    $ pip install --develop /where/to/clone
+    $ pip install -e /where/to/clone
 
-The ``--develop`` option allow the developer to make changes within the ``mflike`` directory without having
+The ``-e`` option allow the developer to make changes within the ``mflike`` directory without having
 to reinstall at every changes. If you plan to just use the likelihood and do not develop it, you can
 remove the ``--develop`` option.
 
