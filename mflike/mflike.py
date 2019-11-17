@@ -2,7 +2,7 @@
 .. module:: mflike
 
 :Synopsis: Definition of simplistic likelihood for Simons Observatory
-:Authors: Thibaut Louis, Xavier Garrido, Max Abitbol, Erminia Calabrese 
+:Authors: Thibaut Louis, Xavier Garrido, Max Abitbol, Erminia Calabrese, Antony Lewis
 
 """
 # Global
@@ -42,26 +42,10 @@ class MFLike(Likelihood):
         self.theory.needs(Cl=dict(zip(self.requested_cls, self.l_maxs_cls)))
 
     def logp(self, **params_values):
-        # Get Cl's from the theory code
-        cl = self.theory.get_Cl(ell_factor=True)
-        Dls = {s: cl[s][2:lmax] for s, lmax in zip(
-            self.requested_cls, self.l_maxs_cls)}
-        # Get new foreground model given its nuisance parameters
-        fg_model = self._get_foreground_model(
-            {k: params_values[k] for k in self.expected_params})
-        # Compute chi2
-        if self.select == "tt-te-ee":
-            th_vec = np.concatenate(
-                [np.dot(self.Bbl[s, spec], Dls[s] + fg_model[s, "all", spec[1], spec[3]])
-                 for s in self.requested_cls for spec in self.spec_list])
-        else:
-            th_vec = np.concatenate(
-                [np.dot(self.Bbl[self.select, spec], Dls[self.select] + fg_model[self.select, "all", spec[1], spec[3]])
-                 for spec in self.spec_list])
-
-        delta = self.data_vec - th_vec
+        ps_vec = self._get_power_spectra(**params_values)
+        delta = self.data_vec - ps_vec
         logp = -0.5 * np.dot(delta, self.inv_cov.dot(delta))
-        self.log.debug("X² value computed = {}".format(logp))
+        self.log.debug("Log-likelihood value computed = {} (Χ² = {})".format(logp, -2*logp))
         return logp
 
     def _prepare_data(self):
@@ -124,6 +108,25 @@ class MFLike(Likelihood):
         spectra = ["tt", "te", "tb", "et", "bt", "ee", "eb", "be", "bb"]
         ps = {f: data[:, c + 1] for c, f in enumerate(spectra)}
         return l, ps
+
+    def _get_power_spectra(self, **params_values):
+        # Get Cl's from the theory code
+        cl = self.theory.get_Cl(ell_factor=True)
+        Dls = {s: cl[s][2:lmax] for s, lmax in zip(
+            self.requested_cls, self.l_maxs_cls)}
+        # Get new foreground model given its nuisance parameters
+        fg_model = self._get_foreground_model(
+            {k: params_values[k] for k in self.expected_params})
+        # Compute chi2
+        if self.select == "tt-te-ee":
+            ps_vec = np.concatenate(
+                [np.dot(self.Bbl[s, spec], Dls[s] + fg_model[s, "all", spec[1], spec[3]])
+                 for s in self.requested_cls for spec in self.spec_list])
+        else:
+            ps_vec = np.concatenate(
+                [np.dot(self.Bbl[self.select, spec], Dls[self.select] + fg_model[self.select, "all", spec[1], spec[3]])
+                 for spec in self.spec_list])
+        return ps_vec
 
     def _get_foreground_model(self, fg_params):
         # Might change given different lmax
