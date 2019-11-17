@@ -24,6 +24,10 @@ The ``-e`` option allow the developer to make changes within the ``mflike`` dire
 to reinstall at every changes. If you plan to just use the likelihood and do not develop it, you can
 remove the ``--develop`` option.
 
+**NB:** If ``cobaya`` is already installed on your system, make sure to uninstall it first or to run
+the previous ``pip install`` command in a virtual python environment where no ``cobaya``
+installation has been done.
+
 Testing the code
 ----------------
 
