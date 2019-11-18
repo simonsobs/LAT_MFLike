@@ -22,7 +22,7 @@ Then you can install the ``mflike`` likelihood and its dependencies *via*
 
 The ``-e`` option allow the developer to make changes within the ``mflike`` directory without having
 to reinstall at every changes. If you plan to just use the likelihood and do not develop it, you can
-remove the ``--develop`` option.
+remove the ``-e`` option.
 
 **NB:** If ``cobaya`` is already installed on your system, make sure to uninstall it first or to run
 the previous ``pip install`` command in a virtual python environment where no ``cobaya``
