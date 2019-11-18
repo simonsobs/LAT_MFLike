@@ -55,4 +55,4 @@ You can test the ``mflike`` likelihood by doing
 
 which should run a MCMC sampler for the first simulation (*i.e.* ``sim_id: 0`` in the
 ``test_mflike.yaml`` file) using the combination of TT, TE and EE spectra (*i.e.* ``select:
-tt-te-ee``). The results will stored in the ``chains/mcmc`` directory.
+tt-te-ee``). The results will be stored in the ``chains/mcmc`` directory.
