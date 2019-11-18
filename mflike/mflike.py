@@ -10,14 +10,25 @@ import os
 import numpy as np
 
 # Local
-from cobaya.likelihood import Likelihood
 from cobaya.log import LoggedError
 from cobaya.tools import are_different_params_lists
+from cobaya.conventions import _path_install
+from cobaya.likelihoods._base_classes import _InstallableLikelihood
 
-
-class MFLike(Likelihood):
+class MFLike(_InstallableLikelihood):
+    install_options = {"github_repository": "simonsobs/LAT_MFLike_data", "github_release": "master"}
 
     def initialize(self):
+        self.log.info("Initialising.")
+        if not getattr(self, "path", None) and not getattr(self, "path_install", None):
+            raise LoggedError(
+                self.log, "No path given to MFLike data. Set the likelihood property "
+                          "'path' or the common property '%s'.", _path_install)
+        # If no path specified, use the modules path
+        data_file_path = os.path.normpath(getattr(self, "path", None) or
+                                          os.path.join(self.path_install, "data"))
+
+        # self.data_folder = os.path.join(self.path_install, "data")
         if not self.data_folder:
             raise LoggedError(
                 self.log, "No data folder has been set. Set the "

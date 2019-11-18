@@ -1,6 +1,7 @@
 # A simple cobaya likelihood for SO/LAT
 likelihood:
   __self__:
+    path: null
     data_folder: null
 
     sim_id: null
