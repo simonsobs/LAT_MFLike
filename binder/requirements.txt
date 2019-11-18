@@ -1,0 +1,4 @@
+matplotlib
+fgspectra @ git+https://github.com/simonsobs/fgspectra@master#egg=fgspectra
+cobaya @ git+https://github.com/CobayaSampler/cobaya@devel#egg=cobaya
+mflike @ git+https://github.com/simonsobs/LAT_MFLike@master#egg=mflike
