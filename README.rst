@@ -31,7 +31,7 @@ installation has been done.
 Installing LAT likelihood data
 ------------------------------
 
-Preliminary simulated data can be found in the `LAT_MFLike_data repository
+Preliminary simulated data can be found in the ``LAT_MFLike_data`` `repository
 <https://github.com/simonsobs/LAT_MFLike_data>`_. You can download them by yourself but you can also
 use the ``cobaya-install`` binary and let it do the installation job. For instance, if you do the
 next command
