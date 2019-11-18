@@ -81,7 +81,7 @@ class MFLike(_InstallableLikelihood):
                             if exp1 == exp2 and id_f1 > id_f2: continue
 
                             spec = (exp1, f1, exp2, f2)
-                            spec_name = "{}_{}x{}_{}".format(exp1, f1, exp2, f2)
+                            spec_name = "{}_{}x{}_{}".format(*spec)
                             file_name = "{}/Dl_{}".format(self.data_folder, spec_name)
                             file_name += "_{:05d}.dat".format(self.sim_id) \
                                 if isinstance(self.sim_id, int) else ".dat"
@@ -105,11 +105,12 @@ class MFLike(_InstallableLikelihood):
         if self.select == "tt-te-ee":
             self.data_vec = np.concatenate([self.data_vec[s] for s in self.requested_cls])
         else:
+            self.data_vec = self.data_vec[self.select]
             for count, s in enumerate(self.requested_cls):
                 if self.select == s:
                     n_bins = int(cov_mat.shape[0])
                     cov_mat = cov_mat[count * n_bins // 3:(count + 1) * n_bins // 3,
-                              count * n_bins // 3:(count + 1) * n_bins // 3]
+                                      count * n_bins // 3:(count + 1) * n_bins // 3]
         # Store inverted covariance matrix
         self.inv_cov = np.linalg.inv(cov_mat)
 
