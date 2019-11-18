@@ -16,7 +16,7 @@ from cobaya.conventions import _path_install
 from cobaya.likelihoods._base_classes import _InstallableLikelihood
 
 class MFLike(_InstallableLikelihood):
-    install_options = {"github_repository": "simonsobs/LAT_MFLike_data", "github_release": "master"}
+    install_options = {"github_repository": "simonsobs/LAT_MFLike_data", "github_release": "v0.1"}
 
     def initialize(self):
         self.log.info("Initialising.")
@@ -28,11 +28,11 @@ class MFLike(_InstallableLikelihood):
         data_file_path = os.path.normpath(getattr(self, "path", None) or
                                           os.path.join(self.path_install, "data"))
 
-        # self.data_folder = os.path.join(self.path_install, "data")
-        if not self.data_folder:
+        self.data_folder = os.path.join(data_file_path, self.data_folder)
+        if not os.path.exists(self.data_folder):
             raise LoggedError(
-                self.log, "No data folder has been set. Set the "
-                          "likelihood property 'data_folder'.")
+                self.log, "The 'data_folder' directory does not exist. "
+                "Check the given path [%s].", self.data_folder)
 
         # State requisites to the theory code
         self.requested_cls = ["tt", "te", "ee"]

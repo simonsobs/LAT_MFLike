@@ -2,7 +2,7 @@
 likelihood:
   __self__:
     path: null
-    data_folder: null
+    data_folder: LAT_MFLike_data/like_products
 
     sim_id: null
 
