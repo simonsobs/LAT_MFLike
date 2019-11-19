@@ -16,7 +16,8 @@ from cobaya.conventions import _path_install
 from cobaya.likelihoods._base_classes import _InstallableLikelihood
 
 class MFLike(_InstallableLikelihood):
-    install_options = {"github_repository": "simonsobs/LAT_MFLike_data", "github_release": "v0.1"}
+    install_options = {"github_repository": "simonsobs/LAT_MFLike_data",
+                       "github_release": "v0.1"}
 
     def initialize(self):
         self.log.info("Initialising.")
@@ -37,10 +38,10 @@ class MFLike(_InstallableLikelihood):
         # State requisites to the theory code
         self.requested_cls = ["tt", "te", "ee"]
 
+        self.expected_params = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
+                                "a_c", "beta_c", "n_CIBC", "a_s", "T_d"]
         if hasattr(self, "input_params"):
             # Check that the parameters are the right ones
-            self.expected_params = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
-                                    "a_c", "beta_c", "n_CIBC", "a_s", "T_d"]
             differences = are_different_params_lists(
                 self.input_params, self.expected_params, name_A="given", name_B="expected")
             if differences:
