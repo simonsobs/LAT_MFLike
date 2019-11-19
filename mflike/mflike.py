@@ -37,26 +37,32 @@ class MFLike(_InstallableLikelihood):
         # State requisites to the theory code
         self.requested_cls = ["tt", "te", "ee"]
 
-        # Check that the parameters are the right ones
-        self.expected_params = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
-                                "a_c", "beta_c", "n_CIBC", "a_s", "T_d"]
-        differences = are_different_params_lists(
-            self.input_params, self.expected_params, name_A="given", name_B="expected")
-        if differences:
-            raise LoggedError(
-                self.log, "Configuration error in parameters: %r.", differences)
+        if hasattr(self, "input_params"):
+            # Check that the parameters are the right ones
+            self.expected_params = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
+                                    "a_c", "beta_c", "n_CIBC", "a_s", "T_d"]
+            differences = are_different_params_lists(
+                self.input_params, self.expected_params, name_A="given", name_B="expected")
+            if differences:
+                raise LoggedError(
+                    self.log, "Configuration error in parameters: %r.", differences)
         self._prepare_data()
 
-    def add_theory(self):
+    def get_requirements(self):
         # Same lmax for different cls
         self.l_maxs_cls = [self.lmax for i in self.requested_cls]
-        self.theory.needs(Cl=dict(zip(self.requested_cls, self.l_maxs_cls)))
+        return dict(Cl=dict(zip(self.requested_cls, self.l_maxs_cls)))
 
     def logp(self, **params_values):
-        ps_vec = self._get_power_spectra(**params_values)
+        cl = self.theory.get_Cl(ell_factor=True)
+        return self.loglike(cl, **params_values)
+
+    def loglike(self, cl, **params_values):
+        ps_vec = self._get_power_spectra(cl, **params_values)
         delta = self.data_vec - ps_vec
         logp = -0.5 * np.dot(delta, self.inv_cov.dot(delta))
-        self.log.debug("Log-likelihood value computed = {} (Χ² = {})".format(logp, -2*logp))
+        self.log.debug(
+            "Log-likelihood value computed = {} (Χ² = {})".format(logp, -2 * logp))
         return logp
 
     def _prepare_data(self):
@@ -121,9 +127,8 @@ class MFLike(_InstallableLikelihood):
         ps = {f: data[:, c + 1] for c, f in enumerate(spectra)}
         return l, ps
 
-    def _get_power_spectra(self, **params_values):
+    def _get_power_spectra(self, cl, **params_values):
         # Get Cl's from the theory code
-        cl = self.theory.get_Cl(ell_factor=True)
         Dls = {s: cl[s][2:lmax] for s, lmax in zip(
             self.requested_cls, self.l_maxs_cls)}
         # Get new foreground model given its nuisance parameters
@@ -132,11 +137,13 @@ class MFLike(_InstallableLikelihood):
         # Compute chi2
         if self.select == "tt-te-ee":
             ps_vec = np.concatenate(
-                [np.dot(self.Bbl[s, spec], Dls[s] + fg_model[s, "all", spec[1], spec[3]])
+                [np.dot(self.Bbl[s, spec],
+                        Dls[s] + fg_model[s, "all", spec[1], spec[3]])
                  for s in self.requested_cls for spec in self.spec_list])
         else:
             ps_vec = np.concatenate(
-                [np.dot(self.Bbl[self.select, spec], Dls[self.select] + fg_model[self.select, "all", spec[1], spec[3]])
+                [np.dot(self.Bbl[self.select, spec],
+                        Dls[self.select] + fg_model[self.select, "all", spec[1], spec[3]])
                  for spec in self.spec_list])
         return ps_vec
 
