@@ -28,13 +28,31 @@ remove the ``-e`` option.
 the previous ``pip install`` command in a virtual python environment where no ``cobaya``
 installation has been done.
 
-Testing the code
-----------------
+Installing LAT likelihood data
+------------------------------
+
+Preliminary simulated data can be found in the ``LAT_MFLike_data`` `repository
+<https://github.com/simonsobs/LAT_MFLike_data>`_. You can download them by yourself but you can also
+use the ``cobaya-install`` binary and let it do the installation job. For instance, if you do the
+next command
+
+.. code:: shell
+
+    $ cobaya-install /where/to/clone/tests/test_mflike.yaml -m /where/to/put/modules
+
+data and code such as `CAMB <https://github.com/cmbant/CAMB>`_ will be downloaded and installed
+within the ``/where/to/put/modules`` directory. For more details, you can have a look to ``cobaya``
+`documentation <https://cobaya.readthedocs.io/en/latest/installation_cosmo.html>`_.
+
+Running/testing the code
+------------------------
 
 You can test the ``mflike`` likelihood by doing
 
 .. code:: shell
 
-    $ cobaya-run /where/to/clone/tests/test_mflike.yaml
+    $ cobaya-run /where/to/clone/tests/test_mflike.yaml -m /where/to/put/modules
 
-which should run a MCMC sampler. Make sure `CAMB <https://github.com/cmbant/CAMB>`_ is properly installed (for instance, by typing ``pip install camb``).
+which should run a MCMC sampler for the first simulation (*i.e.* ``sim_id: 0`` in the
+``test_mflike.yaml`` file) using the combination of TT, TE and EE spectra (*i.e.* ``select:
+tt-te-ee``). The results will be stored in the ``chains/mcmc`` directory.

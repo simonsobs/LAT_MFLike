@@ -1,7 +1,8 @@
 # A simple cobaya likelihood for SO/LAT
 likelihood:
   __self__:
-    data_folder: null
+    path: null
+    data_folder: LAT_MFLike_data/like_products
 
     sim_id: null
 
