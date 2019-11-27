@@ -15,6 +15,7 @@ from cobaya.tools import are_different_params_lists
 from cobaya.conventions import _path_install
 from cobaya.likelihoods._base_classes import _InstallableLikelihood
 
+
 class MFLike(_InstallableLikelihood):
     install_options = {"github_repository": "simonsobs/LAT_MFLike_data",
                        "github_release": "v0.1"}
@@ -33,21 +34,22 @@ class MFLike(_InstallableLikelihood):
         if not os.path.exists(self.data_folder):
             raise LoggedError(
                 self.log, "The 'data_folder' directory does not exist. "
-                "Check the given path [%s].", self.data_folder)
+                          "Check the given path [%s].", self.data_folder)
 
         # State requisites to the theory code
         self.requested_cls = ["tt", "te", "ee"]
 
         self.expected_params = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
                                 "a_c", "beta_c", "n_CIBC", "a_s", "T_d"]
-        if hasattr(self, "input_params"):
-            # Check that the parameters are the right ones
-            differences = are_different_params_lists(
-                self.input_params, self.expected_params, name_A="given", name_B="expected")
-            if differences:
-                raise LoggedError(
-                    self.log, "Configuration error in parameters: %r.", differences)
         self._prepare_data()
+
+    def initialize_with_params(self):
+        # Check that the parameters are the right ones
+        differences = are_different_params_lists(
+            self.input_params, self.expected_params, name_A="given", name_B="expected")
+        if differences:
+            raise LoggedError(
+                self.log, "Configuration error in parameters: %r.", differences)
 
     def get_requirements(self):
         # Same lmax for different cls
@@ -117,7 +119,7 @@ class MFLike(_InstallableLikelihood):
                 if self.select == s:
                     n_bins = int(cov_mat.shape[0])
                     cov_mat = cov_mat[count * n_bins // 3:(count + 1) * n_bins // 3,
-                                      count * n_bins // 3:(count + 1) * n_bins // 3]
+                              count * n_bins // 3:(count + 1) * n_bins // 3]
         # Store inverted covariance matrix
         self.inv_cov = np.linalg.inv(cov_mat)
 
