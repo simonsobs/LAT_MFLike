@@ -38,6 +38,8 @@ class MFLike(_InstallableLikelihood):
 
         # State requisites to the theory code
         self.requested_cls = ["tt", "te", "ee"]
+        # Same lmax for different cls
+        self.l_maxs_cls = [self.lmax for i in self.requested_cls]
 
         self.expected_params = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
                                 "a_c", "beta_c", "n_CIBC", "a_s", "T_d"]
@@ -52,8 +54,6 @@ class MFLike(_InstallableLikelihood):
                 self.log, "Configuration error in parameters: %r.", differences)
 
     def get_requirements(self):
-        # Same lmax for different cls
-        self.l_maxs_cls = [self.lmax for i in self.requested_cls]
         return dict(Cl=dict(zip(self.requested_cls, self.l_maxs_cls)))
 
     def logp(self, **params_values):
