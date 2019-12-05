@@ -2,14 +2,14 @@
 LAT Multifrequency Likelihood
 =============================
 
+An external likelihood using `cobaya <https://github.com/CobayaSampler/cobaya>`_.
+
 .. image:: https://travis-ci.com/simonsobs/LAT_MFLike.svg?branch=master
    :target: https://travis-ci.com/simonsobs/LAT_MFLike
 
 .. image:: https://mybinder.org/badge_logo.svg
    :target: https://mybinder.org/v2/gh/simonsobs/LAT_MFLike/binder?filepath=notebooks%2Fmflike_tutorial.ipynb
 
-
-External likelihood using `cobaya <https://github.com/CobayaSampler/cobaya>`_.
 
 Installing the code
 -------------------
