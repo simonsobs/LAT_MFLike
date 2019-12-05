@@ -2,6 +2,12 @@
 LAT Multifrequency Likelihood
 =============================
 
+.. image:: https://travis-ci.com/simonsobs/LAT_MFLike.svg?branch=master
+   :target: https://travis-ci.com/simonsobs/LAT_MFLike
+
+.. image:: https://mybinder.org/badge_logo.svg
+   :target: https://mybinder.org/v2/gh/simonsobs/LAT_MFLike/binder?filepath=notebooks%2Fmflike_tutorial.ipynb
+
 
 External likelihood using `cobaya <https://github.com/CobayaSampler/cobaya>`_.
 
@@ -56,8 +62,3 @@ You can test the ``mflike`` likelihood by doing
 which should run a MCMC sampler for the first simulation (*i.e.* ``sim_id: 0`` in the
 ``test_mflike.yaml`` file) using the combination of TT, TE and EE spectra (*i.e.* ``select:
 tt-te-ee``). The results will be stored in the ``chains/mcmc`` directory.
-
-You can also have a look into the interactive tutorial
-
-.. image:: https://mybinder.org/badge_logo.svg
- :target: https://mybinder.org/v2/gh/simonsobs/LAT_MFLike/binder?filepath=notebooks%2Fmflike_tutorial.ipynb
