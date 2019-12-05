@@ -1,36 +1,35 @@
 # A simple cobaya likelihood for SO/LAT
-likelihood:
-  __self__:
-    path: null
-    data_folder: LAT_MFLike_data/like_products
 
-    sim_id: null
+path: null
+data_folder: LAT_MFLike_data/like_products
 
-    select: tt-te-ee
+sim_id: null
 
-    experiments:
-      - LAT:
-        - 93  # GHz
-        - 145 # GHz
-        - 225 # GHz
+select: tt-te-ee
 
-    foregrounds:
-      normalisation:
-        nu_0: 150.0
-        ell_0: 3000
-        T_CMB: 2.725
+experiments:
+  - LAT:
+    - 93  # GHz
+    - 145 # GHz
+    - 225 # GHz
 
-      components:
-        tt:
-          - kSZ
-          - cibp
-          - radio
-          - tSZ
-          - cibc
-        te: []
-        ee: []
+foregrounds:
+  normalisation:
+    nu_0: 150.0
+    ell_0: 3000
+    T_CMB: 2.725
 
-    lmax: 6002
+  components:
+    tt:
+      - kSZ
+      - cibp
+      - radio
+      - tSZ
+      - cibc
+    te: []
+    ee: []
+
+lmax: 6002
 
 params:
   # Foregrounds

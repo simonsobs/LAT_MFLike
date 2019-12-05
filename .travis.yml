@@ -1,0 +1,21 @@
+language: python
+
+dist: bionic
+
+python:
+  - "3.6"
+  - "3.7"
+  - "3.8"
+
+before_install:
+  - sudo apt-get update
+  - sudo apt-get -y install gfortran
+  - gfortran --version
+  - python --version
+  - pip install camb==1.0.12
+
+install:
+  - pip install .
+
+script:
+  - python -m unittest mflike.tests.test_mflike
