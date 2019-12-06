@@ -8,7 +8,7 @@ An external likelihood using `cobaya <https://github.com/CobayaSampler/cobaya>`_
    :target: https://travis-ci.com/simonsobs/LAT_MFLike
 
 .. image:: https://mybinder.org/badge_logo.svg
-   :target: https://mybinder.org/v2/gh/simonsobs/LAT_MFLike/binder?filepath=notebooks%2Fmflike_tutorial.ipynb
+   :target: https://mybinder.org/v2/gh/simonsobs/LAT_MFLike/master?filepath=notebooks%2Fmflike_tutorial.ipynb
 
 
 Installing the code
