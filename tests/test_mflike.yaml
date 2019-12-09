@@ -59,6 +59,14 @@ params:
   sigma8:
     latex: \sigma_8
 
+  # Fixed values of nuisance
+  n_CIBC:
+    value: 1.20
+    latex: n_\mathrm{CIBC}
+  T_d:
+    value: 9.60
+    latex: T_d
+
 theory:
   camb:
     stop_at_error: False
