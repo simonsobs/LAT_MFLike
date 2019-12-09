@@ -1,7 +1,7 @@
 import unittest
 import os
 
-modules_path = os.environ.get("COBAYA_MODULES_PATH") or "/tmp/modules"
+modules_path = os.environ.get("COBAYA_MODULES") or "/tmp/modules"
 
 cosmo_params = {
     "cosmomc_theta": 0.0104085,
