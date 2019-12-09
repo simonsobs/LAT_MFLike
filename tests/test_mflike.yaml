@@ -62,6 +62,8 @@ params:
 theory:
   camb:
     stop_at_error: False
+    extra_args:
+      lens_potential_accuracy: 1
 
 sampler:
   mcmc:
