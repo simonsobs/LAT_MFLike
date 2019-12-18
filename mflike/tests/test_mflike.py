@@ -51,7 +51,7 @@ class MFLikeTest(unittest.TestCase):
             my_mflike = MFLike({"path_install": modules_path,
                                 "sim_id": 0, "select": select})
             loglike = my_mflike.loglike(cl_dict, **nuisance_params)
-            self.assertAlmostEqual(-2 * loglike, chi2, 3)
+            self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 3)
 
     def test_cobaya(self):
         info = {"likelihood": {"mflike.MFLike": {"sim_id": 0}},
@@ -60,5 +60,6 @@ class MFLikeTest(unittest.TestCase):
                 "modules": modules_path}
         from cobaya.model import get_model
         model = get_model(info)
-        chi2 = -2 * model.loglikes(nuisance_params)[0]
+        my_mflike = model.likelihood["mflike.MFLike"]
+        chi2 = -2 * (model.loglikes(nuisance_params)[0] - my_mflike.logp_const)
         self.assertAlmostEqual(chi2[0], chi2s["tt-te-ee"], 3)

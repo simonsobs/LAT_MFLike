@@ -63,7 +63,7 @@ class MFLike(_InstallableLikelihood):
     def loglike(self, cl, **params_values):
         ps_vec = self._get_power_spectra(cl, **params_values)
         delta = self.data_vec - ps_vec
-        logp = -0.5 * np.dot(delta, self.inv_cov.dot(delta))
+        logp = -0.5 * np.dot(delta, self.inv_cov.dot(delta)) + self.logp_const
         self.log.debug(
             "Log-likelihood value computed = {} (Χ² = {})".format(logp, -2 * logp))
         return logp
@@ -122,6 +122,9 @@ class MFLike(_InstallableLikelihood):
                               count * n_bins // 3:(count + 1) * n_bins // 3]
         # Store inverted covariance matrix
         self.inv_cov = np.linalg.inv(cov_mat)
+        self.logp_const = np.log(2 * np.pi) * (-len(self.data_vec) / 2) + np.linalg.slogdet(cov_mat)[1] * (
+            -1 / 2
+        )
 
     def _read_spectra(self, fname):
         data = np.loadtxt(fname)
