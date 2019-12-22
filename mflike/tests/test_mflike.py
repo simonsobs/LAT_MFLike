@@ -26,10 +26,10 @@ nuisance_params= {
 }
 
 chi2s = {
-    "tt": 482.3467,
-    "te": 487.6017,
-    "ee": 542.8604,
-    "tt-te-ee": 1536.6415}
+    "tt": 490.4163,
+    "te": 482.3090,
+    "ee": 511.1752,
+    "tt-te-ee": 1488.9766}
 
 class MFLikeTest(unittest.TestCase):
     def setUp(self):
@@ -41,7 +41,7 @@ class MFLikeTest(unittest.TestCase):
         my_mflike = MFLike({"path_install": modules_path, "sim_id": 0})
         import camb
         camb_cosmo = cosmo_params.copy()
-        camb_cosmo.update({"lmax": my_mflike.lmax, "lens_potential_accuracy": 1})
+        camb_cosmo.update({"lmax": 9000, "lens_potential_accuracy": 1})
         pars = camb.set_params(**camb_cosmo)
         results = camb.get_results(pars)
         powers = results.get_cmb_power_spectra(pars, CMB_unit="muK")
