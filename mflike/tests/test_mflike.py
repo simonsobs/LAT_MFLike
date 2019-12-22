@@ -37,8 +37,6 @@ class MFLikeTest(unittest.TestCase):
         install({"likelihood": {"mflike.MFLike": None}}, path=modules_path)
 
     def test_mflike(self):
-        from mflike import MFLike
-        my_mflike = MFLike({"path_install": modules_path, "sim_id": 0})
         import camb
         camb_cosmo = cosmo_params.copy()
         camb_cosmo.update({"lmax": 9000, "lens_potential_accuracy": 1})
@@ -48,10 +46,11 @@ class MFLikeTest(unittest.TestCase):
         cl_dict = {k: powers["total"][:, v]
                    for k, v in {"tt": 0, "ee": 1, "te": 3}.items()}
         for select, chi2 in chi2s.items():
+            from mflike import MFLike
             my_mflike = MFLike({"path_install": modules_path,
                                 "sim_id": 0, "select": select})
             loglike = my_mflike.loglike(cl_dict, **nuisance_params)
-            self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 3)
+            self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 2)
 
     def test_cobaya(self):
         info = {"likelihood": {"mflike.MFLike": {"sim_id": 0}},
@@ -62,4 +61,4 @@ class MFLikeTest(unittest.TestCase):
         model = get_model(info)
         my_mflike = model.likelihood["mflike.MFLike"]
         chi2 = -2 * (model.loglikes(nuisance_params)[0] - my_mflike.logp_const)
-        self.assertAlmostEqual(chi2[0], chi2s["tt-te-ee"], 3)
+        self.assertAlmostEqual(chi2[0], chi2s["tt-te-ee"], 2)
