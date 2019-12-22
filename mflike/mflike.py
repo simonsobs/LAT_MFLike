@@ -18,7 +18,7 @@ from cobaya.likelihoods._base_classes import _InstallableLikelihood
 
 class MFLike(_InstallableLikelihood):
     install_options = {"github_repository": "simonsobs/LAT_MFLike_data",
-                       "github_release": "v0.1"}
+                       "github_release": "v0.2"}
 
     def initialize(self):
         self.log.info("Initialising.")
@@ -54,7 +54,7 @@ class MFLike(_InstallableLikelihood):
                 self.log, "Configuration error in parameters: %r.", differences)
 
     def get_requirements(self):
-        return dict(Cl=dict(zip(self.requested_cls, self.l_maxs_cls)))
+        return dict(Cl=dict(zip(self.requested_cls, np.maximum(self.l_maxs_cls, 9000))))
 
     def logp(self, **params_values):
         cl = self.theory.get_Cl(ell_factor=True)
