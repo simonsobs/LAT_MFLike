@@ -12,7 +12,7 @@ before_install:
   - sudo apt-get -y install gfortran
   - gfortran --version
   - python --version
-  - pip install camb==1.0.12
+  - pip install camb
 
 install:
   - pip install .
