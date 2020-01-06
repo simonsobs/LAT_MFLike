@@ -1,17 +1,45 @@
 # A simple cobaya likelihood for SO/LAT
 
-path: null
-data_folder: LAT_MFLike_data/like_products
+data_folder: null
+input_file: null
 
-sim_id: null
+data:
+  experiments:
+    LAT:
+      frequencies: [93, 145, 225]
+    PlanckHFI:
+      frequencies: [545]
+  defaults:
+    polarizations: ['TT', 'TE', 'ET', 'EE']
+    scales:
+      TT: [200, 6002]
+      TE: [200, 6002]
+      ET: [200, 6002]
+      EE: [200, 6002]
 
-select: tt-te-ee
-
-experiments:
-  - LAT:
-    - 93  # GHz
-    - 145 # GHz
-    - 225 # GHz
+  spectra:
+    - experiments: ['LAT', 'LAT']
+      frequencies: [93, 93]
+      polarizations: ['TT','TE','EE']
+      scales:
+        TT: [200, 3001]
+        TE: [200, 3001]
+        EE: [200, 6001]
+    - experiments: ['LAT', 'LAT']
+      frequencies: [93, 145]
+      polarizations: ['TT','TE','ET','EE']
+    - experiments: ['LAT', 'LAT']
+      frequencies: [93, 225]
+      polarizations: ['TT','TE','ET','EE']
+    - experiments: ['LAT', 'LAT']
+      frequencies: [145, 145]
+      polarizations: ['TT','TE','EE']
+    - experiments: ['LAT', 'LAT']
+      frequencies: [145, 225]
+      polarizations: ['TT','TE','ET','EE']
+    - experiments: ['LAT', 'LAT']
+      frequencies: [225, 225]
+      polarizations: ['TT','TE','EE']
 
 foregrounds:
   normalisation:
@@ -28,8 +56,6 @@ foregrounds:
       - cibc
     te: []
     ee: []
-
-lmax: 6002
 
 params:
   # Foregrounds
