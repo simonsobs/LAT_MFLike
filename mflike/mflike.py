@@ -72,6 +72,14 @@ class MFLike(_InstallableLikelihood):
         data = self.data
         input_fname = os.path.join(self.data_folder, self.input_file)
         s = sacc.Sacc.load_fits(input_fname)
+        if self.cov_Bbl_file:
+            if self.cov_Bbl_file != self.input_file:
+                cov_Bbl_fname = os.path.join(self.data_folder, self.cov_Bbl_file)
+                s_b = sacc.Sacc.load_fits(cov_Bbl_fname)
+            else:
+                s_b = s
+        else:
+            s_b = s
 
         try:
             default_cuts = data['defaults']
@@ -160,7 +168,10 @@ class MFLike(_InstallableLikelihood):
                 if verbose:
                     print(tname_1, tname_2, dtype, ind.shape, lmin, lmax)
         # Get rid of all the unselected power spectra
+        indices = np.array(indices)
         s.keep_indices(np.array(indices))
+        if self.cov_Bbl_file:
+            s_b.keep_indices(np.array(indices))
 
         # Now create metadata for each spectrum
         self.spec_meta = []
@@ -180,8 +191,15 @@ class MFLike(_InstallableLikelihood):
                                                          freq_1, freq_2)
                 ind = s.indices(dtype,
                                 (tname_1, tname_2))
-                ls, cls, ws = s.get_ell_cl(dtype, tname_1, tname_2,
-                                           return_windows=True)
+
+                if self.cov_Bbl_file:
+                    ls, cls = s.get_ell_cl(dtype, tname_1, tname_2,
+                                           return_windows=False)
+                    _, _, ws = s_b.get_ell_cl(dtype, tname_1, tname_2,
+                                              return_windows=True)
+                else:
+                    ls, cls, ws = s.get_ell_cl(dtype, tname_1, tname_2,
+                                               return_windows=True)
                 if (pol in ['TE', 'ET']) and symm:
                     pol2 = pol[::-1]
                     pols.remove(pol2)
@@ -189,8 +207,7 @@ class MFLike(_InstallableLikelihood):
                                                              freq_1, freq_2)
                     ind2 = s.indices(dtype,
                                      (tname_1, tname_2))
-                    cls2 = s.get_ell_cl(dtype, tname_1, tname_2,
-                                        return_windows=True)[1]
+                    cls2 = s.get_ell_cl(dtype, tname_1, tname_2)[1]
                     cls = 0.5 * (cls + cls2)
 
                     for i, (j1, j2) in enumerate(zip(ind, ind2)):
@@ -211,7 +228,7 @@ class MFLike(_InstallableLikelihood):
                 index_sofar += cls.size
         self.data_vec = np.dot(mat_compress,s.mean)
         self.cov = np.dot(mat_compress,
-                          s.covariance.covmat.dot(mat_compress.T))
+                          s_b.covariance.covmat.dot(mat_compress.T))
         self.inv_cov = np.linalg.inv(self.cov)
         self.logp_const = np.log(2 * np.pi) * (-len(self.data_vec) / 2) - \
                           0.5 * np.linalg.slogdet(self.cov)[1]

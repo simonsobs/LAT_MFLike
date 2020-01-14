@@ -2,6 +2,7 @@
 
 data_folder: null
 input_file: null
+cov_Bbl_file: null
 
 data:
   experiments:
