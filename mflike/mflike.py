@@ -105,6 +105,7 @@ class MFLike(_InstallableLikelihood):
             # Read off scale cuts
             scls = spectrum.get('scales',
                                 default_cuts['scales']).copy()
+
             # For the same two channels, do not include ET and TE, only TE
             if (exp_1 == exp_2) and (freq_1 == freq_2):
                 if ('ET' in pols):
@@ -112,7 +113,16 @@ class MFLike(_InstallableLikelihood):
                     if ('TE' not in pols):
                         pols.append('TE')
                         scls['TE'] = scls['ET']
-            return exp_1, exp_2, freq_1, freq_2, pols, scls
+                symm = False
+            else:
+                # Symmetrization
+                if ('TE' in pols) and ('ET' in pols):
+                    symm = spectrum.get('symmetrize',
+                                        default_cuts['symmetrize'])
+                else:
+                    symm = False
+
+            return exp_1, exp_2, freq_1, freq_2, pols, scls, symm
 
         def get_sacc_names(pol, exp_1, exp_2, freq_1, freq_2):
             p1, p2 = pol
@@ -131,8 +141,9 @@ class MFLike(_InstallableLikelihood):
 
         # First trim the SACC file
         indices = []
+        len_compressed = 0
         for spectrum in data['spectra']:
-            exp_1, exp_2, freq_1, freq_2, pols, scls = get_cl_meta(spectrum)
+            exp_1, exp_2, freq_1, freq_2, pols, scls, symm = get_cl_meta(spectrum)
             for pol in pols:
                 tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2,
                                                          freq_1, freq_2)
@@ -141,22 +152,25 @@ class MFLike(_InstallableLikelihood):
                                 (tname_1, tname_2),  # Select channel combinations
                                 ell__gt=lmin, ell__lt=lmax)  # Scale cuts
                 indices += list(ind)
+                if symm and pol == 'ET':
+                    pass
+                else:
+                    len_compressed += ind.size
+
                 if verbose:
                     print(tname_1, tname_2, dtype, ind.shape, lmin, lmax)
         # Get rid of all the unselected power spectra
         s.keep_indices(np.array(indices))
-        self.data_vec = s.mean
-        self.cov = s.covariance.covmat + 0.1 * np.identity(len(s.mean))
-        self.inv_cov = np.linalg.inv(self.cov)
-        self.logp_const = np.log(2 * np.pi) * (-len(self.data_vec) / 2) + \
-                          0.5 * np.linalg.slogdet(self.cov)[1] * (-1 / 2)
 
         # Now create metadata for each spectrum
         self.spec_meta = []
+        len_full = s.mean.size
+        mat_compress = np.zeros([len_compressed, len_full])
         bands = {}
         self.lcuts = {k: c[1] for k, c in default_cuts['scales'].items()}
+        index_sofar = 0
         for spectrum in data['spectra']:
-            exp_1, exp_2, freq_1, freq_2, pols, scls = get_cl_meta(spectrum)
+            exp_1, exp_2, freq_1, freq_2, pols, scls, symm = get_cl_meta(spectrum)
             bands[xp_nu(exp_1, freq_1)] = freq_1
             bands[xp_nu(exp_2, freq_2)] = freq_2
             for k in scls.keys():
@@ -168,7 +182,24 @@ class MFLike(_InstallableLikelihood):
                                 (tname_1, tname_2))
                 ls, cls, ws = s.get_ell_cl(dtype, tname_1, tname_2,
                                            return_windows=True)
-                self.spec_meta.append({'ids': ind,
+                if (pol in ['TE', 'ET']) and symm:
+                    pol2 = pol[::-1]
+                    pols.remove(pol2)
+                    tname_1, tname_2, dtype = get_sacc_names(pol2, exp_1, exp_2,
+                                                             freq_1, freq_2)
+                    ind2 = s.indices(dtype,
+                                     (tname_1, tname_2))
+                    cls2 = s.get_ell_cl(dtype, tname_1, tname_2,
+                                        return_windows=True)[1]
+                    cls = 0.5 * (cls + cls2)
+
+                    for i, (j1, j2) in enumerate(zip(ind, ind2)):
+                        mat_compress[index_sofar + i, j1] = 0.5
+                        mat_compress[index_sofar + i, j2] = 0.5
+                else:
+                    for i, j1 in enumerate(ind):
+                        mat_compress[index_sofar + i, j1] = 1
+                self.spec_meta.append({'ids': index_sofar + np.arange(cls.size, dtype=int),
                                        'pol': ppol_dict[pol],
                                        't1': xp_nu(exp_1, freq_1),
                                        't2': xp_nu(exp_2, freq_2),
@@ -177,6 +208,14 @@ class MFLike(_InstallableLikelihood):
                                        'leff': ls,
                                        'cl_data': cls,
                                        'bpw': ws})
+                index_sofar += cls.size
+        self.data_vec = np.dot(mat_compress,s.mean)
+        self.cov = np.dot(mat_compress,
+                          s.covariance.covmat.dot(mat_compress.T))
+        self.inv_cov = np.linalg.inv(self.cov)
+        self.logp_const = np.log(2 * np.pi) * (-len(self.data_vec) / 2) - \
+                          0.5 * np.linalg.slogdet(self.cov)[1]
+
 
         # TODO: we should actually be using bandpass integration
         self.bands = sorted(bands)

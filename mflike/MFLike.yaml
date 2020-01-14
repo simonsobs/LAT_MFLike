@@ -12,10 +12,11 @@ data:
   defaults:
     polarizations: ['TT', 'TE', 'ET', 'EE']
     scales:
-      TT: [200, 6002]
-      TE: [200, 6002]
-      ET: [200, 6002]
-      EE: [200, 6002]
+      TT: [2, 6002]
+      TE: [2, 6002]
+      ET: [2, 6002]
+      EE: [2, 6002]
+    symmetrize: True
 
   spectra:
     - experiments: ['LAT', 'LAT']
