@@ -5,7 +5,6 @@
 :Authors: Thibaut Louis, Xavier Garrido, Max Abitbol, Erminia Calabrese, Antony Lewis, David Alonso
 
 """
-# Global
 import os
 
 import numpy as np
@@ -291,51 +290,59 @@ class MFLike(_InstallableLikelihood):
         return ps_vec
 
     def _get_foreground_model(self, fg_params):
-        # Might change given different lmax
-        l = self.l_bpws
+        return get_foreground_model(fg_params=fg_params,
+                                    fg_model=self.foregrounds,
+                                    frequencies=self.freqs,
+                                    ell=self.l_bpws,
+                                    requested_cls=self.requested_cls)
 
-        foregrounds = self.foregrounds
-        normalisation = foregrounds["normalisation"]
-        nu_0 = normalisation["nu_0"]
-        ell_0 = normalisation["ell_0"]
-        T_CMB = normalisation["T_CMB"]
+# Standalone function to return the foregroung model given the nuisance parameters
+def get_foreground_model(fg_params, fg_model, frequencies, ell, requested_cls=["tt", "te", "ee"]):
+    normalisation = fg_model["normalisation"]
+    nu_0 = normalisation["nu_0"]
+    ell_0 = normalisation["ell_0"]
+    T_CMB = normalisation["T_CMB"]
 
-        from fgspectra import cross as fgc
-        from fgspectra import power as fgp
-        from fgspectra import frequency as fgf
-        cirrus = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
-        ksz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.kSZ_bat())
-        cibp = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
-        radio = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
-        tsz = fgc.FactorizedCrossSpectrum(fgf.ThermalSZ(), fgp.tSZ_150_bat())
-        cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerLaw())
+    from fgspectra import cross as fgc
+    from fgspectra import power as fgp
+    from fgspectra import frequency as fgf
+    cirrus = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
+    ksz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.kSZ_bat())
+    cibp = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
+    radio = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
+    tsz = fgc.FactorizedCrossSpectrum(fgf.ThermalSZ(), fgp.tSZ_150_bat())
+    cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerLaw())
 
-        model = {}
-        model["tt", "kSZ"] = fg_params["a_kSZ"] * ksz(
-            {"nu": self.freqs},
-            {"ell": l, "ell_0": ell_0})
-        model["tt", "cibp"] = fg_params["a_p"] * cibp(
-            {"nu": self.freqs, "nu_0": nu_0, "temp": fg_params["T_d"], "beta": fg_params["beta_p"]},
-            {"ell": l, "ell_0": ell_0, "alpha": 2})
-        model["tt", "radio"] = fg_params["a_s"] * radio(
-            {"nu": self.freqs, "nu_0": nu_0, "beta": -0.5 - 2},
-            {"ell": l, "ell_0": ell_0, "alpha": 2})
-        model["tt", "tSZ"] = fg_params["a_tSZ"] * tsz(
-            {"nu": self.freqs, "nu_0": nu_0},
-            {"ell": l, "ell_0": ell_0})
-        model["tt", "cibc"] = fg_params["a_c"] * cibc(
-            {"nu": self.freqs, "nu_0": nu_0, "temp": fg_params["T_d"], "beta": fg_params["beta_c"]},
-            {"ell": l, "ell_0": ell_0, "alpha": 2 - fg_params["n_CIBC"]})
+    # Make sure to pass a numpy array to fgspectra
+    if not isinstance(frequencies, np.ndarray):
+        frequencies = np.array(frequencies)
 
-        components = foregrounds["components"]
-        component_list = {s: components[s] for s in self.requested_cls}
-        fg_model = {}
-        for c1, f1 in enumerate(self.freqs):
-            for c2, f2 in enumerate(self.freqs):
-                for s in self.requested_cls:
-                    fg_model[s, "all", f1, f2] = np.zeros(len(l))
-                    for comp in component_list[s]:
-                        fg_model[s, comp, f1, f2] = model[s, comp][c1, c2]
-                        fg_model[s, "all", f1, f2] += fg_model[s, comp, f1, f2]
+    model = {}
+    model["tt", "kSZ"] = fg_params["a_kSZ"] * ksz(
+        {"nu": frequencies},
+        {"ell": ell, "ell_0": ell_0})
+    model["tt", "cibp"] = fg_params["a_p"] * cibp(
+        {"nu": frequencies, "nu_0": nu_0, "temp": fg_params["T_d"], "beta": fg_params["beta_p"]},
+        {"ell": ell, "ell_0": ell_0, "alpha": 2})
+    model["tt", "radio"] = fg_params["a_s"] * radio(
+        {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2},
+        {"ell": ell, "ell_0": ell_0, "alpha": 2})
+    model["tt", "tSZ"] = fg_params["a_tSZ"] * tsz(
+        {"nu": frequencies, "nu_0": nu_0},
+        {"ell": ell, "ell_0": ell_0})
+    model["tt", "cibc"] = fg_params["a_c"] * cibc(
+        {"nu": frequencies, "nu_0": nu_0, "temp": fg_params["T_d"], "beta": fg_params["beta_c"]},
+        {"ell": ell, "ell_0": ell_0, "alpha": 2 - fg_params["n_CIBC"]})
 
-        return fg_model
+    components = fg_model["components"]
+    component_list = {s: components[s] for s in requested_cls}
+    fg_model = {}
+    for c1, f1 in enumerate(frequencies):
+        for c2, f2 in enumerate(frequencies):
+            for s in requested_cls:
+                fg_model[s, "all", f1, f2] = np.zeros(len(ell))
+                for comp in component_list[s]:
+                    fg_model[s, comp, f1, f2] = model[s, comp][c1, c2]
+                    fg_model[s, "all", f1, f2] += fg_model[s, comp, f1, f2]
+
+    return fg_model
