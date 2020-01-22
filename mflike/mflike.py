@@ -343,6 +343,6 @@ def get_foreground_model(fg_params, fg_model, frequencies, ell, requested_cls=["
                 fg_model[s, "all", f1, f2] = np.zeros(len(ell))
                 for comp in component_list[s]:
                     fg_dict[s, comp, f1, f2] = model[s, comp][c1, c2]
-                    fg_dict[s, "all", f1, f2] += fg_model[s, comp, f1, f2]
+                    fg_dict[s, "all", f1, f2] += fg_dict[s, comp, f1, f2]
 
     return fg_dict
