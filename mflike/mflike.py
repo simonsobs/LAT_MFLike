@@ -119,7 +119,7 @@ class MFLike(_InstallableLikelihood):
                 if self.select == s:
                     n_bins = int(cov_mat.shape[0])
                     cov_mat = cov_mat[count * n_bins // 3:(count + 1) * n_bins // 3,
-                              count * n_bins // 3:(count + 1) * n_bins // 3]
+                                      count * n_bins // 3:(count + 1) * n_bins // 3]
         # Store inverted covariance matrix
         self.inv_cov = np.linalg.inv(cov_mat)
         self.logp_const = np.log(2 * np.pi) * (-len(self.data_vec) / 2) + np.linalg.slogdet(cov_mat)[1] * (
