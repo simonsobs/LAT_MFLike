@@ -72,7 +72,6 @@ class MFLike(_InstallableLikelihood):
         input_fname = os.path.join(self.data_folder, self.input_file)
         s = sacc.Sacc.load_fits(input_fname)
 
-<<<<<<< HEAD
         cbbl_extra = False
         s_b = s
         if self.cov_Bbl_file:
@@ -83,10 +82,6 @@ class MFLike(_InstallableLikelihood):
 
         try:
             default_cuts = self.defaults
-=======
-        try:
-            default_cuts = data['defaults']
->>>>>>> first working attempt at SACCing this
         except:
             raise KeyError('You must provide a list of default cuts')
 
@@ -117,10 +112,7 @@ class MFLike(_InstallableLikelihood):
             # Read off scale cuts
             scls = spectrum.get('scales',
                                 default_cuts['scales']).copy()
-<<<<<<< HEAD
 
-=======
->>>>>>> first working attempt at SACCing this
             # For the same two channels, do not include ET and TE, only TE
             if (exp_1 == exp_2) and (freq_1 == freq_2):
                 if ('ET' in pols):
@@ -128,7 +120,6 @@ class MFLike(_InstallableLikelihood):
                     if ('TE' not in pols):
                         pols.append('TE')
                         scls['TE'] = scls['ET']
-<<<<<<< HEAD
                 symm = False
             else:
                 # Symmetrization
@@ -139,9 +130,6 @@ class MFLike(_InstallableLikelihood):
                     symm = False
 
             return exp_1, exp_2, freq_1, freq_2, pols, scls, symm
-=======
-            return exp_1, exp_2, freq_1, freq_2, pols, scls
->>>>>>> first working attempt at SACCing this
 
         def get_sacc_names(pol, exp_1, exp_2, freq_1, freq_2):
             p1, p2 = pol
@@ -160,15 +148,10 @@ class MFLike(_InstallableLikelihood):
 
         # First trim the SACC file
         indices = []
-<<<<<<< HEAD
         indices_b = []
         len_compressed = 0
         for spectrum in data['spectra']:
             exp_1, exp_2, freq_1, freq_2, pols, scls, symm = get_cl_meta(spectrum)
-=======
-        for spectrum in data['spectra']:
-            exp_1, exp_2, freq_1, freq_2, pols, scls = get_cl_meta(spectrum)
->>>>>>> first working attempt at SACCing this
             for pol in pols:
                 tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2,
                                                          freq_1, freq_2)
@@ -177,7 +160,6 @@ class MFLike(_InstallableLikelihood):
                                 (tname_1, tname_2),  # Select channel combinations
                                 ell__gt=lmin, ell__lt=lmax)  # Scale cuts
                 indices += list(ind)
-<<<<<<< HEAD
                 if cbbl_extra:
                     ind_b = s_b.indices(dtype,  # Select power spectrum type
                                         (tname_1, tname_2),  # Select channel combinations
@@ -209,24 +191,6 @@ class MFLike(_InstallableLikelihood):
         self.l_bpws = None
         for spectrum in data['spectra']:
             exp_1, exp_2, freq_1, freq_2, pols, scls, symm = get_cl_meta(spectrum)
-=======
-                if verbose:
-                    print(tname_1, tname_2, dtype, ind.shape, lmin, lmax)
-        # Get rid of all the unselected power spectra
-        s.keep_indices(np.array(indices))
-        self.data_vec = s.mean
-        self.cov = s.covariance.covmat + 0.1 * np.identity(len(s.mean))
-        self.inv_cov = np.linalg.inv(self.cov)
-        self.logp_const = np.log(2 * np.pi) * (-len(self.data_vec) / 2) + \
-                          0.5 * np.linalg.slogdet(self.cov)[1] * (-1 / 2)
-
-        # Now create metadata for each spectrum
-        self.spec_meta = []
-        bands = {}
-        self.lcuts = {k: c[1] for k, c in default_cuts['scales'].items()}
-        for spectrum in data['spectra']:
-            exp_1, exp_2, freq_1, freq_2, pols, scls = get_cl_meta(spectrum)
->>>>>>> first working attempt at SACCing this
             bands[xp_nu(exp_1, freq_1)] = freq_1
             bands[xp_nu(exp_2, freq_2)] = freq_2
             for k in scls.keys():
@@ -236,7 +200,6 @@ class MFLike(_InstallableLikelihood):
                                                          freq_1, freq_2)
                 ind = s.indices(dtype,
                                 (tname_1, tname_2))
-<<<<<<< HEAD
                 if cbbl_extra:
                     ind_b = s_b.indices(dtype,
                                         (tname_1, tname_2))
@@ -281,11 +244,6 @@ class MFLike(_InstallableLikelihood):
                         for i, j1 in enumerate(ind_b):
                             mat_compress_b[index_sofar + i, j1] = 1
                 self.spec_meta.append({'ids': index_sofar + np.arange(cls.size, dtype=int),
-=======
-                ls, cls, ws = s.get_ell_cl(dtype, tname_1, tname_2,
-                                           return_windows=True)
-                self.spec_meta.append({'ids': ind,
->>>>>>> first working attempt at SACCing this
                                        'pol': ppol_dict[pol],
                                        't1': xp_nu(exp_1, freq_1),
                                        't2': xp_nu(exp_2, freq_2),
@@ -294,7 +252,6 @@ class MFLike(_InstallableLikelihood):
                                        'leff': ls,
                                        'cl_data': cls,
                                        'bpw': ws})
-<<<<<<< HEAD
                 index_sofar += cls.size
         if not cbbl_extra:
             mat_compress_b = mat_compress
@@ -305,8 +262,6 @@ class MFLike(_InstallableLikelihood):
         self.logp_const = np.log(2 * np.pi) * (-len(self.data_vec) / 2) - \
                           0.5 * np.linalg.slogdet(self.cov)[1]
 
-=======
->>>>>>> first working attempt at SACCing this
 
         # TODO: we should actually be using bandpass integration
         self.bands = sorted(bands)
@@ -315,18 +270,10 @@ class MFLike(_InstallableLikelihood):
         self.lcuts = {k.lower(): c for k, c in self.lcuts.items()}
         if 'et' in self.lcuts:
             del self.lcuts['et']
-<<<<<<< HEAD
 
     def _get_power_spectra(self, cl, **params_values):
         # Get Cl's from the theory code
         Dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
-=======
-        self.lmax = np.amax(np.array([c for _, c in self.lcuts.items()]))
-
-    def _get_power_spectra(self, cl, **params_values):
-        # Get Cl's from the theory code
-        Dls = {s: cl[s][2:lmax] for s, lmax in self.lcuts.items()}
->>>>>>> first working attempt at SACCing this
 
         # Get new foreground model given its nuisance parameters
         fg_model = self._get_foreground_model(
