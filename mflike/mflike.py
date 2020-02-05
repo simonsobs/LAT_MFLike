@@ -57,6 +57,8 @@ class MFLike(_InstallableLikelihood):
 
     def logp(self, **params_values):
         cl = self.theory.get_Cl(ell_factor=True)
+        print(cl)
+        exit(1)
         return self.loglike(cl, **params_values)
 
     def loglike(self, cl, **params_values):
