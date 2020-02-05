@@ -2,7 +2,7 @@
 .. module:: mflike
 
 :Synopsis: Definition of simplistic likelihood for Simons Observatory
-:Authors: Thibaut Louis, Xavier Garrido, Max Abitbol, Erminia Calabrese, Antony Lewis
+:Authors: Thibaut Louis, Xavier Garrido, Max Abitbol, Erminia Calabrese, Antony Lewis, David Alonso
 
 """
 # Global
@@ -57,8 +57,6 @@ class MFLike(_InstallableLikelihood):
 
     def logp(self, **params_values):
         cl = self.theory.get_Cl(ell_factor=True)
-        print(cl)
-        exit(1)
         return self.loglike(cl, **params_values)
 
     def loglike(self, cl, **params_values):
@@ -190,6 +188,8 @@ class MFLike(_InstallableLikelihood):
         bands = {}
         self.lcuts = {k: c[1] for k, c in default_cuts['scales'].items()}
         index_sofar = 0
+
+        self.l_bpws = None
         for spectrum in data['spectra']:
             exp_1, exp_2, freq_1, freq_2, pols, scls, symm = get_cl_meta(spectrum)
             bands[xp_nu(exp_1, freq_1)] = freq_1
@@ -213,6 +213,12 @@ class MFLike(_InstallableLikelihood):
                 else:
                     ls, cls, ws = s.get_ell_cl(dtype, tname_1, tname_2,
                                                return_windows=True)
+
+                if self.l_bpws is None:
+                    # The assumption here is that bandpower windows
+                    # will all be sampled at the same ells.
+                    self.l_bpws = ws[0]
+
                 if (pol in ['TE', 'ET']) and symm:
                     pol2 = pol[::-1]
                     pols.remove(pol2)
@@ -265,11 +271,10 @@ class MFLike(_InstallableLikelihood):
         self.lcuts = {k.lower(): c for k, c in self.lcuts.items()}
         if 'et' in self.lcuts:
             del self.lcuts['et']
-        self.lmax = np.amax(np.array([c for _, c in self.lcuts.items()]))
 
     def _get_power_spectra(self, cl, **params_values):
         # Get Cl's from the theory code
-        Dls = {s: cl[s][2:lmax] for s, lmax in self.lcuts.items()} 
+        Dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()} 
 
         # Get new foreground model given its nuisance parameters
         fg_model = self._get_foreground_model(
@@ -287,8 +292,7 @@ class MFLike(_InstallableLikelihood):
 
     def _get_foreground_model(self, fg_params):
         # Might change given different lmax
-        lmin, lmax = 2, self.lmax
-        l = np.arange(lmin, lmax)
+        l = self.l_bpws
 
         foregrounds = self.foregrounds
         normalisation = foregrounds["normalisation"]
