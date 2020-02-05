@@ -3,6 +3,14 @@
 data_folder: null
 input_file: null
 cov_Bbl_file: null
+defaults:
+  polarizations: ['TT', 'TE', 'ET', 'EE']
+  scales:
+    TT: [2, 6002]
+    TE: [2, 6002]
+    ET: [2, 6002]
+    EE: [2, 6002]
+  symmetrize: True
 
 data:
   experiments:
@@ -10,38 +18,26 @@ data:
       frequencies: [93, 145, 225]
     PlanckHFI:
       frequencies: [545]
-  defaults:
-    polarizations: ['TT', 'TE', 'ET', 'EE']
-    scales:
-      TT: [2, 6002]
-      TE: [2, 6002]
-      ET: [2, 6002]
-      EE: [2, 6002]
-    symmetrize: True
 
   spectra:
     - experiments: ['LAT', 'LAT']
       frequencies: [93, 93]
       polarizations: ['TT','TE','EE']
       scales:
-        TT: [200, 3001]
-        TE: [200, 3001]
-        EE: [200, 6001]
+        TT: [2, 6002]
+        TE: [2, 6002]
+        EE: [2, 6002]
     - experiments: ['LAT', 'LAT']
       frequencies: [93, 145]
       polarizations: ['TT','TE','ET','EE']
     - experiments: ['LAT', 'LAT']
       frequencies: [93, 225]
-      polarizations: ['TT','TE','ET','EE']
     - experiments: ['LAT', 'LAT']
       frequencies: [145, 145]
-      polarizations: ['TT','TE','EE']
     - experiments: ['LAT', 'LAT']
       frequencies: [145, 225]
-      polarizations: ['TT','TE','ET','EE']
     - experiments: ['LAT', 'LAT']
       frequencies: [225, 225]
-      polarizations: ['TT','TE','EE']
 
 foregrounds:
   normalisation:

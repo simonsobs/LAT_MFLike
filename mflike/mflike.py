@@ -72,17 +72,17 @@ class MFLike(_InstallableLikelihood):
         data = self.data
         input_fname = os.path.join(self.data_folder, self.input_file)
         s = sacc.Sacc.load_fits(input_fname)
+
+        cbbl_extra = False
+        s_b = s
         if self.cov_Bbl_file:
             if self.cov_Bbl_file != self.input_file:
                 cov_Bbl_fname = os.path.join(self.data_folder, self.cov_Bbl_file)
                 s_b = sacc.Sacc.load_fits(cov_Bbl_fname)
-            else:
-                s_b = s
-        else:
-            s_b = s
+                cbbl_extra = True
 
         try:
-            default_cuts = data['defaults']
+            default_cuts = self.defaults
         except:
             raise KeyError('You must provide a list of default cuts')
 
@@ -149,6 +149,7 @@ class MFLike(_InstallableLikelihood):
 
         # First trim the SACC file
         indices = []
+        indices_b = []
         len_compressed = 0
         for spectrum in data['spectra']:
             exp_1, exp_2, freq_1, freq_2, pols, scls, symm = get_cl_meta(spectrum)
@@ -160,6 +161,11 @@ class MFLike(_InstallableLikelihood):
                                 (tname_1, tname_2),  # Select channel combinations
                                 ell__gt=lmin, ell__lt=lmax)  # Scale cuts
                 indices += list(ind)
+                if cbbl_extra:
+                    ind_b = s_b.indices(dtype,  # Select power spectrum type
+                                        (tname_1, tname_2),  # Select channel combinations
+                                        ell__gt=lmin, ell__lt=lmax)  # Scale cuts
+                    indices_b += list(ind_b)
                 if symm and pol == 'ET':
                     pass
                 else:
@@ -170,13 +176,15 @@ class MFLike(_InstallableLikelihood):
         # Get rid of all the unselected power spectra
         indices = np.array(indices)
         s.keep_indices(np.array(indices))
-        if self.cov_Bbl_file:
-            s_b.keep_indices(np.array(indices))
+        if cbbl_extra:
+            indices_b = np.array(indices_b)
+            s_b.keep_indices(np.array(indices_b))
 
         # Now create metadata for each spectrum
         self.spec_meta = []
         len_full = s.mean.size
         mat_compress = np.zeros([len_compressed, len_full])
+        mat_compress_b = np.zeros([len_compressed, len_full])
         bands = {}
         self.lcuts = {k: c[1] for k, c in default_cuts['scales'].items()}
         index_sofar = 0
@@ -191,8 +199,11 @@ class MFLike(_InstallableLikelihood):
                                                          freq_1, freq_2)
                 ind = s.indices(dtype,
                                 (tname_1, tname_2))
+                if cbbl_extra:
+                    ind_b = s_b.indices(dtype,
+                                        (tname_1, tname_2))
 
-                if self.cov_Bbl_file:
+                if cbbl_extra:
                     ls, cls = s.get_ell_cl(dtype, tname_1, tname_2,
                                            return_windows=False)
                     _, _, ws = s_b.get_ell_cl(dtype, tname_1, tname_2,
@@ -213,9 +224,18 @@ class MFLike(_InstallableLikelihood):
                     for i, (j1, j2) in enumerate(zip(ind, ind2)):
                         mat_compress[index_sofar + i, j1] = 0.5
                         mat_compress[index_sofar + i, j2] = 0.5
+                    if cbbl_extra:
+                        ind2_b = s_b.indices(dtype,
+                                             (tname_1, tname_2))
+                        for i, (j1, j2) in enumerate(zip(ind_b, ind2_b)):
+                            mat_compress_b[index_sofar + i, j1] = 0.5
+                            mat_compress_b[index_sofar + i, j2] = 0.5
                 else:
                     for i, j1 in enumerate(ind):
                         mat_compress[index_sofar + i, j1] = 1
+                    if cbbl_extra:
+                        for i, j1 in enumerate(ind_b):
+                            mat_compress_b[index_sofar + i, j1] = 1
                 self.spec_meta.append({'ids': index_sofar + np.arange(cls.size, dtype=int),
                                        'pol': ppol_dict[pol],
                                        't1': xp_nu(exp_1, freq_1),
@@ -226,9 +246,11 @@ class MFLike(_InstallableLikelihood):
                                        'cl_data': cls,
                                        'bpw': ws})
                 index_sofar += cls.size
+        if not cbbl_extra:
+            mat_compress_b = mat_compress
         self.data_vec = np.dot(mat_compress,s.mean)
-        self.cov = np.dot(mat_compress,
-                          s_b.covariance.covmat.dot(mat_compress.T))
+        self.cov = np.dot(mat_compress_b,
+                          s_b.covariance.covmat.dot(mat_compress_b.T))
         self.inv_cov = np.linalg.inv(self.cov)
         self.logp_const = np.log(2 * np.pi) * (-len(self.data_vec) / 2) - \
                           0.5 * np.linalg.slogdet(self.cov)[1]
