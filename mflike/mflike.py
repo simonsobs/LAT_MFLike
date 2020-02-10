@@ -17,8 +17,9 @@ from cobaya.likelihoods._base_classes import _InstallableLikelihood
 
 
 class MFLike(_InstallableLikelihood):
-    install_options = {"github_repository": "simonsobs/LAT_MFLike_data",
-                       "github_release": "v0.2"}
+    #install_options = {"github_repository": "simonsobs/LAT_MFLike_data",
+    #                   "github_release": "v0.2"}
+    install_options = {"download_url": "https://portal.nersc.gov/cfs/sobs/users/mflike_data_release/MFLike_data/data_sacc_v0.2.tar.gz"}
 
     def initialize(self):
         self.log.info("Initialising.")

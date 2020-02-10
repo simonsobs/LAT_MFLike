@@ -49,7 +49,7 @@ class MFLikeTest(unittest.TestCase):
             chi2 = pars['chi2']
             from mflike import MFLike
             my_mflike = MFLike({"path_install": modules_path,
-                                "data_folder": "LAT_MFLike_data/like_products",
+                                "data_folder": "MFLike",
                                 "input_file": "data_sacc_00000.fits",
                                 "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                                 "defaults":{"polarizations":pars['pols'],
@@ -63,7 +63,7 @@ class MFLikeTest(unittest.TestCase):
             print(-2 * (loglike - my_mflike.logp_const))
 
     def test_cobaya(self):
-        info = {"likelihood": {"mflike.MFLike": {"data_folder": "LAT_MFLike_data/like_products",
+        info = {"likelihood": {"mflike.MFLike": {"data_folder": "MFLike",
                                                  "input_file": "data_sacc_00000.fits",
                                                  "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                                                  "defaults":{"polarizations":['TT','TE','ET','EE'],
