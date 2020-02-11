@@ -298,6 +298,7 @@ class MFLike(_InstallableLikelihood):
 
 # Standalone function to return the foregroung model given the nuisance parameters
 def get_foreground_model(fg_params, fg_model, frequencies, ell, requested_cls=["tt", "te", "ee"]):
+
     normalisation = fg_model["normalisation"]
     nu_0 = normalisation["nu_0"]
     ell_0 = normalisation["ell_0"]
