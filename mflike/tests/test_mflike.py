@@ -1,5 +1,5 @@
-import unittest
 import os
+import unittest
 
 modules_path = os.environ.get("COBAYA_MODULES") or "/tmp/modules"
 
@@ -26,10 +26,11 @@ nuisance_params= {
 }
 
 chi2s = {
-    "tt": {'pols':['TT'], 'chi2':490.4163, 'sym': True},
-    "te": {'pols':['TE'], 'chi2':482.3090, 'sym': True},
-    "ee": {'pols':['EE'], 'chi2':511.1752, 'sym': True},
-    "tt-te-ee": {'pols':['TT','TE','EE'], 'chi2':1488.9766, 'sym': True}}
+    "tt": 1529.2876,
+    "te": 1502.5782,
+    "ee": 1506.9953,
+    "tt-te-et-ee": 2417.3592
+}
 
 class MFLikeTest(unittest.TestCase):
     def setUp(self):
@@ -45,33 +46,21 @@ class MFLikeTest(unittest.TestCase):
         powers = results.get_cmb_power_spectra(pars, CMB_unit="muK")
         cl_dict = {k: powers["total"][:, v]
                    for k, v in {"tt": 0, "ee": 1, "te": 3}.items()}
-        for select, pars in chi2s.items():
-            chi2 = pars['chi2']
+        for select, chi2 in chi2s.items():
             from mflike import MFLike
             my_mflike = MFLike({"path_install": modules_path,
-                                "data_folder": "MFLike",
                                 "input_file": "data_sacc_00000.fits",
-                                "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
-                                "defaults":{"polarizations":pars['pols'],
+                                "defaults":{"polarizations": select.upper().split("-"),
                                             "scales":{"TT": [2, 6002],
                                                       "TE": [2, 6002],
                                                       "ET": [2, 6002],
                                                       "EE": [2, 6002]},
-                                            "symmetrize": pars['sym']}})
+                                            "symmetrize": True}})
             loglike = my_mflike.loglike(cl_dict, **nuisance_params)
-            #self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 2)
-            print(-2 * (loglike - my_mflike.logp_const))
+            self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 2)
 
     def test_cobaya(self):
-        info = {"likelihood": {"mflike.MFLike": {"data_folder": "MFLike",
-                                                 "input_file": "data_sacc_00000.fits",
-                                                 "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
-                                                 "defaults":{"polarizations":['TT','TE','ET','EE'],
-                                                             "scales":{"TT": [2, 6002],
-                                                                       "TE": [2, 6002],
-                                                                       "ET": [2, 6002],
-                                                                       "EE": [2, 6002]},
-                                                             "symmetrize": True}}},
+        info = {"likelihood": {"mflike.MFLike": {"input_file": "data_sacc_00000.fits"}},
                 "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
                 "params": cosmo_params,
                 "modules": modules_path}
@@ -79,5 +68,4 @@ class MFLikeTest(unittest.TestCase):
         model = get_model(info)
         my_mflike = model.likelihood["mflike.MFLike"]
         chi2 = -2 * (model.loglikes(nuisance_params)[0] - my_mflike.logp_const)
-        #self.assertAlmostEqual(chi2[0], chi2s["tt-te-ee"]['chi2'], 2)
-        print(chi2[0], chi2s["tt-te-ee"]['chi2'])
+        self.assertAlmostEqual(chi2[0], chi2s["tt-te-et-ee"], 2)
