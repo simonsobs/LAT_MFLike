@@ -1,8 +1,8 @@
 # A simple cobaya likelihood for SO/LAT
 
-data_folder: null
+data_folder: MFLike/v0.3
 input_file: null
-cov_Bbl_file: null
+cov_Bbl_file: data_sacc_w_covar_and_Bbl.fits
 defaults:
   polarizations: ['TT', 'TE', 'ET', 'EE']
   scales:

@@ -7,19 +7,18 @@
 """
 # Global
 import os
-import numpy as np
 
-# Local
-from cobaya.log import LoggedError
-from cobaya.tools import are_different_params_lists
+import numpy as np
 from cobaya.conventions import _path_install
 from cobaya.likelihoods._base_classes import _InstallableLikelihood
+from cobaya.log import LoggedError
+from cobaya.tools import are_different_params_lists
 
+url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
+release = "v0.3"
 
 class MFLike(_InstallableLikelihood):
-    #install_options = {"github_repository": "simonsobs/LAT_MFLike_data",
-    #                   "github_release": "v0.2"}
-    install_options = {"download_url": "https://portal.nersc.gov/cfs/sobs/users/mflike_data_release/MFLike_data/data_sacc_v0.2.tar.gz"}
+    install_options = {"download_url": "{}/{}.tar.gz".format(url, release)}
 
     def initialize(self):
         self.log.info("Initialising.")
@@ -275,7 +274,7 @@ class MFLike(_InstallableLikelihood):
 
     def _get_power_spectra(self, cl, **params_values):
         # Get Cl's from the theory code
-        Dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()} 
+        Dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
 
         # Get new foreground model given its nuisance parameters
         fg_model = self._get_foreground_model(
