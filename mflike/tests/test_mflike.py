@@ -1,5 +1,5 @@
-import unittest
 import os
+import unittest
 
 modules_path = os.environ.get("COBAYA_MODULES") or "/tmp/modules"
 
@@ -13,23 +13,26 @@ cosmo_params = {
     "tau": 0.0544
 }
 
-nuisance_params= {
-    "a_tSZ": 3.30,
-    "a_kSZ": 1.60,
-    "a_p": 6.90,
-    "beta_p": 2.08,
-    "a_c": 4.90,
-    "beta_c": 2.20,
+nuisance_params = {
+    "a_tSZ": 3.3044404448917724,
+    "a_kSZ": 1.6646620740058649,
+    "a_p": 6.912474322461401,
+    "beta_p": 2.077474196171309,
+    "a_c": 4.88617700670901,
+    "beta_c": 2.2030316332596014,
     "n_CIBC": 1.20,
-    "a_s": 3.10,
+    "a_s": 3.099214100532393,
     "T_d": 9.60
 }
 
 chi2s = {
-    "tt": 490.4163,
-    "te": 482.3090,
-    "ee": 511.1752,
-    "tt-te-ee": 1488.9766}
+    "tt": 1529.2876,
+    "te": 1502.5782,
+    "ee": 1506.9953,
+    "tt-te-et-ee": 2417.3592
+}
+pre = "data_sacc_"
+
 
 class MFLikeTest(unittest.TestCase):
     def setUp(self):
@@ -48,17 +51,32 @@ class MFLikeTest(unittest.TestCase):
         for select, chi2 in chi2s.items():
             from mflike import MFLike
             my_mflike = MFLike({"path_install": modules_path,
-                                "sim_id": 0, "select": select})
+                                "input_file": pre + "00000.fits",
+                                "cov_Bbl_file": pre + "w_covar_and_Bbl.fits",
+                                "defaults": {"polarizations":
+                                             select.upper().split("-"),
+                                             "scales": {"TT": [2, 6002],
+                                                        "TE": [2, 6002],
+                                                        "ET": [2, 6002],
+                                                        "EE": [2, 6002]},
+                                             "symmetrize": True}})
             loglike = my_mflike.loglike(cl_dict, **nuisance_params)
-            self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 2)
+            self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const),
+                                   chi2, 2)
 
     def test_cobaya(self):
-        info = {"likelihood": {"mflike.MFLike": {"sim_id": 0}},
-                "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
+        info = {"likelihood":
+                {"mflike.MFLike":
+                 {"input_file": pre + "00000.fits",
+                  "cov_Bbl_file": pre + "w_covar_and_Bbl.fits"}},
+                "theory":
+                {"camb":
+                 {"extra_args":
+                  {"lens_potential_accuracy": 1}}},
                 "params": cosmo_params,
                 "modules": modules_path}
         from cobaya.model import get_model
         model = get_model(info)
         my_mflike = model.likelihood["mflike.MFLike"]
         chi2 = -2 * (model.loglikes(nuisance_params)[0] - my_mflike.logp_const)
-        self.assertAlmostEqual(chi2[0], chi2s["tt-te-ee"], 2)
+        self.assertAlmostEqual(chi2[0], chi2s["tt-te-et-ee"], 2)
