@@ -26,10 +26,10 @@ nuisance_params = {
 }
 
 chi2s = {
-    "tt": 1529.2876,
-    "te": 1502.5782,
-    "ee": 1506.9953,
-    "tt-te-et-ee": 2417.3592
+    "tt": 1368.5678,
+    "te": 1438.9411,
+    "ee": 1359.1418,
+    "tt-te-et-ee": 2428.0971
 }
 pre = "data_sacc_"
 
@@ -59,7 +59,7 @@ class MFLikeTest(unittest.TestCase):
                                                         "TE": [2, 6002],
                                                         "ET": [2, 6002],
                                                         "EE": [2, 6002]},
-                                             "symmetrize": True}})
+                                             "symmetrize": False}})
             loglike = my_mflike.loglike(cl_dict, **nuisance_params)
             self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const),
                                    chi2, 2)
