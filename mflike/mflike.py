@@ -70,11 +70,11 @@ class MFLike(_InstallableLikelihood):
     def loglike(self, cl, **params_values):
         ps_vec = self._get_power_spectra(cl, **params_values)
         delta = self.data_vec - ps_vec
-        logp = -0.5 * np.einsum('i,ij,j', delta, self.inv_cov, delta)
+        logp = -0.5 * (delta @ self.inv_cov @ delta)
         logp += self.logp_const
         self.log.debug(
             "Log-likelihood value computed "
-            "= {} (Χ² = {})".format(logp, -2 * logp))
+            "= {} (Χ² = {})".format(logp, -2 * (logp - self.logp_const)))
         return logp
 
     def prepare_data(self, verbose=False):
