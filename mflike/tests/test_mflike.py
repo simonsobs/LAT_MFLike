@@ -50,7 +50,7 @@ class MFLikeTest(unittest.TestCase):
                    for k, v in {"tt": 0, "ee": 1, "te": 3}.items()}
         for select, chi2 in chi2s.items():
             from mflike import MFLike
-            my_mflike = MFLike({"path_install": modules_path,
+            my_mflike = MFLike({"packages_path": modules_path,
                                 "input_file": pre + "00000.fits",
                                 "cov_Bbl_file": pre + "w_covar_and_Bbl.fits",
                                 "defaults": {"polarizations":
