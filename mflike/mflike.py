@@ -7,32 +7,39 @@
 
 """
 import os
-
+from typing import Optional
 import numpy as np
-from cobaya.conventions import _path_install
+from cobaya.conventions import _packages_path
 from cobaya.likelihoods._base_classes import _InstallableLikelihood
 from cobaya.log import LoggedError
 from cobaya.tools import are_different_params_lists
 
 
 class MFLike(_InstallableLikelihood):
-    url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
-    release = "v0.4"
-    install_options = {"download_url": "{}/{}.tar.gz".format(url, release)}
+    _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
+    _release = "v0.4"
+    install_options = {"download_url": "{}/{}.tar.gz".format(_url, _release)}
+
+    # attributes set from .yaml
+    input_file: Optional[str]
+    cov_Bbl_file: Optional[str]
+    data: dict
+    defaults: dict
+    foregrounds: dict
 
     def initialize(self):
         self.log.info("Initialising.")
         # Set path to data
         if ((not getattr(self, "path", None)) and
-            (not getattr(self, "path_install", None))):
+                (not getattr(self, _packages_path, None))):
             raise LoggedError(self.log,
                               "No path given to MFLike data. "
                               "Set the likelihood property "
                               "'path' or the common property '%s'.",
-                              _path_install)
+                              _packages_path)
         # If no path specified, use the modules path
         data_file_path = os.path.normpath(getattr(self, "path", None) or
-                                          os.path.join(self.path_install,
+                                          os.path.join(self.packages_path,
                                                        "data"))
 
         self.data_folder = os.path.join(data_file_path, self.data_folder)
@@ -134,9 +141,9 @@ class MFLike(_InstallableLikelihood):
 
             # For the same two channels, do not include ET and TE, only TE
             if (exp_1 == exp_2) and (freq_1 == freq_2):
-                if ('ET' in pols):
+                if 'ET' in pols:
                     pols.remove('ET')
-                    if ('TE' not in pols):
+                    if 'TE' not in pols:
                         pols.append('TE')
                         scls['TE'] = scls['ET']
                 symm = False
@@ -350,7 +357,6 @@ class MFLike(_InstallableLikelihood):
 def get_foreground_model(fg_params, fg_model,
                          frequencies, ell,
                          requested_cls=["tt", "te", "ee"]):
-
     normalisation = fg_model["normalisation"]
     nu_0 = normalisation["nu_0"]
     ell_0 = normalisation["ell_0"]

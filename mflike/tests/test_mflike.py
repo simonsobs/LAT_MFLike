@@ -1,7 +1,8 @@
 import os
 import unittest
+import tempfile
 
-modules_path = os.environ.get("COBAYA_MODULES") or "/tmp/modules"
+packages_path = os.environ.get("COBAYA_PACKAGES_PATH") or os.path.join(tempfile.gettempdir(), "LAT_packages")
 
 cosmo_params = {
     "cosmomc_theta": 0.0104085,
@@ -37,7 +38,7 @@ pre = "data_sacc_"
 class MFLikeTest(unittest.TestCase):
     def setUp(self):
         from cobaya.install import install
-        install({"likelihood": {"mflike.MFLike": None}}, path=modules_path)
+        install({"likelihood": {"mflike.MFLike": None}}, path=packages_path)
 
     def test_mflike(self):
         import camb
@@ -50,11 +51,11 @@ class MFLikeTest(unittest.TestCase):
                    for k, v in {"tt": 0, "ee": 1, "te": 3}.items()}
         for select, chi2 in chi2s.items():
             from mflike import MFLike
-            my_mflike = MFLike({"path_install": modules_path,
+            my_mflike = MFLike({"packages_path": packages_path,
                                 "input_file": pre + "00000.fits",
                                 "cov_Bbl_file": pre + "w_covar_and_Bbl.fits",
                                 "defaults": {"polarizations":
-                                             select.upper().split("-"),
+                                                 select.upper().split("-"),
                                              "scales": {"TT": [2, 6002],
                                                         "TE": [2, 6002],
                                                         "ET": [2, 6002],
@@ -66,15 +67,15 @@ class MFLikeTest(unittest.TestCase):
 
     def test_cobaya(self):
         info = {"likelihood":
-                {"mflike.MFLike":
-                 {"input_file": pre + "00000.fits",
-                  "cov_Bbl_file": pre + "w_covar_and_Bbl.fits"}},
+                    {"mflike.MFLike":
+                         {"input_file": pre + "00000.fits",
+                          "cov_Bbl_file": pre + "w_covar_and_Bbl.fits"}},
                 "theory":
-                {"camb":
-                 {"extra_args":
-                  {"lens_potential_accuracy": 1}}},
+                    {"camb":
+                         {"extra_args":
+                              {"lens_potential_accuracy": 1}}},
                 "params": cosmo_params,
-                "modules": modules_path}
+                "modules": packages_path}
         from cobaya.model import get_model
         model = get_model(info)
         my_mflike = model.likelihood["mflike.MFLike"]
