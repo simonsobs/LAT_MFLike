@@ -246,25 +246,17 @@ class MFLike(_InstallableLikelihood):
                 # The only reason why we need indices is the symmetrization.
                 # Otherwise all of this could have been done in the previous
                 # loop over data['spectra'].
-                ind = s.indices(dtype,
-                                (tname_1, tname_2))
+                ls, cls, ind = s.get_ell_cl(dtype, tname_1, tname_2, return_ind=True)
+                # ws = s.get_bandpower_windows(ind)
                 if cbbl_extra:
                     ind_b = s_b.indices(dtype,
                                         (tname_1, tname_2))
-
-                if cbbl_extra:
-                    ls, cls = s.get_ell_cl(dtype, tname_1, tname_2,
-                                           return_windows=False)
-                    _, _, ws = s_b.get_ell_cl(dtype, tname_1, tname_2,
-                                              return_windows=True)
-                else:
-                    ls, cls, ws = s.get_ell_cl(dtype, tname_1, tname_2,
-                                               return_windows=True)
+                    ws = s_b.get_bandpower_windows(ind_b)
 
                 if self.l_bpws is None:
                     # The assumption here is that bandpower windows
                     # will all be sampled at the same ells.
-                    self.l_bpws = ws[0]
+                    self.l_bpws = ws.values
 
                 # Symmetrize if needed.
                 if (pol in ['TE', 'ET']) and symm:
@@ -338,7 +330,7 @@ class MFLike(_InstallableLikelihood):
         for m in self.spec_meta:
             p = m['pol']
             i = m['ids']
-            w = m['bpw'][1]
+            w = m['bpw'].weight.T
             clt = np.dot(w, Dls[p] + fg_model[p, 'all', m['nu1'], m['nu2']])
             ps_vec[i] = clt
 
