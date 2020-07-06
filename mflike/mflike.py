@@ -251,11 +251,12 @@ class MFLike(_InstallableLikelihood):
                 # Otherwise all of this could have been done in the previous
                 # loop over data['spectra'].
                 ls, cls, ind = s.get_ell_cl(dtype, tname_1, tname_2, return_ind=True)
-                # ws = s.get_bandpower_windows(ind)
                 if cbbl_extra:
                     ind_b = s_b.indices(dtype,
                                         (tname_1, tname_2))
                     ws = s_b.get_bandpower_windows(ind_b)
+                else:
+                    ws = s.get_bandpower_windows(ind)
 
                 if self.l_bpws is None:
                     # The assumption here is that bandpower windows
