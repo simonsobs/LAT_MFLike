@@ -173,7 +173,11 @@ class MFLike(_InstallableLikelihood):
                 tname_2 += '_s2'
             else:
                 tname_2 += '_s0'
-            dtype = 'cl_' + pol_dict[p1] + pol_dict[p2]
+
+            if p2 == 'T':
+                dtype = 'cl_' + pol_dict[p2] + pol_dict[p1]
+            else:
+                dtype = 'cl_' + pol_dict[p1] + pol_dict[p2]
             return tname_1, tname_2, dtype
 
         # First we trim the SACC file so it only contains
