@@ -17,7 +17,7 @@ from cobaya.tools import are_different_params_lists
 
 class MFLike(_InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
-    _release = "v0.4"
+    _release = "v0.5"
     install_options = {"download_url": "{}/{}.tar.gz".format(_url, _release)}
 
     # attributes set from .yaml
