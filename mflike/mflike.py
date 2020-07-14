@@ -17,7 +17,7 @@ from cobaya.tools import are_different_params_lists
 
 class MFLike(_InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
-    _release = "v0.4"
+    _release = "v0.5"
     install_options = {"download_url": "{}/{}.tar.gz".format(_url, _release)}
 
     # attributes set from .yaml
@@ -173,7 +173,11 @@ class MFLike(_InstallableLikelihood):
                 tname_2 += '_s2'
             else:
                 tname_2 += '_s0'
-            dtype = 'cl_' + pol_dict[p1] + pol_dict[p2]
+
+            if p2 == 'T':
+                dtype = 'cl_' + pol_dict[p2] + pol_dict[p1]
+            else:
+                dtype = 'cl_' + pol_dict[p1] + pol_dict[p2]
             return tname_1, tname_2, dtype
 
         # First we trim the SACC file so it only contains
@@ -246,25 +250,18 @@ class MFLike(_InstallableLikelihood):
                 # The only reason why we need indices is the symmetrization.
                 # Otherwise all of this could have been done in the previous
                 # loop over data['spectra'].
-                ind = s.indices(dtype,
-                                (tname_1, tname_2))
+                ls, cls, ind = s.get_ell_cl(dtype, tname_1, tname_2, return_ind=True)
                 if cbbl_extra:
                     ind_b = s_b.indices(dtype,
                                         (tname_1, tname_2))
-
-                if cbbl_extra:
-                    ls, cls = s.get_ell_cl(dtype, tname_1, tname_2,
-                                           return_windows=False)
-                    _, _, ws = s_b.get_ell_cl(dtype, tname_1, tname_2,
-                                              return_windows=True)
+                    ws = s_b.get_bandpower_windows(ind_b)
                 else:
-                    ls, cls, ws = s.get_ell_cl(dtype, tname_1, tname_2,
-                                               return_windows=True)
+                    ws = s.get_bandpower_windows(ind)
 
                 if self.l_bpws is None:
                     # The assumption here is that bandpower windows
                     # will all be sampled at the same ells.
-                    self.l_bpws = ws[0]
+                    self.l_bpws = ws.values
 
                 # Symmetrize if needed.
                 if (pol in ['TE', 'ET']) and symm:
@@ -338,7 +335,7 @@ class MFLike(_InstallableLikelihood):
         for m in self.spec_meta:
             p = m['pol']
             i = m['ids']
-            w = m['bpw'][1]
+            w = m['bpw'].weight.T
             clt = np.dot(w, Dls[p] + fg_model[p, 'all', m['nu1'], m['nu2']])
             ps_vec[i] = clt
 

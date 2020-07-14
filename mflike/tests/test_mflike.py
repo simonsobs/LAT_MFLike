@@ -1,6 +1,6 @@
 import os
-import unittest
 import tempfile
+import unittest
 
 packages_path = os.environ.get("COBAYA_PACKAGES_PATH") or os.path.join(tempfile.gettempdir(), "LAT_packages")
 
@@ -27,10 +27,10 @@ nuisance_params = {
 }
 
 chi2s = {
-    "tt": 1368.5678,
-    "te": 1438.9411,
-    "ee": 1359.1418,
-    "tt-te-et-ee": 2428.0971
+    "tt": 1421.1709,
+    "te": 1409.4459,
+    "ee": 1343.0730,
+    "tt-te-et-ee": 2525.3944
 }
 pre = "data_sacc_"
 
@@ -55,7 +55,7 @@ class MFLikeTest(unittest.TestCase):
                                 "input_file": pre + "00000.fits",
                                 "cov_Bbl_file": pre + "w_covar_and_Bbl.fits",
                                 "defaults": {"polarizations":
-                                                 select.upper().split("-"),
+                                             select.upper().split("-"),
                                              "scales": {"TT": [2, 6002],
                                                         "TE": [2, 6002],
                                                         "ET": [2, 6002],

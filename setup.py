@@ -10,7 +10,7 @@ setup(
     install_requires=[
         "fgspectra @ git+https://github.com/simonsobs/fgspectra@master#egg=fgspectra",
         "cobaya>=3.0",
-        "sacc @ git+https://github.com/simonsobs/sacc@mflike_current#egg=sacc",
+        "sacc>=0.4.2",
     ],
     package_data={"mflike": ["MFLike.yaml"]},
 )
