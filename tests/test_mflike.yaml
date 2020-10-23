@@ -1,11 +1,42 @@
 # A simple cobaya likelihood for SO
 
-debug: False
+debug: True
 
 likelihood:
   mflike.MFLike:
-    sim_id: 0
-    select: tt-te-ee
+    input_file: data_sacc_00044.fits
+    cov_Bbl_file: data_sacc_w_covar_and_Bbl.fits
+    defaults:
+      # Which spectra?
+      polarizations: ['TT', 'TE', 'ET', 'EE']
+      # Scale cuts (in ell) for each spectrum
+      scales:
+        TT: [50, 6002]
+        TE: [50, 6002]
+        ET: [50, 6002]
+        EE: [50, 6002]
+      symmetrize: False
+    data:
+      experiments:
+        LAT:
+          frequencies: [93, 145, 225]
+
+      spectra:
+        - experiments: ['LAT', 'LAT']
+          frequencies: [93, 93]
+          polarizations: ['TT','TE','EE']
+        - experiments: ['LAT', 'LAT']
+          frequencies: [93, 145]
+        - experiments: ['LAT', 'LAT']
+          frequencies: [93, 225]
+        - experiments: ['LAT', 'LAT']
+          frequencies: [145, 145]
+          polarizations: ['TT','TE','EE']
+        - experiments: ['LAT', 'LAT']
+          frequencies: [145, 225]
+        - experiments: ['LAT', 'LAT']
+          frequencies: [225, 225]
+          polarizations: ['TT','TE','EE']
 
 params:
   # Sampled
