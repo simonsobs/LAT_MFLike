@@ -40,7 +40,7 @@ do the next command
 
 .. code:: shell
 
-    $ cobaya-install /where/to/clone/tests/test_mflike.yaml -p /where/to/put/packages
+    $ cobaya-install /where/to/clone/examples/mflike_example.yaml -p /where/to/put/packages
 
 data and code such as `CAMB <https://github.com/cmbant/CAMB>`_ will be downloaded and installed
 within the ``/where/to/put/packages`` directory. For more details, you can have a look to ``cobaya``
@@ -53,8 +53,8 @@ You can test the ``mflike`` likelihood by doing
 
 .. code:: shell
 
-    $ cobaya-run /where/to/clone/tests/test_mflike.yaml -p /where/to/put/packages
+    $ cobaya-run /where/to/clone/examples/mflike_example.yaml -p /where/to/put/packages
 
 which should run a MCMC sampler for the first simulation (*i.e.* ``sim_id: 0`` in the
-``test_mflike.yaml`` file) using the combination of TT, TE and EE spectra (*i.e.* ``select:
+``mflike_example.yaml`` file) using the combination of TT, TE and EE spectra (*i.e.* ``select:
 tt-te-ee``). The results will be stored in the ``chains/mcmc`` directory.
