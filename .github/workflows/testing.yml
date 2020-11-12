@@ -5,13 +5,15 @@ on: [push]
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, macos-latest]
         python-version: [3.6, 3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
@@ -21,11 +23,13 @@ jobs:
     #     sudo apt-get update
     #     sudo apt-get -y install gfortran
     #     gfortran --version
+
     - name: Install dependencies via pip
       run: |
         python -m pip install --upgrade pip
         pip install camb
         pip install .
+
     - name: Unit tests
       run: |
         python -m unittest mflike.tests.test_mflike
