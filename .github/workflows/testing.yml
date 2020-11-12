@@ -18,11 +18,11 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    # - name: Apt-get packages
-    #   run: |
-    #     sudo apt-get update
-    #     sudo apt-get -y install gfortran
-    #     gfortran --version
+
+    - name: Brew packages
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install gcc9
 
     - name: Install dependencies via pip
       run: |
