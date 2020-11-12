@@ -22,7 +22,7 @@ jobs:
     - name: Brew packages
       if: matrix.os == 'macos-latest'
       run: |
-        brew install gcc9
+        brew install gcc
 
     - name: Install dependencies via pip
       run: |
