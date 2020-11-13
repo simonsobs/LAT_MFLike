@@ -8,6 +8,7 @@
 """
 import os
 from typing import Optional
+
 import numpy as np
 from cobaya.conventions import _packages_path
 from cobaya.likelihoods._base_classes import _InstallableLikelihood
@@ -28,7 +29,6 @@ class MFLike(_InstallableLikelihood):
     foregrounds: dict
 
     def initialize(self):
-        self.log.info("Initialising.")
         # Set path to data
         if ((not getattr(self, "path", None)) and
                 (not getattr(self, _packages_path, None))):
@@ -56,6 +56,7 @@ class MFLike(_InstallableLikelihood):
 
         self.expected_params = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
                                 "a_c", "beta_c", "n_CIBC", "a_s", "T_d"]
+        self.log.info("Initialized!.")
 
     def initialize_with_params(self):
         # Check that the parameters are the right ones
@@ -217,10 +218,8 @@ class MFLike(_InstallableLikelihood):
         # Get rid of all the unselected power spectra.
         # Sacc takes care of performing the same cuts in the
         # covariance matrix, window functions etc.
-        indices = np.array(indices)
         s.keep_indices(np.array(indices))
         if cbbl_extra:
-            indices_b = np.array(indices_b)
             s_b.keep_indices(np.array(indices_b))
 
         # Now create metadata for each spectrum
@@ -359,8 +358,9 @@ def get_foreground_model(fg_params, fg_model,
     ell_0 = normalisation["ell_0"]
 
     from fgspectra import cross as fgc
-    from fgspectra import power as fgp
     from fgspectra import frequency as fgf
+    from fgspectra import power as fgp
+
     # We don't seem to be using this
     # cirrus = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
     ksz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.kSZ_bat())
