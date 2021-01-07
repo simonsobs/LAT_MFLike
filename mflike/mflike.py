@@ -56,7 +56,7 @@ class MFLike(_InstallableLikelihood):
 
         self.expected_params = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
                                 "a_c", "beta_c", "n_CIBC", "a_s", "T_d"]
-        self.log.info("Initialized!.")
+        self.log.info("Initialized!")
 
     def initialize_with_params(self):
         # Check that the parameters are the right ones
