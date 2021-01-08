@@ -55,6 +55,7 @@ You can test the ``mflike`` likelihood by doing
 
     $ cobaya-run /where/to/clone/examples/mflike_example.yaml -p /where/to/put/packages
 
-which should run a MCMC sampler for the first simulation (*i.e.* ``sim_id: 0`` in the
-``mflike_example.yaml`` file) using the combination of TT, TE and EE spectra (*i.e.* ``select:
-tt-te-ee``). The results will be stored in the ``chains/mcmc`` directory.
+which should run a MCMC sampler for the simulation n°44 (*i.e.* ``data_sacc_00044.fits`` in the
+``mflike_example.yaml`` file) using the combination of TT, TE and EE spectra (*i.e.*
+``polarizations: ['TT', 'TE', 'ET', 'EE']``). The results will be stored in the ``chains/mcmc``
+directory.
