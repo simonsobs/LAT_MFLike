@@ -4,8 +4,8 @@ LAT Multifrequency Likelihood
 
 An external likelihood using `cobaya <https://github.com/CobayaSampler/cobaya>`_.
 
-.. image:: https://travis-ci.com/simonsobs/LAT_MFLike.svg?branch=master
-   :target: https://travis-ci.com/simonsobs/LAT_MFLike
+.. image:: https://img.shields.io/github/workflow/status/simonsobs/LAT_MFLike/Unit%20test%20for%20mflike/feature-github-actions
+   :target: https://github.com/simonsobs/LAT_MFLike/actions
 
 .. image:: https://mybinder.org/badge_logo.svg
    :target: https://mybinder.org/v2/gh/simonsobs/LAT_MFLike/master?filepath=notebooks%2Fmflike_tutorial.ipynb
