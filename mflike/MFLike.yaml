@@ -1,6 +1,6 @@
 # A simple cobaya likelihood for SO/LAT
 
-data_folder: MFLike/v0.5
+data_folder: MFLike/v0.6
 # Path to the input SACC file, containing, minimally,
 # information about the different tracers (i.e. frequency
 # bands) and the set of power spectra.
@@ -19,10 +19,10 @@ defaults:
   polarizations: ['TT', 'TE', 'ET', 'EE']
   # Scale cuts (in ell) for each spectrum
   scales:
-    TT: [2, 6002]
-    TE: [2, 6002]
-    ET: [2, 6002]
-    EE: [2, 6002]
+    TT: [2, 5000]
+    TE: [2, 5000]
+    ET: [2, 5000]
+    EE: [2, 5000]
   # If True, TE' = (TE + ET) / 2 will be used
   # instead of TE and ET separately.
   symmetrize: False

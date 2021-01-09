@@ -28,7 +28,7 @@ nuisance_params = {
     "T_d": 9.60,
 }
 
-chi2s = {"tt": 1421.0148, "te": 1409.3179, "ee": 1342.9600, "tt-te-et-ee": 2525.2791}
+chi2s = {"tt": 1384.5669, "te": 1400.2760, "ee": 1428.7597, "tt-te-et-ee": 2412.9275}
 pre = "data_sacc_"
 
 
@@ -58,10 +58,10 @@ class MFLikeTest(unittest.TestCase):
                     "defaults": {
                         "polarizations": select.upper().split("-"),
                         "scales": {
-                            "TT": [2, 6002],
-                            "TE": [2, 6002],
-                            "ET": [2, 6002],
-                            "EE": [2, 6002],
+                            "TT": [2, 5000],
+                            "TE": [2, 5000],
+                            "ET": [2, 5000],
+                            "EE": [2, 5000],
                         },
                         "symmetrize": False,
                     },
