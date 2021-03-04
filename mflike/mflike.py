@@ -48,6 +48,9 @@ class MFLike(_InstallableLikelihood):
                 self.log, "The 'data_folder' directory does not exist. "
                           "Check the given path [%s].", self.data_folder)
 
+        self.bandint_nstep = 1
+        self.bandint_width = 0
+
         # Read data
         self.prepare_data()
 
@@ -55,7 +58,9 @@ class MFLike(_InstallableLikelihood):
         self.requested_cls = ["tt", "te", "ee"]
 
         self.expected_params = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
-                                "a_c", "beta_c", "n_CIBC", "a_s", "T_d"]
+                                "a_c", "beta_c", "n_CIBC", "a_s", "T_d",
+                                "bandint_shift_93","bandint_shift_145","bandint_shift_225"]
+ 
         self.log.info("Initialized!")
 
     def initialize_with_params(self):
@@ -326,6 +331,25 @@ class MFLike(_InstallableLikelihood):
         # Get Cl's from the theory code
         Dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
 
+        #Bandpass construction 
+        if (self.bandint_width > 0):
+#            assert self.bandint_nstep > 1
+
+            self.bandint_freqs = []
+            for fr in self.freqs:
+                bandpar = 'bandint_shift_'+str(fr)
+                bandlow = fr*(1-self.bandint_width*.5)+params_values[bandpar]
+                bandhigh = fr*(1+self.bandint_width*.5)+params_values[bandpar]
+                nub = np.linspace(bandlow,bandhigh,self.bandint_nstep)
+                tranb = np.ones(len(nub))
+                tranb_norm = np.trapz(tranb,nub)
+                self.bandint_freqs.append([nub,tranb/tranb_norm])
+        else:
+            self.bandint_freqs = np.empty_like(self.freqs)
+            for ifr,fr in enumerate(self.freqs):
+                bandpar = 'bandint_shift_'+str(fr)
+                self.bandint_freqs[ifr] = fr+params_values[bandpar]
+
         # Get new foreground model given its nuisance parameters
         fg_model = self._get_foreground_model(
             {k: params_values[k] for k in self.expected_params})
@@ -344,6 +368,7 @@ class MFLike(_InstallableLikelihood):
         return get_foreground_model(fg_params=fg_params,
                                     fg_model=self.foregrounds,
                                     frequencies=self.freqs,
+                                    bandint_freqs=self.bandint_freqs, 
                                     ell=self.l_bpws,
                                     requested_cls=self.requested_cls)
 
@@ -351,7 +376,7 @@ class MFLike(_InstallableLikelihood):
 # Standalone function to return the foregroung model
 # given the nuisance parameters
 def get_foreground_model(fg_params, fg_model,
-                         frequencies, ell,
+                         frequencies, bandint_freqs, ell,
                          requested_cls=["tt", "te", "ee"]):
     normalisation = fg_model["normalisation"]
     nu_0 = normalisation["nu_0"]
@@ -375,20 +400,20 @@ def get_foreground_model(fg_params, fg_model,
 
     model = {}
     model["tt", "kSZ"] = fg_params["a_kSZ"] * ksz(
-        {"nu": frequencies},
+        {"nu": bandint_freqs},
         {"ell": ell, "ell_0": ell_0})
     model["tt", "cibp"] = fg_params["a_p"] * cibp(
-        {"nu": frequencies, "nu_0": nu_0,
+        {"nu": bandint_freqs, "nu_0": nu_0,
          "temp": fg_params["T_d"], "beta": fg_params["beta_p"]},
         {"ell": ell, "ell_0": ell_0, "alpha": 2})
     model["tt", "radio"] = fg_params["a_s"] * radio(
-        {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2},
+        {"nu": bandint_freqs, "nu_0": nu_0, "beta": -0.5 - 2},
         {"ell": ell, "ell_0": ell_0, "alpha": 2})
     model["tt", "tSZ"] = fg_params["a_tSZ"] * tsz(
-        {"nu": frequencies, "nu_0": nu_0},
+        {"nu": bandint_freqs, "nu_0": nu_0},
         {"ell": ell, "ell_0": ell_0})
     model["tt", "cibc"] = fg_params["a_c"] * cibc(
-        {"nu": frequencies, "nu_0": nu_0,
+        {"nu": bandint_freqs, "nu_0": nu_0,
          "temp": fg_params["T_d"], "beta": fg_params["beta_c"]},
         {"ell": ell, "ell_0": ell_0, "alpha": 2 - fg_params["n_CIBC"]})
 
