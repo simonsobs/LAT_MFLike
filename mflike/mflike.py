@@ -319,6 +319,7 @@ class MFLike(_InstallableLikelihood):
         self.logp_const -= 0.5 * np.linalg.slogdet(self.cov)[1]
 
         # TODO: we should actually be using bandpass integration
+        # See below 
         self.bands = sorted(bands)
         self.freqs = np.array([bands[b] for b in self.bands])
 
@@ -333,16 +334,17 @@ class MFLike(_InstallableLikelihood):
 
         #Bandpass construction 
         if (self.bandint_width > 0):
-#            assert self.bandint_nstep > 1
+            assert self.bandint_nstep > 1 , 'bandint_width and bandint_nstep not coherent'
 
             self.bandint_freqs = []
             for fr in self.freqs:
                 bandpar = 'bandint_shift_'+str(fr)
-                bandlow = fr*(1-self.bandint_width*.5)+params_values[bandpar]
-                bandhigh = fr*(1+self.bandint_width*.5)+params_values[bandpar]
-                nub = np.linspace(bandlow,bandhigh,self.bandint_nstep)
-                tranb = np.ones(len(nub))
-                tranb_norm = np.trapz(tranb,nub)
+                bandlow = fr*(1-self.bandint_width*.5)
+                bandhigh = fr*(1+self.bandint_width*.5)
+                nubtrue = np.linspace(bandlow,bandhigh,self.bandint_nstep)
+                nub = np.linspace(bandlow+params_values[bandpar],bandhigh+params_values[bandpar],self.bandint_nstep)
+                tranb = _cmb2bb(nub)
+                tranb_norm = np.trapz(_cmb2bb(nubtrue),nubtrue)
                 self.bandint_freqs.append([nub,tranb/tranb_norm])
         else:
             self.bandint_freqs = np.empty_like(self.freqs)
@@ -372,6 +374,12 @@ class MFLike(_InstallableLikelihood):
                                     ell=self.l_bpws,
                                     requested_cls=self.requested_cls)
 
+def _cmb2bb(nu):
+    # NB: numerical factors not included 
+    from scipy import constants
+    T_CMB = 2.72548
+    x = nu*constants.h * 1e9 / constants.k / T_CMB
+    return  np.exp(x)*(nu * x / np.expm1(x))**2
 
 # Standalone function to return the foregroung model
 # given the nuisance parameters
