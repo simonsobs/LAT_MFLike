@@ -11,12 +11,12 @@ from typing import Optional
 
 import numpy as np
 from cobaya.conventions import _packages_path
-from cobaya.likelihoods._base_classes import _InstallableLikelihood
+from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
 from cobaya.tools import are_different_params_lists
 
 
-class MFLike(_InstallableLikelihood):
+class MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
     _release = "v0.6"
     install_options = {"download_url": "{}/{}.tar.gz".format(_url, _release)}

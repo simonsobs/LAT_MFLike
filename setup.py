@@ -9,7 +9,7 @@ setup(
     python_requires=">=3.5",
     install_requires=[
         "fgspectra @ git+https://github.com/simonsobs/fgspectra@master#egg=fgspectra",
-        "cobaya>=3.0",
+        "cobaya>=3.0.4",
         "sacc>=0.4.2",
     ],
     package_data={"mflike": ["MFLike.yaml"]},
