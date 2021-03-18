@@ -36,7 +36,7 @@ class MFLikeTest(unittest.TestCase):
     def setUp(self):
         from cobaya.install import install
 
-        install({"likelihood": {"mflike.MFLike": None}}, path=packages_path, skip_global=True)
+        install({"likelihood": {"mflike.MFLike": None}}, path=packages_path)
 
     def test_mflike(self):
         import camb
