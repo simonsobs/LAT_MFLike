@@ -1,61 +1,21 @@
-=============================
-LAT Multifrequency Likelihood
-=============================
+===========
+MFLike-plik
+===========
 
-An external likelihood using `cobaya <https://github.com/CobayaSampler/cobaya>`_.
-
-.. image:: https://img.shields.io/github/workflow/status/simonsobs/LAT_MFLike/Unit%20test%20for%20mflike/feature-github-actions
-   :target: https://github.com/simonsobs/LAT_MFLike/actions
-
-.. image:: https://mybinder.org/badge_logo.svg
-   :target: https://mybinder.org/v2/gh/simonsobs/LAT_MFLike/master?filepath=notebooks%2Fmflike_tutorial.ipynb
-
-
-Installing the code
--------------------
-
-You first need to clone this repository to some location
-
-.. code:: shell
-
-    $ git clone https://github.com/simonsobs/LAT_MFLike.git /where/to/clone
-
-Then you can install the ``mflike`` likelihood and its dependencies *via*
-
-.. code:: shell
-
-    $ pip install -e /where/to/clone
-
-The ``-e`` option allow the developer to make changes within the ``mflike`` directory without having
-to reinstall at every changes. If you plan to just use the likelihood and do not develop it, you can
-remove the ``-e`` option.
-
-Installing LAT likelihood data
-------------------------------
-
-Preliminary simulated data can be found at `NERSC
-<https://portal.nersc.gov/cfs/sobs/users/MFLike_data>`_. You can download them by yourself but you
-can also use the ``cobaya-install`` binary and let it do the installation job. For instance, if you
-do the next command
-
-.. code:: shell
-
-    $ cobaya-install /where/to/clone/examples/mflike_example.yaml -p /where/to/put/packages
-
-data and code such as `CAMB <https://github.com/cmbant/CAMB>`_ will be downloaded and installed
-within the ``/where/to/put/packages`` directory. For more details, you can have a look to ``cobaya``
-`documentation <https://cobaya.readthedocs.io/en/latest/installation_cosmo.html>`_.
+An ``MFLike`` implementation of the Planck ``plik`` high-ell likelihood for `cobaya <https://github.com/CobayaSampler/cobaya>`_.
 
 Running/testing the code
 ------------------------
 
-You can test the ``mflike`` likelihood by doing
+You can test the ``MFLike-plik`` likelihood by including the ``PlikMFLike`` in your ``likelihoods`` block. All parameters used by ``plik`` have the same name in ``MFLike-plik``.
 
-.. code:: shell
+Included files
+--------------
 
-    $ cobaya-run /where/to/clone/examples/mflike_example.yaml -p /where/to/put/packages
+The following files and folders are included:
+    `data/` contains the original `plik` data files for the bins, spectra, covariance matrix and systematics.
 
-which should run a MCMC sampler for the simulation n°44 (*i.e.* ``data_sacc_00044.fits`` in the
-``mflike_example.yaml`` file) using the combination of TT, TE and EE spectra (*i.e.*
-``polarizations: ['TT', 'TE', 'ET', 'EE']``). The results will be stored in the ``chains/mcmc``
-directory.
+    `examples/` contains several sample `.yaml` files for a variety of chains.
+        `lcdm.yaml` is an example that runs a basic LCDM chain using only `MFLike-plik`.
+
+        `mf-TTTEEE.yaml` is an example that couples `MFLike-plik` to a (locally-installed) `plik-lowL` and `plik-lowE` likelihoods.
