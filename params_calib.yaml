@@ -1,0 +1,21 @@
+  calib_100T:
+    prior:
+      dist: norm
+      loc: 1.0002
+      scale: 0.0007
+    ref:
+      dist: norm
+      loc: 1.0002
+      scale: 0.0007
+  calib_217T:
+    prior:
+      dist: norm
+      loc: 0.99805
+      scale: 0.00065
+    ref:
+      dist: norm
+      loc: 0.99805
+      scale: 0.00065
+  calib_100P: 1.021
+  calib_143P: 0.966
+  calib_217P: 1.04

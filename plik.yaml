@@ -1,0 +1,41 @@
+debug: False
+resume: False
+force: False
+output: chains/mflike-plik
+
+likelihood:
+  plikmflike.PlikMFLike:
+    # this should point to a directory containing all the files named below here.
+    data_folder: data/
+    stop_at_error: true
+    
+    # All these files can be copied directly from the original plik code.
+    # Plik binning files.
+    weightfile: bweight.dat
+    minfile: blmin.dat
+    maxfile: blmax.dat
+    # Covariance matrix.
+    covfile: covmat.dat
+    # The spectra.
+    specfile: plikdata.dat
+    # Systematics files.
+    leakfile: leakage.dat
+    corrfile: ee_cnoise.dat
+    subpixfile: subpix.dat
+#  planck_2018_lowl.TT:
+#    clik_file: /your/path/to/plc_3.0/low_l/commander/commander_dx12_v3_2_29.clik
+#  planck_2018_lowl.EE:
+#    clik_file: /your/path/to/plc_3.0/low_l/simall/simall_100x143_offlike5_EE_Aplanck_B.clik
+
+theory:
+  camb:
+    stop_at_error: False
+    extra_args:
+      lens_potential_accuracy: 1
+
+sampler:
+  evaluate:
+
+prior: !defaults [prior_SZ]
+
+params: !defaults [params_cosmo, params_TT, params_TE, params_EE, params_calib]

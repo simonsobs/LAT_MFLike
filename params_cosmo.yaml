@@ -1,0 +1,62 @@
+ombh2:
+  ref:
+    dist: norm
+    loc: 0.02237
+    scale: 0.00015
+  prior:
+    min: 0.02087
+    max: 0.02387
+  latex: \Omega_b h^2
+omch2:
+  ref:
+    dist: norm
+    loc: 0.1200
+    scale: 0.0012
+  prior:
+    min: 0.1080
+    max: 0.1320
+  latex: \Omega_c h^2
+theta:
+  ref:
+    dist: norm
+    loc: 1.04092
+    scale: 0.00031
+  prior:
+    min: 1.03782
+    max: 1.04402
+  drop: True
+  latex: 100 \theta_\mathrm{MC}
+cosmomc_theta:
+  value: "lambda theta: 1e-2 * theta"
+  latex: \theta_\mathrm{MC}
+logA:
+  ref:
+    dist: norm
+    loc: 3.044
+    scale: 0.014
+  prior:
+    min: 2.904
+    max: 3.184
+  drop: True
+  latex: \log(10^{10} \mathcal{A}_s)
+As:
+  value: "lambda logA: 1e-10 * np.exp(logA)"
+  latex: \mathcal{A}_s
+ns:
+  ref:
+    dist: norm
+    loc: 0.9649
+    scale: 0.0042
+  prior:
+    min: 0.9229
+    max: 1.0069
+  latex: n_s
+tau:
+  ref:
+    dist: norm
+    loc: 0.0544
+    scale: 0.0073
+  prior:
+    min: 0.0179
+    max: 0.0909
+  latex: \tau
