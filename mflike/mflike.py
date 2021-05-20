@@ -14,7 +14,7 @@ from cobaya.conventions import _packages_path
 from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
 from cobaya.tools import are_different_params_lists
-
+from .theoryforge import TheoryForge
 
 class MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
@@ -54,14 +54,18 @@ class MFLike(InstallableLikelihood):
         # State requisites to the theory code
         self.requested_cls = ["tt", "te", "ee"]
 
-        self.expected_params = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
-                                "a_c", "beta_c", "n_CIBC", "a_s", "T_d"]
+        self.expected_params_fg = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
+                                  "a_c", "beta_c", "n_CIBC", "a_s", "T_d"]
+   
+        self.expected_params_nuis = []
+
+        ThFo = TheoryForge(self)
         self.log.info("Initialized!")
 
     def initialize_with_params(self):
         # Check that the parameters are the right ones
         differences = are_different_params_lists(
-            self.input_params, self.expected_params,
+            self.input_params, self.expected_params_fg + self.expected_params_nuis,
             name_A="given", name_B="expected")
         if differences:
             raise LoggedError(
@@ -73,10 +77,11 @@ class MFLike(InstallableLikelihood):
 
     def logp(self, **params_values):
         cl = self.theory.get_Cl(ell_factor=True)
-        return self.loglike(cl, **params_values)
+        params_values_nocosmo = {k: params_values[k] for k in self.expected_params_fg+self.expected_params_nuis}
+        return self.loglike(cl, params_values_nocosmo)
 
-    def loglike(self, cl, **params_values):
-        ps_vec = self._get_power_spectra(cl, **params_values)
+    def loglike(self, cl, **params_values_nocosmo):
+        ps_vec = self._get_power_spectra(cl, params_values_nocosmo)
         delta = self.data_vec - ps_vec
         logp = -0.5 * (delta @ self.inv_cov @ delta)
         logp += self.logp_const
@@ -322,85 +327,18 @@ class MFLike(InstallableLikelihood):
         if 'et' in self.lcuts:
             del self.lcuts['et']
 
-    def _get_power_spectra(self, cl, **params_values):
+    def _get_power_spectra(self, cl, **params_values_nocosmo):
         # Get Cl's from the theory code
         Dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
-
-        # Get new foreground model given its nuisance parameters
-        fg_model = self._get_foreground_model(
-            {k: params_values[k] for k in self.expected_params})
+   
+        DlsObs = ThFo.get_modified_theory(Dls,**params_values_nocosmo)
 
         ps_vec = np.zeros_like(self.data_vec)
         for m in self.spec_meta:
             p = m['pol']
             i = m['ids']
             w = m['bpw'].weight.T
-            clt = np.dot(w, Dls[p] + fg_model[p, 'all', m['nu1'], m['nu2']])
+            clt = np.dot(w, DlsObs[p, m['nu1'], m['nu2']])       
             ps_vec[i] = clt
 
         return ps_vec
-
-    def _get_foreground_model(self, fg_params):
-        return get_foreground_model(fg_params=fg_params,
-                                    fg_model=self.foregrounds,
-                                    frequencies=self.freqs,
-                                    ell=self.l_bpws,
-                                    requested_cls=self.requested_cls)
-
-
-# Standalone function to return the foregroung model
-# given the nuisance parameters
-def get_foreground_model(fg_params, fg_model,
-                         frequencies, ell,
-                         requested_cls=["tt", "te", "ee"]):
-    normalisation = fg_model["normalisation"]
-    nu_0 = normalisation["nu_0"]
-    ell_0 = normalisation["ell_0"]
-
-    from fgspectra import cross as fgc
-    from fgspectra import frequency as fgf
-    from fgspectra import power as fgp
-
-    # We don't seem to be using this
-    # cirrus = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
-    ksz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.kSZ_bat())
-    cibp = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
-    radio = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
-    tsz = fgc.FactorizedCrossSpectrum(fgf.ThermalSZ(), fgp.tSZ_150_bat())
-    cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerLaw())
-
-    # Make sure to pass a numpy array to fgspectra
-    if not isinstance(frequencies, np.ndarray):
-        frequencies = np.array(frequencies)
-
-    model = {}
-    model["tt", "kSZ"] = fg_params["a_kSZ"] * ksz(
-        {"nu": frequencies},
-        {"ell": ell, "ell_0": ell_0})
-    model["tt", "cibp"] = fg_params["a_p"] * cibp(
-        {"nu": frequencies, "nu_0": nu_0,
-         "temp": fg_params["T_d"], "beta": fg_params["beta_p"]},
-        {"ell": ell, "ell_0": ell_0, "alpha": 2})
-    model["tt", "radio"] = fg_params["a_s"] * radio(
-        {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2},
-        {"ell": ell, "ell_0": ell_0, "alpha": 2})
-    model["tt", "tSZ"] = fg_params["a_tSZ"] * tsz(
-        {"nu": frequencies, "nu_0": nu_0},
-        {"ell": ell, "ell_0": ell_0})
-    model["tt", "cibc"] = fg_params["a_c"] * cibc(
-        {"nu": frequencies, "nu_0": nu_0,
-         "temp": fg_params["T_d"], "beta": fg_params["beta_c"]},
-        {"ell": ell, "ell_0": ell_0, "alpha": 2 - fg_params["n_CIBC"]})
-
-    components = fg_model["components"]
-    component_list = {s: components[s] for s in requested_cls}
-    fg_dict = {}
-    for c1, f1 in enumerate(frequencies):
-        for c2, f2 in enumerate(frequencies):
-            for s in requested_cls:
-                fg_dict[s, "all", f1, f2] = np.zeros(len(ell))
-                for comp in component_list[s]:
-                    fg_dict[s, comp, f1, f2] = model[s, comp][c1, c2]
-                    fg_dict[s, "all", f1, f2] += fg_dict[s, comp, f1, f2]
-
-    return fg_dict
