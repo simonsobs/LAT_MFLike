@@ -59,7 +59,7 @@ class MFLike(InstallableLikelihood):
    
         self.expected_params_nuis = []
 
-        ThFo = TheoryForge(self)
+        self.ThFo = TheoryForge(self)
         self.log.info("Initialized!")
 
     def initialize_with_params(self):
@@ -77,11 +77,11 @@ class MFLike(InstallableLikelihood):
 
     def logp(self, **params_values):
         cl = self.theory.get_Cl(ell_factor=True)
-        params_values_nocosmo = {k: params_values[k] for k in self.expected_params_fg+self.expected_params_nuis}
-        return self.loglike(cl, params_values_nocosmo)
+        params_values_nocosmo = {k: params_values[k] for k in self.expected_params_fg + self.expected_params_nuis}
+        return self.loglike(cl, **params_values_nocosmo)
 
     def loglike(self, cl, **params_values_nocosmo):
-        ps_vec = self._get_power_spectra(cl, params_values_nocosmo)
+        ps_vec = self._get_power_spectra(cl, **params_values_nocosmo)
         delta = self.data_vec - ps_vec
         logp = -0.5 * (delta @ self.inv_cov @ delta)
         logp += self.logp_const
@@ -330,8 +330,7 @@ class MFLike(InstallableLikelihood):
     def _get_power_spectra(self, cl, **params_values_nocosmo):
         # Get Cl's from the theory code
         Dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
-   
-        DlsObs = ThFo.get_modified_theory(Dls,**params_values_nocosmo)
+        DlsObs = self.ThFo.get_modified_theory(Dls,**params_values_nocosmo)
 
         ps_vec = np.zeros_like(self.data_vec)
         for m in self.spec_meta:
