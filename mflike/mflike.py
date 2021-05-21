@@ -27,6 +27,7 @@ class MFLike(InstallableLikelihood):
     data: dict
     defaults: dict
     foregrounds: dict
+    band_integration: dict
 
     def initialize(self):
         # Set path to data
@@ -57,7 +58,7 @@ class MFLike(InstallableLikelihood):
         self.expected_params_fg = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
                                   "a_c", "beta_c", "n_CIBC", "a_s", "T_d"]
    
-        self.expected_params_nuis = []
+        self.expected_params_nuis = ["bandint_shift_93","bandint_shift_145","bandint_shift_225"]
 
         self.ThFo = TheoryForge(self)
         self.log.info("Initialized!")
