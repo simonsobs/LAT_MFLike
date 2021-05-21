@@ -26,29 +26,7 @@ class TheoryForge:
 
 
         #Bandpass construction for band integration
-        if not hasattr(self.bandint_width, "__len__"):
-            self.bandint_width = np.full_like(self.freqs,self.bandint_width,dtype=np.float)
-        if np.any(np.array(self.bandint_width) > 0):
-            assert self.bandint_nsteps > 1 , 'bandint_width and bandint_nsteps not coherent'
-            assert np.all(np.array(self.bandint_width) > 0), 'one band has width = 0, set a positive width and run again'
-
-            self.bandint_freqs = []
-            for ifr,fr in enumerate(self.freqs):
-                bandpar = 'bandint_shift_'+str(fr)
-                bandlow = fr*(1-self.bandint_width[ifr]*.5)
-                bandhigh = fr*(1+self.bandint_width[ifr]*.5)
-                print(bandlow,bandhigh)
-                nubtrue = np.linspace(bandlow,bandhigh,self.bandint_nsteps,dtype=float)
-                nub = np.linspace(bandlow+nuis_params[bandpar],bandhigh+nuis_params[bandpar],self.bandint_nsteps,dtype=float)
-                tranb = _cmb2bb(nub)
-                tranb_norm = np.trapz(_cmb2bb(nubtrue),nubtrue)
-                self.bandint_freqs.append([nub,tranb/tranb_norm])
-        else:
-            self.bandint_freqs = np.empty_like(self.freqs,dtype=float)
-            for ifr,fr in enumerate(self.freqs):
-                bandpar = 'bandint_shift_'+str(fr)
-                self.bandint_freqs[ifr] = fr+nuis_params[bandpar]
-
+        self.bandint_freqs = self._bandpass_construction(**nuis_params)
 
         fg_dict = self._get_foreground_model(**fg_params)
 
@@ -62,7 +40,7 @@ class TheoryForge:
         return dls_dict
 
 
-
+    #Initializes the foreground model. It sets the SED and reads the templates  
     def _init_foreground_model(self):
 
         from fgspectra import cross as fgc
@@ -85,11 +63,8 @@ class TheoryForge:
         self.fg_component_list = {s: components[s] for s in self.requested_cls}
 
 
-
+    #Gets the actual power spectrum of foregrounds given the passed parameters
     def _get_foreground_model(self,**fg_params):
-
-#        if not isinstance(self.freqs, np.ndarray):
-#            frequencies = np.array(self.freqs)
 
         ell = self.l_bpws
         ell_0 = self.fg_ell_0
@@ -126,7 +101,36 @@ class TheoryForge:
         return fg_dict
 
 
+    #Takes care of the bandpass construction. It returns a list of nu-transmittance for each frequency or an array with the effective freqs. 
+    def _bandpass_construction(self,**params):
 
+        if not hasattr(self.bandint_width, "__len__"):
+            self.bandint_width = np.full_like(self.freqs,self.bandint_width,dtype=np.float)
+        if np.any(np.array(self.bandint_width) > 0):
+            assert self.bandint_nsteps > 1 , 'bandint_width and bandint_nsteps not coherent'
+            assert np.all(np.array(self.bandint_width) > 0), 'one band has width = 0, set a positive width and run again'
+
+            bandint_freqs = []
+            for ifr,fr in enumerate(self.freqs):
+                bandpar = 'bandint_shift_'+str(fr)
+                bandlow = fr*(1-self.bandint_width[ifr]*.5)
+                bandhigh = fr*(1+self.bandint_width[ifr]*.5)
+                print(bandlow,bandhigh)
+                nubtrue = np.linspace(bandlow,bandhigh,self.bandint_nsteps,dtype=float)
+                nub = np.linspace(bandlow+params[bandpar],bandhigh+params[bandpar],self.bandint_nsteps,dtype=float)
+                tranb = _cmb2bb(nub)
+                tranb_norm = np.trapz(_cmb2bb(nubtrue),nubtrue)
+                bandint_freqs.append([nub,tranb/tranb_norm])
+        else:
+            bandint_freqs = np.empty_like(self.freqs,dtype=float)
+            for ifr,fr in enumerate(self.freqs):
+                bandpar = 'bandint_shift_'+str(fr)
+                bandint_freqs[ifr] = fr+params[bandpar]
+
+        return bandint_freqs 
+
+
+#Converts from cmb units to brightness. Numerical factors not included, it needs proper normalization when used.it needs proper normalization when used.  
 def _cmb2bb(nu):
     # NB: numerical factors not included 
     from scipy import constants
