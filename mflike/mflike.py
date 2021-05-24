@@ -357,9 +357,18 @@ def get_foreground_model(fg_params, fg_model,
     nu_0 = normalisation["nu_0"]
     ell_0 = normalisation["ell_0"]
 
+    # Normalisation of radio sources
+    ell_clp = ell*(ell+1.)
+    ell_0clp = 3000.*3001.
+
+    # Needs fgspectra/act_sz_x_cib branch installed
+
     from fgspectra import cross as fgc
     from fgspectra import frequency as fgf
     from fgspectra import power as fgp
+
+    template_path = os.path.join(os.path.dirname(os.path.abspath(fgp.__file__)),'data')
+    cibc_file = os.path.join(template_path,'cl_cib_Choi2020.dat')
 
     # We don't seem to be using this
     # cirrus = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
@@ -367,7 +376,9 @@ def get_foreground_model(fg_params, fg_model,
     cibp = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
     radio = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
     tsz = fgc.FactorizedCrossSpectrum(fgf.ThermalSZ(), fgp.tSZ_150_bat())
-    cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerLaw())
+    cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerSpectrumFromFile(cibc_file))
+    dust = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
+    tSZ_and_CIB = fgc.SZxCIB_Choi2020()
 
     # Make sure to pass a numpy array to fgspectra
     if not isinstance(frequencies, np.ndarray):
@@ -379,18 +390,50 @@ def get_foreground_model(fg_params, fg_model,
         {"ell": ell, "ell_0": ell_0})
     model["tt", "cibp"] = fg_params["a_p"] * cibp(
         {"nu": frequencies, "nu_0": nu_0,
-         "temp": fg_params["T_d"], "beta": fg_params["beta_p"]},
-        {"ell": ell, "ell_0": ell_0, "alpha": 2})
+        "temp": fg_params["T_d"], "beta": fg_params["beta_c"]},
+        {"ell": ell_clp, "ell_0": ell_0clp, "alpha": 1})
     model["tt", "radio"] = fg_params["a_s"] * radio(
-        {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2},
-        {"ell": ell, "ell_0": ell_0, "alpha": 2})
+        {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2.},
+        {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})
     model["tt", "tSZ"] = fg_params["a_tSZ"] * tsz(
         {"nu": frequencies, "nu_0": nu_0},
         {"ell": ell, "ell_0": ell_0})
     model["tt", "cibc"] = fg_params["a_c"] * cibc(
+        {"nu": fdustw, "nu_0": nu_0,
+        "temp": fg_params["T_d"], "beta": fg_params["beta_c"]},
+        {'ell':ell, 'ell_0':ell_0})
+    model["tt", "dust"] = fg_params["a_g"] * dust(
         {"nu": frequencies, "nu_0": nu_0,
-         "temp": fg_params["T_d"], "beta": fg_params["beta_c"]},
-        {"ell": ell, "ell_0": ell_0, "alpha": 2 - fg_params["n_CIBC"]})
+        "temp": 19.6, "beta": 1.5},
+        {"ell": ell, "ell_0": 500., "alpha": -0.6})
+    model["tt","tSZ_and_CIB"] = tSZ_and_CIB(
+        {'kwseq': (
+        {'nu':frequencies, 'nu_0': nu_0},
+        {'nu': frequencies, 'nu_0': nu_0, 'temp': fg_params['T_d'], 'beta': fg_params["beta_c"]} 
+                            )},
+        {'kwseq': ( 
+        {'ell':ell, 'ell_0': ell_0, 
+        'amp': fg_params['a_tSZ']},
+        {'ell':ell, 'ell_0': ell_0, 'amp': fg_params['a_c']},
+        {'ell':ell, 'ell_0': ell_0, 
+        'amp': - fg_params['xi'] * np.sqrt(fg_params['a_tSZ'] * fg_params['a_c'])}
+                )})
+
+    model["ee", "radio"] = fg_params["a_psee"] * radio(
+        {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2.},
+        {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})    
+    model["ee", "dust", "wide"] = fg_params["a_gee"] * dust(
+        {"nu": frequencies, "nu_0": nu_0,
+        "temp": 19.6, "beta": 1.5},
+        {"ell": ell, "ell_0": 500., "alpha": -0.4})
+
+    model["te", "radio"] = fg_params["a_pste"] * radio(
+        {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2.},
+        {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})     
+     model["te", "dust"] = fg_params["a_gte"] * dust(
+        {"nu": frequencies, "nu_0": nu_0,
+        "temp": 19.6, "beta": 1.5},
+        {"ell": ell, "ell_0": 500., "alpha": -0.4})
 
     components = fg_model["components"]
     component_list = {s: components[s] for s in requested_cls}
