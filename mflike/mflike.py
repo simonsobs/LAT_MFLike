@@ -55,7 +55,8 @@ class MFLike(InstallableLikelihood):
         self.requested_cls = ["tt", "te", "ee"]
 
         self.expected_params = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
-                                "a_c", "beta_c", "n_CIBC", "a_s", "T_d"]
+                                "a_c", "beta_c", "a_s", "a_gtt", "a_gte", "a_gee",
+                                "a_psee", "a_pste","n_CIBC", "xi", "T_d"]
         self.log.info("Initialized!")
 
     def initialize_with_params(self):
@@ -390,7 +391,7 @@ def get_foreground_model(fg_params, fg_model,
         {"ell": ell, "ell_0": ell_0})
     model["tt", "cibp"] = fg_params["a_p"] * cibp(
         {"nu": frequencies, "nu_0": nu_0,
-        "temp": fg_params["T_d"], "beta": fg_params["beta_c"]},
+        "temp": fg_params["T_d"], "beta": fg_params["beta_p"]},
         {"ell": ell_clp, "ell_0": ell_0clp, "alpha": 1})
     model["tt", "radio"] = fg_params["a_s"] * radio(
         {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2.},
@@ -399,10 +400,10 @@ def get_foreground_model(fg_params, fg_model,
         {"nu": frequencies, "nu_0": nu_0},
         {"ell": ell, "ell_0": ell_0})
     model["tt", "cibc"] = fg_params["a_c"] * cibc(
-        {"nu": fdustw, "nu_0": nu_0,
+        {"nu": frequencies, "nu_0": nu_0,
         "temp": fg_params["T_d"], "beta": fg_params["beta_c"]},
         {'ell':ell, 'ell_0':ell_0})
-    model["tt", "dust"] = fg_params["a_g"] * dust(
+    model["tt", "dust"] = fg_params["a_gtt"] * dust(
         {"nu": frequencies, "nu_0": nu_0,
         "temp": 19.6, "beta": 1.5},
         {"ell": ell, "ell_0": 500., "alpha": -0.6})
@@ -422,7 +423,7 @@ def get_foreground_model(fg_params, fg_model,
     model["ee", "radio"] = fg_params["a_psee"] * radio(
         {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2.},
         {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})    
-    model["ee", "dust", "wide"] = fg_params["a_gee"] * dust(
+    model["ee", "dust"] = fg_params["a_gee"] * dust(
         {"nu": frequencies, "nu_0": nu_0,
         "temp": 19.6, "beta": 1.5},
         {"ell": ell, "ell_0": 500., "alpha": -0.4})
@@ -430,7 +431,7 @@ def get_foreground_model(fg_params, fg_model,
     model["te", "radio"] = fg_params["a_pste"] * radio(
         {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2.},
         {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})     
-     model["te", "dust"] = fg_params["a_gte"] * dust(
+    model["te", "dust"] = fg_params["a_gte"] * dust(
         {"nu": frequencies, "nu_0": nu_0,
         "temp": 19.6, "beta": 1.5},
         {"ell": ell, "ell_0": 500., "alpha": -0.4})
