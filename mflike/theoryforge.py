@@ -1,9 +1,11 @@
 import numpy as np
+import os
 
 class TheoryForge:
 
     def __init__(self,mflike):
 
+        self.data_folder = mflike.data_folder
         self.freqs = mflike.freqs
         self.foregrounds = mflike.foregrounds
         self.l_bpws = mflike.l_bpws
@@ -17,16 +19,22 @@ class TheoryForge:
         #Parameters for band integration
         self.bandint_nsteps = mflike.band_integration["nsteps"]
         self.bandint_width = mflike.band_integration["bandwidth"]
-
+        self.external_passband = mflike.band_integration["external_passband"]
+        
 
     def get_modified_theory(self,Dls,**params):
        
         fg_params = {k: params[k] for k in self.expected_params_fg}
         nuis_params = {k: params[k] for k in self.expected_params_nuis}
 
-
         #Bandpass construction for band integration
-        self.bandint_freqs = self._bandpass_construction(**nuis_params)
+        if self.external_passband:
+            path = os.path.normpath(os.path.join(self.data_folder,
+                                                       '/bp_int/'))
+            arrays = os.listdir(path)
+            self.bandint_freqs = self._external_bandpass_construction(arrays,**nuis_params)
+        else:
+            self.bandint_freqs = self._bandpass_construction(**nuis_params)
 
         fg_dict = self._get_foreground_model(**fg_params)
 
@@ -47,6 +55,9 @@ class TheoryForge:
         from fgspectra import frequency as fgf
         from fgspectra import power as fgp
         
+        template_path = os.path.join(os.path.dirname(os.path.abspath(fgp.__file__)),'data')
+        cibc_file = os.path.join(template_path,'cl_cib_Choi2020.dat')
+        
         #set pivot freq and multipole
         self.fg_nu_0 = self.foregrounds["normalisation"]["nu_0"]
         self.fg_ell_0 = self.foregrounds["normalisation"]["ell_0"]
@@ -57,7 +68,9 @@ class TheoryForge:
         self.cibp = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
         self.radio = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
         self.tsz = fgc.FactorizedCrossSpectrum(fgf.ThermalSZ(), fgp.tSZ_150_bat())
-        self.cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerLaw())
+        self.cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerSpectrumFromFile(cibc_file))
+        self.dust = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
+        self.tSZ_and_CIB = fgc.SZxCIB_Choi2020()
 
         components = self.foregrounds["components"]
         self.fg_component_list = {s: components[s] for s in self.requested_cls}
@@ -65,10 +78,13 @@ class TheoryForge:
 
     #Gets the actual power spectrum of foregrounds given the passed parameters
     def _get_foreground_model(self,**fg_params):
-
         ell = self.l_bpws
         ell_0 = self.fg_ell_0
         nu_0 = self.fg_nu_0
+
+        # Normalisation of radio sources
+        ell_clp = ell*(ell+1.)
+        ell_0clp = 3000.*3001.
 
         model = {}
         model["tt", "kSZ"] = fg_params["a_kSZ"] * self.ksz(
@@ -77,17 +93,49 @@ class TheoryForge:
         model["tt", "cibp"] = fg_params["a_p"] * self.cibp(
             {"nu": self.bandint_freqs, "nu_0": nu_0,
             "temp": fg_params["T_d"], "beta": fg_params["beta_p"]},
-            {"ell": ell, "ell_0": ell_0, "alpha": 2})
+            {"ell": ell_clp, "ell_0": ell_0clp, "alpha": 1})
         model["tt", "radio"] = fg_params["a_s"] * self.radio(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": -0.5 - 2},
-            {"ell": ell, "ell_0": ell_0, "alpha": 2})
+            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": -0.5 - 2.},
+            {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})
         model["tt", "tSZ"] = fg_params["a_tSZ"] * self.tsz(
             {"nu": self.bandint_freqs, "nu_0": nu_0},
             {"ell": ell, "ell_0": ell_0})
         model["tt", "cibc"] = fg_params["a_c"] * self.cibc(
             {"nu": self.bandint_freqs, "nu_0": nu_0,
             "temp": fg_params["T_d"], "beta": fg_params["beta_c"]},
-            {"ell": ell, "ell_0": ell_0, "alpha": 2 - fg_params["n_CIBC"]})
+            {'ell':ell, 'ell_0':ell_0})
+        model["tt", "dust"] = fg_params["a_gtt"] * self.dust(
+            {"nu": self.bandint_freqs, "nu_0": nu_0,
+            "temp": 19.6, "beta": 1.5},
+            {"ell": ell, "ell_0": 500., "alpha": -0.6})
+        model["tt","tSZ_and_CIB"] = self.tSZ_and_CIB(
+            {'kwseq': (
+            {'nu': self.bandint_freqs, 'nu_0': nu_0},
+            {'nu': self.bandint_freqs, 'nu_0': nu_0, 'temp': fg_params['T_d'], 'beta': fg_params["beta_c"]} 
+                                )},
+            {'kwseq': ( 
+            {'ell':ell, 'ell_0': ell_0, 
+            'amp': fg_params['a_tSZ']},
+            {'ell':ell, 'ell_0': ell_0, 'amp': fg_params['a_c']},
+            {'ell':ell, 'ell_0': ell_0, 
+            'amp': - fg_params['xi'] * np.sqrt(fg_params['a_tSZ'] * fg_params['a_c'])}
+                    )})
+
+        model["ee", "radio"] = fg_params["a_psee"] * self.radio(
+            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": -0.5 - 2.},
+            {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})    
+        model["ee", "dust"] = fg_params["a_gee"] * self.dust(
+            {"nu": self.bandint_freqs, "nu_0": nu_0,
+            "temp": 19.6, "beta": 1.5},
+            {"ell": ell, "ell_0": 500., "alpha": -0.4})
+
+        model["te", "radio"] = fg_params["a_pste"] * self.radio(
+            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": -0.5 - 2.},
+            {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})     
+        model["te", "dust"] = fg_params["a_gte"] * self.dust(
+            {"nu": self.bandint_freqs, "nu_0": nu_0,
+            "temp": 19.6, "beta": 1.5},
+            {"ell": ell, "ell_0": 500., "alpha": -0.4})
 
         fg_dict = {}
         for c1, f1 in enumerate(self.freqs):
@@ -130,6 +178,20 @@ class TheoryForge:
         return bandint_freqs 
 
 
+    def _external_bandpass_construction(self,arrays,**params):
+        bandint_freqs = []
+        for array in arrays:
+            fr = get_fr(array)
+            bandpar = 'bandint_shift_'+str(fr)
+            nu_ghz, pb = np.loadtxt(array,usecols=(0,1),unpack=True)
+            trans_norm = np.trapz(pb * _cmb2bb(nu_ghz), nu_ghz)
+            nub = nu_ghz + params[bandpar]
+            trans = pb * _cmb2bb(nub) 
+            bandint_freqs.append([nub,trans/trans_norm])
+
+        return bandint_freqs 
+
+
 #Converts from cmb units to brightness. Numerical factors not included, it needs proper normalization when used.it needs proper normalization when used.  
 def _cmb2bb(nu):
     # NB: numerical factors not included 
@@ -137,4 +199,19 @@ def _cmb2bb(nu):
     T_CMB = 2.72548
     x = nu*constants.h * 1e9 / constants.k / T_CMB
     return  np.exp(x)*(nu * x / np.expm1(x))**2
+
+#Provides the frequency value given the passband name. To be modified - it is ACT based!!!!!!
+def get_fr(array):
+    a = array.split("_")[0]
+    if a == 'PA1' or a == 'PA2':
+        fr = 150
+    if a == 'PA3':
+        fr = array.split("_")[3]
+    return fr
+
+
+
+
+
+
 
