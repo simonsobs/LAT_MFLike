@@ -94,8 +94,6 @@ foregrounds:
 
 params:
   # Foregrounds
-  params:
-  # Foregrounds
   a_tSZ:
     prior:
       min: 3.0

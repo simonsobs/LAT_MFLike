@@ -65,6 +65,7 @@ class TheoryForge:
                 for s in self.requested_cls:
                     cmbfg_dict[s,f1,f2] = Dls[s]+fg_dict[s,'all',f1,f2]
 
+
         #Apply calibration factors
         cmbfg_dict = self._get_calibrated_spectra(cmbfg_dict,**nuis_params)
 
@@ -83,6 +84,7 @@ class TheoryForge:
                 if self.defaults_cuts['symmetrize']: #we average TE and ET (as we do for data)
                     dls_dict[p,  m['nu1'], m['nu2']] += cmbfg_dict[p, m['nu2'], m['nu1']]
                     dls_dict[p,  m['nu1'], m['nu2']] *= 0.5
+
 
         return dls_dict
 
@@ -126,7 +128,7 @@ class TheoryForge:
 
         # Normalisation of radio sources
         ell_clp = ell*(ell+1.)
-        ell_0clp = 3000.*3001.
+        ell_0clp = ell_0*(ell_0+1.)
 
         model = {}
         model["tt", "kSZ"] = fg_params["a_kSZ"] * self.ksz(
@@ -205,7 +207,6 @@ class TheoryForge:
                 bandpar = 'bandint_shift_'+str(fr)
                 bandlow = fr*(1-self.bandint_width[ifr]*.5)
                 bandhigh = fr*(1+self.bandint_width[ifr]*.5)
-                print(bandlow,bandhigh)
                 nubtrue = np.linspace(bandlow,bandhigh,self.bandint_nsteps,dtype=float)
                 nub = np.linspace(bandlow+params[bandpar],bandhigh+params[bandpar],self.bandint_nsteps,dtype=float)
                 tranb = _cmb2bb(nub)
@@ -251,7 +252,6 @@ class TheoryForge:
             cal_pars["ee"]=(nuis_params["calG_all"] *
                 np.array([nuis_params['calE_'+str(fr)] for fr in self.freqs]))
 
-        print(cal_pars)
         calib = syl.Calibration_Planck15(ell=self.l_bpws,spectra=dls_dict)
 
         return calib(cal1=cal_pars,cal2=cal_pars,nu=self.freqs)
