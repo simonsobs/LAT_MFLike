@@ -188,6 +188,7 @@ params:
       max: 10.60
     proposal: 0.6
     latex: T_d
+  # Systematics
   bandint_shift_93:
     value: 0
     latex: \Delta_{\rm band}^{93}
@@ -197,3 +198,24 @@ params:
   bandint_shift_225:
     value: 0
     latex: \Delta_{\rm band}^{225}
+  calT_93:
+    value: 1
+    latex: \mathrm{Cal}_{\rm T}^{93}
+  calE_93:
+    value: 1
+    latex: \mathrm{Cal}_{\rm E}^{93}
+  calT_145:
+    value: 1
+    latex: \mathrm{Cal}_{\rm T}^{145}
+  calE_145:
+    value: 1
+    latex: \mathrm{Cal}_{\rm E}^{145}
+  calT_225:
+    value: 1
+    latex: \mathrm{Cal}_{\rm T}^{225}
+  calE_225:
+    value: 1
+    latex: \mathrm{Cal}_{\rm E}^{225}
+  calG_all:
+    value: 1
+    latex: \mathrm{Cal}_{\rm G}^{\rm All}

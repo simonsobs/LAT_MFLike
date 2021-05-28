@@ -59,7 +59,14 @@ class MFLike(InstallableLikelihood):
                                 "a_c", "beta_c", "a_s", "a_gtt", "a_gte", "a_gee",
                                 "a_psee", "a_pste","n_CIBC", "xi", "T_d"]
    
-        self.expected_params_nuis = ["bandint_shift_93","bandint_shift_145","bandint_shift_225"]
+        self.expected_params_nuis = ["bandint_shift_93",
+                                     "bandint_shift_145",
+                                     "bandint_shift_225",
+                                     "calT_93","calE_93",
+                                     "calT_145","calE_145",
+                                     "calT_225","calE_225",
+                                     "calG_all",
+                                    ]
 
         self.ThFo = TheoryForge(self)
         self.log.info("Initialized!")
@@ -302,6 +309,7 @@ class MFLike(InstallableLikelihood):
                                                np.arange(cls.size,
                                                          dtype=int)),
                                        'pol': ppol_dict[pol],
+                                       'xsp': pol in ['ET','BE','BT'],
                                        't1': xp_nu(exp_1, freq_1),  #
                                        't2': xp_nu(exp_2, freq_2),  #
                                        'nu1': freq_1,

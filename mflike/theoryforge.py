@@ -1,6 +1,25 @@
 import numpy as np
 import os
 
+
+#Converts from cmb units to brightness. Numerical factors not included, it needs proper normalization when used. 
+def _cmb2bb(nu):
+    # NB: numerical factors not included 
+    from scipy import constants
+    T_CMB = 2.72548
+    x = nu*constants.h * 1e9 / constants.k / T_CMB
+    return  np.exp(x)*(nu * x / np.expm1(x))**2
+
+#Provides the frequency value given the passband name. To be modified - it is ACT based!!!!!!
+def _get_fr(array):
+    a = array.split("_")[0]
+    if a == 'PA1' or a == 'PA2':
+        fr = 150
+    if a == 'PA3':
+        fr = array.split("_")[3]
+    return fr
+
+
 class TheoryForge:
 
     def __init__(self,mflike):
@@ -13,13 +32,14 @@ class TheoryForge:
         self.expected_params_fg = mflike.expected_params_fg
         self.expected_params_nuis = mflike.expected_params_nuis
         self.spec_meta  = mflike.spec_meta
+        self.defaults_cuts = mflike.defaults
 
         self._init_foreground_model()
 
         #Parameters for band integration
         self.bandint_nsteps = mflike.band_integration["nsteps"]
         self.bandint_width = mflike.band_integration["bandwidth"]
-        self.external_passband = mflike.band_integration["external_passband"]
+        self.bandint_external_passband = mflike.band_integration["external_passband"]
         
 
     def get_modified_theory(self,Dls,**params):
@@ -28,7 +48,7 @@ class TheoryForge:
         nuis_params = {k: params[k] for k in self.expected_params_nuis}
 
         #Bandpass construction for band integration
-        if self.external_passband:
+        if self.bandint_external_passband:
             path = os.path.normpath(os.path.join(self.data_folder,
                                                        '/bp_int/'))
             arrays = os.listdir(path)
@@ -38,15 +58,37 @@ class TheoryForge:
 
         fg_dict = self._get_foreground_model(**fg_params)
 
+        cmbfg_dict = {}
+        #Sum CMB and FGs
+        for f1 in self.freqs:
+            for f2 in self.freqs:
+                for s in self.requested_cls:
+                    cmbfg_dict[s,f1,f2] = Dls[s]+fg_dict[s,'all',f1,f2]
+
+        #Apply calibration factors
+        cmbfg_dict = self._get_calibrated_spectra(cmbfg_dict,**nuis_params)
 
         #Built theory 
         dls_dict = {}
         for m in self.spec_meta:
             p = m['pol']
-            dls_dict[p,  m['nu1'], m['nu2']] = Dls[p] + fg_dict[p, 'all', m['nu1'], m['nu2']]
+            if p in ['tt','ee','bb']:
+                dls_dict[p,  m['nu1'], m['nu2']] = cmbfg_dict[p, m['nu1'], m['nu2']]
+            else: #['te','tb','eb']
+                if m['xsp']: #not symmetrizing 
+                    dls_dict[p,  m['nu1'], m['nu2']] = cmbfg_dict[p, m['nu2'], m['nu1']]
+                else:
+                    dls_dict[p,  m['nu1'], m['nu2']] = cmbfg_dict[p, m['nu1'], m['nu2']]
+
+                if self.defaults_cuts['symmetrize']: #we average TE and ET (as we do for data)
+                    dls_dict[p,  m['nu1'], m['nu2']] += cmbfg_dict[p, m['nu2'], m['nu1']]
+                    dls_dict[p,  m['nu1'], m['nu2']] *= 0.5
 
         return dls_dict
 
+###########################################################################
+## This part deals with foreground construction and bandpass integration ##
+###########################################################################
 
     #Initializes the foreground model. It sets the SED and reads the templates  
     def _init_foreground_model(self):
@@ -181,7 +223,7 @@ class TheoryForge:
     def _external_bandpass_construction(self,arrays,**params):
         bandint_freqs = []
         for array in arrays:
-            fr = get_fr(array)
+            fr = _get_fr(array)
             bandpar = 'bandint_shift_'+str(fr)
             nu_ghz, pb = np.loadtxt(array,usecols=(0,1),unpack=True)
             trans_norm = np.trapz(pb * _cmb2bb(nu_ghz), nu_ghz)
@@ -191,27 +233,26 @@ class TheoryForge:
 
         return bandint_freqs 
 
+###########################################################################
+## This part deals with  ##
+###########################################################################
 
-#Converts from cmb units to brightness. Numerical factors not included, it needs proper normalization when used.it needs proper normalization when used.  
-def _cmb2bb(nu):
-    # NB: numerical factors not included 
-    from scipy import constants
-    T_CMB = 2.72548
-    x = nu*constants.h * 1e9 / constants.k / T_CMB
-    return  np.exp(x)*(nu * x / np.expm1(x))**2
+    def _get_calibrated_spectra(self,dls_dict,**nuis_params):
 
-#Provides the frequency value given the passband name. To be modified - it is ACT based!!!!!!
-def get_fr(array):
-    a = array.split("_")[0]
-    if a == 'PA1' or a == 'PA2':
-        fr = 150
-    if a == 'PA3':
-        fr = array.split("_")[3]
-    return fr
+        from sysspectra import syslib_mflike as syl
+
+        cal_pars={}
+        if "tt" in self.requested_cls or "te" in self.requested_cls:
+            cal_pars["tt"]=(nuis_params["calG_all"] *
+                np.array([nuis_params['calT_'+str(fr)] for fr in self.freqs]))
 
 
+        if "ee" in self.requested_cls or "te" in self.requested_cls:
+            cal_pars["ee"]=(nuis_params["calG_all"] *
+                np.array([nuis_params['calE_'+str(fr)] for fr in self.freqs]))
 
+        print(cal_pars)
+        calib = syl.Calibration_Planck15(ell=self.l_bpws,spectra=dls_dict)
 
-
-
+        return calib(cal1=cal_pars,cal2=cal_pars,nu=self.freqs)
 
