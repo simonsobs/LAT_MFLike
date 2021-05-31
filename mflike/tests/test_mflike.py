@@ -48,6 +48,9 @@ nuisance_params = {
     "calT_225": 1,
     "calE_225": 1,
     "calG_all": 1,
+    "alpha_93": 0,
+    "alpha_145": 0,
+    "alpha_225": 0,
 }
 
 #chi2s = {"tt": 1384.8184, "te": 1400.4507, "ee": 1428.8454, "tt-te-et-ee": 2413.1038}

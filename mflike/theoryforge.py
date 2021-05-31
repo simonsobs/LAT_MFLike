@@ -66,8 +66,11 @@ class TheoryForge:
                     cmbfg_dict[s,f1,f2] = Dls[s]+fg_dict[s,'all',f1,f2]
 
 
-        #Apply calibration factors
+        #Apply alm based calibration factors
         cmbfg_dict = self._get_calibrated_spectra(cmbfg_dict,**nuis_params)
+
+        #Introduce spectra rotations
+        cmbfg_dict = self._get_rotated_spectra(cmbfg_dict,**nuis_params)
 
         #Built theory 
         dls_dict = {}
@@ -235,7 +238,11 @@ class TheoryForge:
         return bandint_freqs 
 
 ###########################################################################
-## This part deals with  ##
+## This part deals with calibration factors 
+## Here we implement an alm based calibration
+## Each field {T,E,B}{freq1,freq2,...,freqn} gets an independent 
+## calibration factor, e.g. calT_145, calE_154, calT_225, etc..
+## A global calibration factor calG_all is also considered.
 ###########################################################################
 
     def _get_calibrated_spectra(self,dls_dict,**nuis_params):
@@ -252,7 +259,21 @@ class TheoryForge:
             cal_pars["ee"]=(nuis_params["calG_all"] *
                 np.array([nuis_params['calE_'+str(fr)] for fr in self.freqs]))
 
-        calib = syl.Calibration_Planck15(ell=self.l_bpws,spectra=dls_dict)
+        calib = syl.Calibration_alm(ell=self.l_bpws,spectra=dls_dict)
 
         return calib(cal1=cal_pars,cal2=cal_pars,nu=self.freqs)
 
+###########################################################################
+## This part deals with rotation of spectra 
+## Each freq {freq1,freq2,...,freqn} gets a rotation angle alpha_93, alpha_145, etc.. 
+###########################################################################
+
+    def _get_rotated_spectra(self,dls_dict,**nuis_params):
+
+        from sysspectra import syslib_mflike as syl
+
+        rot_pars=[nuis_params['alpha_'+str(fr)] for fr in self.freqs]
+
+        rot = syl.Rotation_alm(ell=self.l_bpws,spectra=dls_dict,cls=self.requested_cls)
+
+        return rot(rot_pars,nu=self.freqs)
