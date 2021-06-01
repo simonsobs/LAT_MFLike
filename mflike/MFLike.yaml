@@ -45,19 +45,16 @@ data:
     # specify anything, the defaults will be used.
     - experiments: ['LAT', 'LAT']
       frequencies: [93, 93]
-      polarizations: ['TT','TE','EE']
     - experiments: ['LAT', 'LAT']
       frequencies: [93, 145]
     - experiments: ['LAT', 'LAT']
       frequencies: [93, 225]
     - experiments: ['LAT', 'LAT']
       frequencies: [145, 145]
-      polarizations: ['TT','TE','EE']
     - experiments: ['LAT', 'LAT']
       frequencies: [145, 225]
     - experiments: ['LAT', 'LAT']
       frequencies: [225, 225]
-      polarizations: ['TT','TE','EE']
 
 # Parameters to handle the band integration:
 # - external_passband sets the usage of an external passband file
