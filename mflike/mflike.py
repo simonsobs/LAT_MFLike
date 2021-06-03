@@ -149,10 +149,10 @@ class MFLike(InstallableLikelihood):
             exp_1, exp_2 = spec['experiments']
             freq_1, freq_2 = spec['frequencies']
             # Read off polarization channel combinations
-            pols = spectrum.get('polarizations',
+            pols = spec.get('polarizations',
                                 default_cuts['polarizations']).copy()
             # Read off scale cuts
-            scls = spectrum.get('scales',
+            scls = spec.get('scales',
                                 default_cuts['scales']).copy()
 
             # For the same two channels, do not include ET and TE, only TE
@@ -166,7 +166,7 @@ class MFLike(InstallableLikelihood):
             else:
                 # Symmetrization
                 if ('TE' in pols) and ('ET' in pols):
-                    symm = spectrum.get('symmetrize',
+                    symm = spec.get('symmetrize',
                                         default_cuts['symmetrize'])
                 else:
                     symm = False
