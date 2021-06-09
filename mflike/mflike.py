@@ -10,7 +10,6 @@ import os
 from typing import Optional
 
 import numpy as np
-from cobaya.conventions import _packages_path
 from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
 from cobaya.tools import are_different_params_lists
@@ -31,7 +30,7 @@ class MFLike(InstallableLikelihood):
     def initialize(self):
         # Set path to data
         if ((not getattr(self, "path", None)) and
-                (not getattr(self, _packages_path, None))):
+                (not getattr(self, "packages_path", None))):
             raise LoggedError(self.log,
                               "No path given to MFLike data. "
                               "Set the likelihood property "
@@ -106,25 +105,25 @@ class MFLike(InstallableLikelihood):
         try:
             default_cuts = self.defaults
         except AttributeError:
-            raise KeyError('You must provide a list of default cuts')
+            raise KeyError("You must provide a list of default cuts")
 
         # Translation betwen TEB and sacc C_ell types
-        pol_dict = {'T': '0',
-                    'E': 'e',
-                    'B': 'b'}
-        ppol_dict = {'TT': 'tt',
-                     'EE': 'ee',
-                     'TE': 'te',
-                     'ET': 'te',
-                     'BB': 'bb',
-                     'EB': 'eb',
-                     'BE': 'eb',
-                     'TB': 'tb',
-                     'BT': 'tb',
-                     'BB': 'bb'}
+        pol_dict = {"T": "0",
+                    "E": "e",
+                    "B": "b"}
+        ppol_dict = {"TT": "tt",
+                     "EE": "ee",
+                     "TE": "te",
+                     "ET": "te",
+                     "BB": "bb",
+                     "EB": "eb",
+                     "BE": "eb",
+                     "TB": "tb",
+                     "BT": "tb",
+                     "BB": "bb"}
 
         def xp_nu(xp, nu):
-            return xp + '_' + str(nu)
+            return f"{xp}_{nu}"
 
         def get_cl_meta(spec):
             # For each of the entries of the `spectra` section of the
@@ -132,28 +131,28 @@ class MFLike(InstallableLikelihood):
             # frequencies, polarization combinations, scale cuts and
             # whether TE should be symmetrized.
             # Experiments/frequencies
-            exp_1, exp_2 = spec['experiments']
-            freq_1, freq_2 = spec['frequencies']
+            exp_1, exp_2 = spec["experiments"]
+            freq_1, freq_2 = spec["frequencies"]
             # Read off polarization channel combinations
-            pols = spectrum.get('polarizations',
-                                default_cuts['polarizations']).copy()
+            pols = spectrum.get("polarizations",
+                                default_cuts["polarizations"]).copy()
             # Read off scale cuts
-            scls = spectrum.get('scales',
-                                default_cuts['scales']).copy()
+            scls = spectrum.get("scales",
+                                default_cuts["scales"]).copy()
 
             # For the same two channels, do not include ET and TE, only TE
             if (exp_1 == exp_2) and (freq_1 == freq_2):
-                if 'ET' in pols:
-                    pols.remove('ET')
-                    if 'TE' not in pols:
-                        pols.append('TE')
-                        scls['TE'] = scls['ET']
+                if "ET" in pols:
+                    pols.remove("ET")
+                    if "TE" not in pols:
+                        pols.append("TE")
+                        scls["TE"] = scls["ET"]
                 symm = False
             else:
                 # Symmetrization
-                if ('TE' in pols) and ('ET' in pols):
-                    symm = spectrum.get('symmetrize',
-                                        default_cuts['symmetrize'])
+                if ("TE" in pols) and ("ET" in pols):
+                    symm = spectrum.get("symmetrize",
+                                        default_cuts["symmetrize"])
                 else:
                     symm = False
 
@@ -167,19 +166,19 @@ class MFLike(InstallableLikelihood):
             p1, p2 = pol
             tname_1 = xp_nu(exp_1, freq_1)
             tname_2 = xp_nu(exp_2, freq_2)
-            if p1 in ['E', 'B']:
-                tname_1 += '_s2'
+            if p1 in ["E", "B"]:
+                tname_1 += "_s2"
             else:
-                tname_1 += '_s0'
-            if p2 in ['E', 'B']:
-                tname_2 += '_s2'
+                tname_1 += "_s0"
+            if p2 in ["E", "B"]:
+                tname_2 += "_s2"
             else:
-                tname_2 += '_s0'
+                tname_2 += "_s0"
 
-            if p2 == 'T':
-                dtype = 'cl_' + pol_dict[p2] + pol_dict[p1]
+            if p2 == "T":
+                dtype = "cl_" + pol_dict[p2] + pol_dict[p1]
             else:
-                dtype = 'cl_' + pol_dict[p1] + pol_dict[p2]
+                dtype = "cl_" + pol_dict[p1] + pol_dict[p2]
             return tname_1, tname_2, dtype
 
         # First we trim the SACC file so it only contains
@@ -189,7 +188,7 @@ class MFLike(InstallableLikelihood):
         indices_b = []
         # Length of the final data vector
         len_compressed = 0
-        for spectrum in data['spectra']:
+        for spectrum in data["spectra"]:
             (exp_1, exp_2, freq_1, freq_2,
              pols, scls, symm) = get_cl_meta(spectrum)
             for pol in pols:
@@ -208,7 +207,7 @@ class MFLike(InstallableLikelihood):
                                         ell__gt=lmin, ell__lt=lmax)
                     indices_b += list(ind_b)
 
-                if symm and pol == 'ET':
+                if symm and pol == "ET":
                     pass
                 else:
                     len_compressed += ind.size
@@ -233,11 +232,11 @@ class MFLike(InstallableLikelihood):
         mat_compress = np.zeros([len_compressed, len_full])
         mat_compress_b = np.zeros([len_compressed, len_full])
         bands = {}
-        self.lcuts = {k: c[1] for k, c in default_cuts['scales'].items()}
+        self.lcuts = {k: c[1] for k, c in default_cuts["scales"].items()}
         index_sofar = 0
 
         self.l_bpws = None
-        for spectrum in data['spectra']:
+        for spectrum in data["spectra"]:
             (exp_1, exp_2, freq_1, freq_2,
              pols, scls, symm) = get_cl_meta(spectrum)
             bands[xp_nu(exp_1, freq_1)] = freq_1
@@ -249,7 +248,7 @@ class MFLike(InstallableLikelihood):
                                                          freq_1, freq_2)
                 # The only reason why we need indices is the symmetrization.
                 # Otherwise all of this could have been done in the previous
-                # loop over data['spectra'].
+                # loop over data["spectra"].
                 ls, cls, ind = s.get_ell_cl(dtype, tname_1, tname_2, return_ind=True)
                 if cbbl_extra:
                     ind_b = s_b.indices(dtype,
@@ -264,7 +263,7 @@ class MFLike(InstallableLikelihood):
                     self.l_bpws = ws.values
 
                 # Symmetrize if needed.
-                if (pol in ['TE', 'ET']) and symm:
+                if (pol in ["TE", "ET"]) and symm:
                     pol2 = pol[::-1]
                     pols.remove(pol2)
                     tname_1, tname_2, dtype = get_sacc_names(pol2,
@@ -292,17 +291,17 @@ class MFLike(InstallableLikelihood):
                             mat_compress_b[index_sofar + i, j1] = 1
                 # The fields marked with # below aren't really used, but
                 # we store them just in case.
-                self.spec_meta.append({'ids': (index_sofar +
+                self.spec_meta.append({"ids": (index_sofar +
                                                np.arange(cls.size,
                                                          dtype=int)),
-                                       'pol': ppol_dict[pol],
-                                       't1': xp_nu(exp_1, freq_1),  #
-                                       't2': xp_nu(exp_2, freq_2),  #
-                                       'nu1': freq_1,
-                                       'nu2': freq_2,
-                                       'leff': ls,  #
-                                       'cl_data': cls,  #
-                                       'bpw': ws})
+                                       "pol": ppol_dict[pol],
+                                       "t1": xp_nu(exp_1, freq_1),  #
+                                       "t2": xp_nu(exp_2, freq_2),  #
+                                       "nu1": freq_1,
+                                       "nu2": freq_2,
+                                       "leff": ls,  #
+                                       "cl_data": cls,  #
+                                       "bpw": ws})
                 index_sofar += cls.size
         if not cbbl_extra:
             mat_compress_b = mat_compress
@@ -320,8 +319,8 @@ class MFLike(InstallableLikelihood):
 
         # Put lcuts in a format that is recognisable by CAMB.
         self.lcuts = {k.lower(): c for k, c in self.lcuts.items()}
-        if 'et' in self.lcuts:
-            del self.lcuts['et']
+        if "et" in self.lcuts:
+            del self.lcuts["et"]
 
     def _get_power_spectra(self, cl, **params_values):
         # Get Cl's from the theory code
@@ -333,10 +332,10 @@ class MFLike(InstallableLikelihood):
 
         ps_vec = np.zeros_like(self.data_vec)
         for m in self.spec_meta:
-            p = m['pol']
-            i = m['ids']
-            w = m['bpw'].weight.T
-            clt = np.dot(w, Dls[p] + fg_model[p, 'all', m['nu1'], m['nu2']])
+            p = m["pol"]
+            i = m["ids"]
+            w = m["bpw"].weight.T
+            clt = np.dot(w, Dls[p] + fg_model[p, "all", m["nu1"], m["nu2"]])
             ps_vec[i] = clt
 
         return ps_vec
@@ -349,7 +348,7 @@ class MFLike(InstallableLikelihood):
                                     requested_cls=self.requested_cls)
 
 
-# Standalone function to return the foregroung model
+# Standalone function to return the foreground model
 # given the nuisance parameters
 def get_foreground_model(fg_params, fg_model,
                          frequencies, ell,
@@ -368,8 +367,8 @@ def get_foreground_model(fg_params, fg_model,
     from fgspectra import frequency as fgf
     from fgspectra import power as fgp
 
-    template_path = os.path.join(os.path.dirname(os.path.abspath(fgp.__file__)),'data')
-    cibc_file = os.path.join(template_path,'cl_cib_Choi2020.dat')
+    template_path = os.path.join(os.path.dirname(os.path.abspath(fgp.__file__)), "data")
+    cibc_file = os.path.join(template_path, "cl_cib_Choi2020.dat")
 
     # We don't seem to be using this
     # cirrus = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
@@ -402,22 +401,22 @@ def get_foreground_model(fg_params, fg_model,
     model["tt", "cibc"] = fg_params["a_c"] * cibc(
         {"nu": frequencies, "nu_0": nu_0,
         "temp": fg_params["T_d"], "beta": fg_params["beta_c"]},
-        {'ell':ell, 'ell_0':ell_0})
+        {"ell":ell, "ell_0":ell_0})
     model["tt", "dust"] = fg_params["a_gtt"] * dust(
         {"nu": frequencies, "nu_0": nu_0,
         "temp": 19.6, "beta": 1.5},
         {"ell": ell, "ell_0": 500., "alpha": -0.6})
     model["tt","tSZ_and_CIB"] = tSZ_and_CIB(
-        {'kwseq': (
-        {'nu':frequencies, 'nu_0': nu_0},
-        {'nu': frequencies, 'nu_0': nu_0, 'temp': fg_params['T_d'], 'beta': fg_params["beta_c"]}
+        {"kwseq": (
+        {"nu":frequencies, "nu_0": nu_0},
+        {"nu": frequencies, "nu_0": nu_0, "temp": fg_params["T_d"], "beta": fg_params["beta_c"]}
                             )},
-        {'kwseq': (
-        {'ell':ell, 'ell_0': ell_0,
-        'amp': fg_params['a_tSZ']},
-        {'ell':ell, 'ell_0': ell_0, 'amp': fg_params['a_c']},
-        {'ell':ell, 'ell_0': ell_0,
-        'amp': - fg_params['xi'] * np.sqrt(fg_params['a_tSZ'] * fg_params['a_c'])}
+        {"kwseq": (
+        {"ell":ell, "ell_0": ell_0,
+        "amp": fg_params["a_tSZ"]},
+        {"ell":ell, "ell_0": ell_0, "amp": fg_params["a_c"]},
+        {"ell":ell, "ell_0": ell_0,
+        "amp": - fg_params["xi"] * np.sqrt(fg_params["a_tSZ"] * fg_params["a_c"])}
                 )})
 
     model["ee", "radio"] = fg_params["a_psee"] * radio(

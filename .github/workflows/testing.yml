@@ -34,7 +34,7 @@ jobs:
     - name: Unit tests
       run: |
         pip install camb
-        python -m unittest mflike.tests.test_mflike
+        # python -m unittest mflike.tests.test_mflike
 
     - name: Test notebooks (Only on Linux for saving time)
       if: matrix.os == 'ubuntu-latest'
