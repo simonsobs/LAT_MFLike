@@ -410,19 +410,19 @@ def get_foreground_model(fg_params, fg_model,
     model["tt","tSZ_and_CIB"] = tSZ_and_CIB(
         {'kwseq': (
         {'nu':frequencies, 'nu_0': nu_0},
-        {'nu': frequencies, 'nu_0': nu_0, 'temp': fg_params['T_d'], 'beta': fg_params["beta_c"]} 
+        {'nu': frequencies, 'nu_0': nu_0, 'temp': fg_params['T_d'], 'beta': fg_params["beta_c"]}
                             )},
-        {'kwseq': ( 
-        {'ell':ell, 'ell_0': ell_0, 
+        {'kwseq': (
+        {'ell':ell, 'ell_0': ell_0,
         'amp': fg_params['a_tSZ']},
         {'ell':ell, 'ell_0': ell_0, 'amp': fg_params['a_c']},
-        {'ell':ell, 'ell_0': ell_0, 
+        {'ell':ell, 'ell_0': ell_0,
         'amp': - fg_params['xi'] * np.sqrt(fg_params['a_tSZ'] * fg_params['a_c'])}
                 )})
 
     model["ee", "radio"] = fg_params["a_psee"] * radio(
         {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2.},
-        {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})    
+        {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})
     model["ee", "dust"] = fg_params["a_gee"] * dust(
         {"nu": frequencies, "nu_0": nu_0,
         "temp": 19.6, "beta": 1.5},
@@ -430,7 +430,7 @@ def get_foreground_model(fg_params, fg_model,
 
     model["te", "radio"] = fg_params["a_pste"] * radio(
         {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2.},
-        {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})     
+        {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})
     model["te", "dust"] = fg_params["a_gte"] * dust(
         {"nu": frequencies, "nu_0": nu_0,
         "temp": 19.6, "beta": 1.5},
@@ -444,7 +444,17 @@ def get_foreground_model(fg_params, fg_model,
             for s in requested_cls:
                 fg_dict[s, "all", f1, f2] = np.zeros(len(ell))
                 for comp in component_list[s]:
-                    fg_dict[s, comp, f1, f2] = model[s, comp][c1, c2]
-                    fg_dict[s, "all", f1, f2] += fg_dict[s, comp, f1, f2]
+                    if comp == "tSZ_and_CIB":
+                        fg_dict[s, "tSZ", f1, f2] = model[s, "tSZ"][c1, c2]
+                        fg_dict[s, "cibc", f1, f2] = model[s, "cibc"][c1, c2]
+                        fg_dict[s, "tSZxCIB", f1, f2] = (
+                            model[s, comp][c1, c2]
+                            - model[s, "tSZ"][c1, c2]
+                            - model[s, "cibc"][c1, c2]
+                        )
+                        fg_dict[s, "all", f1, f2] += model[s, comp][c1, c2]
+                    else:
+                        fg_dict[s, comp, f1, f2] = model[s, comp][c1, c2]
+                        fg_dict[s, "all", f1, f2] += fg_dict[s, comp, f1, f2]
 
     return fg_dict
