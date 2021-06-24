@@ -35,6 +35,7 @@ class TheoryForge:
         self.defaults_cuts = mflike.defaults
 
         self._init_foreground_model()
+        self._init_template_from_file()
 
         #Parameters for band integration
         self.bandint_nsteps = mflike.band_integration["nsteps"]
@@ -72,20 +73,27 @@ class TheoryForge:
         #Introduce spectra rotations
         cmbfg_dict = self._get_rotated_spectra(cmbfg_dict,**nuis_params)
 
+        #Introduce systematics templates from file
+        templ_dict = self._get_template_from_file(**nuis_params)
+
         #Built theory 
         dls_dict = {}
         for m in self.spec_meta:
             p = m['pol']
             if p in ['tt','ee','bb']:
-                dls_dict[p,  m['nu1'], m['nu2']] = cmbfg_dict[p, m['nu1'], m['nu2']]
+                dls_dict[p,  m['nu1'], m['nu2']] = (cmbfg_dict[p, m['nu1'], m['nu2']]
+                	                                +templ_dict[p, m['nu1'], m['nu2']])
             else: #['te','tb','eb']
                 if m['xsp']: #not symmetrizing 
-                    dls_dict[p,  m['nu1'], m['nu2']] = cmbfg_dict[p, m['nu2'], m['nu1']]
+                    dls_dict[p,  m['nu1'], m['nu2']] = (cmbfg_dict[p, m['nu2'], m['nu1']]
+                    	                               +templ_dict[p, m['nu2'], m['nu1']])
                 else:
-                    dls_dict[p,  m['nu1'], m['nu2']] = cmbfg_dict[p, m['nu1'], m['nu2']]
+                    dls_dict[p,  m['nu1'], m['nu2']] = (cmbfg_dict[p, m['nu1'], m['nu2']]
+                    	                               +templ_dict[p, m['nu1'], m['nu2']])
 
                 if self.defaults_cuts['symmetrize']: #we average TE and ET (as we do for data)
-                    dls_dict[p,  m['nu1'], m['nu2']] += cmbfg_dict[p, m['nu2'], m['nu1']]
+                    dls_dict[p,  m['nu1'], m['nu2']] += (cmbfg_dict[p, m['nu2'], m['nu1']]
+                    	                                +templ_dict[p, m['nu2'], m['nu1']])
                     dls_dict[p,  m['nu1'], m['nu2']] *= 0.5
 
 
@@ -247,7 +255,7 @@ class TheoryForge:
 
     def _get_calibrated_spectra(self,dls_dict,**nuis_params):
 
-        from sysspectra import syslib_mflike as syl
+        from syslibrary import syslib_mflike as syl
 
         cal_pars={}
         if "tt" in self.requested_cls or "te" in self.requested_cls:
@@ -270,10 +278,42 @@ class TheoryForge:
 
     def _get_rotated_spectra(self,dls_dict,**nuis_params):
 
-        from sysspectra import syslib_mflike as syl
+        from syslibrary import syslib_mflike as syl
 
         rot_pars=[nuis_params['alpha_'+str(fr)] for fr in self.freqs]
 
         rot = syl.Rotation_alm(ell=self.l_bpws,spectra=dls_dict,cls=self.requested_cls)
 
         return rot(rot_pars,nu=self.freqs)
+
+###########################################################################
+## This part deals with template marginalization 
+## A dictionary of template dls is read from yaml (likely to be not efficient)
+## then rescaled and added to theory dls
+###########################################################################
+
+    #Initializes the systematics templates
+    # This is slow, but should be done only once
+    def _init_template_from_file(self):
+
+    	from syslibrary import syslib_mflike as syl
+
+    	#decide where to store systematics template.
+    	#Currently stored inside syslibrary package
+    	self.templ_from_file = syl.ReadTemplateFromFile(rootname='test_template')
+
+    def _get_template_from_file(self,**nuis_params):
+
+        #templ_pars=[nuis_params['templ_'+str(fr)] for fr in self.freqs]
+        #templ_pars currently hard-coded
+        #but ideally should be passed as input nuisance
+        templ_pars={cls: np.zeros((len(self.freqs),len(self.freqs))) for cls in self.requested_cls}
+
+        dltempl = self.templ_from_file(ell=self.l_bpws)
+
+        for cls in self.requested_cls:
+        	for i1,f1 in enumerate(self.freqs):
+        		for i2,f2 in enumerate(self.freqs):
+        			dltempl[cls,f1,f2] *= templ_pars[cls][i1][i2]
+
+        return dltempl
