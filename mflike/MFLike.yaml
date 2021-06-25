@@ -69,6 +69,10 @@ band_integration:
   nsteps : 1
   bandwidth: 0
 
+systematics_template:
+  has_file: False
+  rootname: "test_template"
+
 foregrounds:
   normalisation:
     nu_0: 150.0

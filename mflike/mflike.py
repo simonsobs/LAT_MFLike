@@ -27,6 +27,7 @@ class MFLike(InstallableLikelihood):
     defaults: dict
     foregrounds: dict
     band_integration: dict
+    systematics_template: dict
 
     def initialize(self):
         # Set path to data
