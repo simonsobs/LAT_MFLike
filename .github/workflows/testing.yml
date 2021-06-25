@@ -39,5 +39,5 @@ jobs:
     - name: Test notebooks (Only on Linux for saving time)
       if: matrix.os == 'ubuntu-latest'
       run: |
-        pip install jupyter
+        pip install jupyter matplotlib
         jupyter nbconvert --to notebook --execute notebooks/mflike_tutorial.ipynb
