@@ -13,7 +13,7 @@ import numpy as np
 from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
 from cobaya.tools import are_different_params_lists
-
+from .theoryforge_MFLike import TheoryForge_MFLike
 
 class MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
@@ -26,6 +26,8 @@ class MFLike(InstallableLikelihood):
     data: dict
     defaults: dict
     foregrounds: dict
+    band_integration: dict
+    systematics_template: dict
 
     def initialize(self):
         # Set path to data
@@ -53,15 +55,28 @@ class MFLike(InstallableLikelihood):
         # State requisites to the theory code
         self.requested_cls = ["tt", "te", "ee"]
 
-        self.expected_params = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
+
+        self.expected_params_fg = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
                                 "a_c", "beta_c", "a_s", "a_gtt", "a_gte", "a_gee",
                                 "a_psee", "a_pste","n_CIBC", "xi", "T_d"]
+   
+        self.expected_params_nuis = ["bandint_shift_93",
+                                     "bandint_shift_145",
+                                     "bandint_shift_225",
+                                     "calT_93","calE_93",
+                                     "calT_145","calE_145",
+                                     "calT_225","calE_225",
+                                     "calG_all",
+                                     "alpha_93","alpha_145","alpha_225",
+                                    ]
+
+        self.ThFo = TheoryForge_MFLike(self)
         self.log.info("Initialized!")
 
     def initialize_with_params(self):
         # Check that the parameters are the right ones
         differences = are_different_params_lists(
-            self.input_params, self.expected_params,
+            self.input_params, self.expected_params_fg + self.expected_params_nuis,
             name_A="given", name_B="expected")
         if differences:
             raise LoggedError(
@@ -73,10 +88,11 @@ class MFLike(InstallableLikelihood):
 
     def logp(self, **params_values):
         cl = self.theory.get_Cl(ell_factor=True)
-        return self.loglike(cl, **params_values)
+        params_values_nocosmo = {k: params_values[k] for k in self.expected_params_fg + self.expected_params_nuis}
+        return self.loglike(cl, **params_values_nocosmo)
 
-    def loglike(self, cl, **params_values):
-        ps_vec = self._get_power_spectra(cl, **params_values)
+    def loglike(self, cl, **params_values_nocosmo):
+        ps_vec = self._get_power_spectra(cl, **params_values_nocosmo)
         delta = self.data_vec - ps_vec
         logp = -0.5 * (delta @ self.inv_cov @ delta)
         logp += self.logp_const
@@ -134,10 +150,10 @@ class MFLike(InstallableLikelihood):
             exp_1, exp_2 = spec["experiments"]
             freq_1, freq_2 = spec["frequencies"]
             # Read off polarization channel combinations
-            pols = spectrum.get("polarizations",
+            pols = spec.get("polarizations",
                                 default_cuts["polarizations"]).copy()
             # Read off scale cuts
-            scls = spectrum.get("scales",
+            scls = spec.get("scales",
                                 default_cuts["scales"]).copy()
 
             # For the same two channels, do not include ET and TE, only TE
@@ -151,7 +167,7 @@ class MFLike(InstallableLikelihood):
             else:
                 # Symmetrization
                 if ("TE" in pols) and ("ET" in pols):
-                    symm = spectrum.get("symmetrize",
+                    symm = spec.get("symmetrize",
                                         default_cuts["symmetrize"])
                 else:
                     symm = False
@@ -295,6 +311,7 @@ class MFLike(InstallableLikelihood):
                                                np.arange(cls.size,
                                                          dtype=int)),
                                        "pol": ppol_dict[pol],
+                                       "hasYX_xsp": pol in ["ET","BE","BT"], #This is necessary for handling symmetrization 
                                        "t1": xp_nu(exp_1, freq_1),  #
                                        "t2": xp_nu(exp_2, freq_2),  #
                                        "nu1": freq_1,
@@ -322,138 +339,17 @@ class MFLike(InstallableLikelihood):
         if "et" in self.lcuts:
             del self.lcuts["et"]
 
-    def _get_power_spectra(self, cl, **params_values):
+    def _get_power_spectra(self, cl, **params_values_nocosmo):
         # Get Cl's from the theory code
         Dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
-
-        # Get new foreground model given its nuisance parameters
-        fg_model = self._get_foreground_model(
-            {k: params_values[k] for k in self.expected_params})
+        DlsObs = self.ThFo.get_modified_theory(Dls,**params_values_nocosmo)
 
         ps_vec = np.zeros_like(self.data_vec)
         for m in self.spec_meta:
             p = m["pol"]
             i = m["ids"]
             w = m["bpw"].weight.T
-            clt = np.dot(w, Dls[p] + fg_model[p, "all", m["nu1"], m["nu2"]])
+            clt = np.dot(w, DlsObs[p, m["nu1"], m["nu2"]])       
             ps_vec[i] = clt
 
         return ps_vec
-
-    def _get_foreground_model(self, fg_params):
-        return get_foreground_model(fg_params=fg_params,
-                                    fg_model=self.foregrounds,
-                                    frequencies=self.freqs,
-                                    ell=self.l_bpws,
-                                    requested_cls=self.requested_cls)
-
-
-# Standalone function to return the foreground model
-# given the nuisance parameters
-def get_foreground_model(fg_params, fg_model,
-                         frequencies, ell,
-                         requested_cls=["tt", "te", "ee"]):
-    normalisation = fg_model["normalisation"]
-    nu_0 = normalisation["nu_0"]
-    ell_0 = normalisation["ell_0"]
-
-    # Normalisation of radio sources
-    ell_clp = ell*(ell+1.)
-    ell_0clp = 3000.*3001.
-
-    # Needs fgspectra/act_sz_x_cib branch installed
-
-    from fgspectra import cross as fgc
-    from fgspectra import frequency as fgf
-    from fgspectra import power as fgp
-
-    template_path = os.path.join(os.path.dirname(os.path.abspath(fgp.__file__)), "data")
-    cibc_file = os.path.join(template_path, "cl_cib_Choi2020.dat")
-
-    # We don't seem to be using this
-    # cirrus = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
-    ksz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.kSZ_bat())
-    cibp = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
-    radio = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
-    tsz = fgc.FactorizedCrossSpectrum(fgf.ThermalSZ(), fgp.tSZ_150_bat())
-    cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerSpectrumFromFile(cibc_file))
-    dust = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
-    tSZ_and_CIB = fgc.SZxCIB_Choi2020()
-
-    # Make sure to pass a numpy array to fgspectra
-    if not isinstance(frequencies, np.ndarray):
-        frequencies = np.array(frequencies)
-
-    model = {}
-    model["tt", "kSZ"] = fg_params["a_kSZ"] * ksz(
-        {"nu": frequencies},
-        {"ell": ell, "ell_0": ell_0})
-    model["tt", "cibp"] = fg_params["a_p"] * cibp(
-        {"nu": frequencies, "nu_0": nu_0,
-        "temp": fg_params["T_d"], "beta": fg_params["beta_p"]},
-        {"ell": ell_clp, "ell_0": ell_0clp, "alpha": 1})
-    model["tt", "radio"] = fg_params["a_s"] * radio(
-        {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2.},
-        {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})
-    model["tt", "tSZ"] = fg_params["a_tSZ"] * tsz(
-        {"nu": frequencies, "nu_0": nu_0},
-        {"ell": ell, "ell_0": ell_0})
-    model["tt", "cibc"] = fg_params["a_c"] * cibc(
-        {"nu": frequencies, "nu_0": nu_0,
-        "temp": fg_params["T_d"], "beta": fg_params["beta_c"]},
-        {"ell":ell, "ell_0":ell_0})
-    model["tt", "dust"] = fg_params["a_gtt"] * dust(
-        {"nu": frequencies, "nu_0": nu_0,
-        "temp": 19.6, "beta": 1.5},
-        {"ell": ell, "ell_0": 500., "alpha": -0.6})
-    model["tt","tSZ_and_CIB"] = tSZ_and_CIB(
-        {"kwseq": (
-        {"nu":frequencies, "nu_0": nu_0},
-        {"nu": frequencies, "nu_0": nu_0, "temp": fg_params["T_d"], "beta": fg_params["beta_c"]}
-                            )},
-        {"kwseq": (
-        {"ell":ell, "ell_0": ell_0,
-        "amp": fg_params["a_tSZ"]},
-        {"ell":ell, "ell_0": ell_0, "amp": fg_params["a_c"]},
-        {"ell":ell, "ell_0": ell_0,
-        "amp": - fg_params["xi"] * np.sqrt(fg_params["a_tSZ"] * fg_params["a_c"])}
-                )})
-
-    model["ee", "radio"] = fg_params["a_psee"] * radio(
-        {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2.},
-        {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})
-    model["ee", "dust"] = fg_params["a_gee"] * dust(
-        {"nu": frequencies, "nu_0": nu_0,
-        "temp": 19.6, "beta": 1.5},
-        {"ell": ell, "ell_0": 500., "alpha": -0.4})
-
-    model["te", "radio"] = fg_params["a_pste"] * radio(
-        {"nu": frequencies, "nu_0": nu_0, "beta": -0.5 - 2.},
-        {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})
-    model["te", "dust"] = fg_params["a_gte"] * dust(
-        {"nu": frequencies, "nu_0": nu_0,
-        "temp": 19.6, "beta": 1.5},
-        {"ell": ell, "ell_0": 500., "alpha": -0.4})
-
-    components = fg_model["components"]
-    component_list = {s: components[s] for s in requested_cls}
-    fg_dict = {}
-    for c1, f1 in enumerate(frequencies):
-        for c2, f2 in enumerate(frequencies):
-            for s in requested_cls:
-                fg_dict[s, "all", f1, f2] = np.zeros(len(ell))
-                for comp in component_list[s]:
-                    if comp == "tSZ_and_CIB":
-                        fg_dict[s, "tSZ", f1, f2] = model[s, "tSZ"][c1, c2]
-                        fg_dict[s, "cibc", f1, f2] = model[s, "cibc"][c1, c2]
-                        fg_dict[s, "tSZxCIB", f1, f2] = (
-                            model[s, comp][c1, c2]
-                            - model[s, "tSZ"][c1, c2]
-                            - model[s, "cibc"][c1, c2]
-                        )
-                        fg_dict[s, "all", f1, f2] += model[s, comp][c1, c2]
-                    else:
-                        fg_dict[s, comp, f1, f2] = model[s, comp][c1, c2]
-                        fg_dict[s, "all", f1, f2] += fg_dict[s, comp, f1, f2]
-
-    return fg_dict

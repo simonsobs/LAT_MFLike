@@ -26,15 +26,29 @@ nuisance_params = {
     "n_CIBC": 1.20,
     "a_s": 3.099214100532393,
     "T_d": 9.60,
-    "a_gtt": 2.819845541,
-    "a_gte": 0.081234536,
-    "a_gee": 0.063235678,
-    "a_psee": 0.003123453,
-    "a_pste": 0.042312344,
-    "xi": 0.03,
+    "a_gtt": 0,
+    "a_gte": 0,
+    "a_gee": 0,
+    "a_psee": 0,
+    "a_pste": 0,
+    "xi": 0,
+    "bandint_shift_93" : 0,
+    "bandint_shift_145" : 0,
+    "bandint_shift_225" : 0,
+    "calT_93": 1,
+    "calE_93": 1,
+    "calT_145": 1,
+    "calE_145": 1,
+    "calT_225": 1,
+    "calE_225": 1,
+    "calG_all": 1,
+    "alpha_93": 0,
+    "alpha_145": 0,
+    "alpha_225": 0,
 }
 
-chi2s = {"tt": 1384.8184, "te": 1400.4507, "ee": 1428.8454, "tt-te-et-ee": 2413.1038}
+#chi2s = {"tt": 1384.8184, "te": 1400.4507, "ee": 1428.8454, "tt-te-et-ee": 2413.1038}
+chi2s = {"tt": 737.8571537677649, "te-et": 998.2730263280033, "ee": 716.4015196388742, "tt-te-et-ee": 2459.7250}
 pre = "data_sacc_"
 
 
@@ -70,6 +84,11 @@ class MFLikeTest(unittest.TestCase):
                             "EE": [2, 5000],
                         },
                         "symmetrize": False,
+                    },
+                    "band_integration":{
+                        "nsteps": 1,
+                        "bandwidth": 0,
+                        "external_passband": False,
                     },
                 }
             )
