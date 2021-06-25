@@ -54,6 +54,7 @@ class MFLike(InstallableLikelihood):
         # State requisites to the theory code
         self.requested_cls = ["tt", "te", "ee"]
 
+
         self.expected_params_fg = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
                                 "a_c", "beta_c", "a_s", "a_gtt", "a_gte", "a_gee",
                                 "a_psee", "a_pste","n_CIBC", "xi", "T_d"]
