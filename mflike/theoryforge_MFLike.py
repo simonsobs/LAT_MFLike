@@ -20,7 +20,7 @@ def _get_fr(array):
     return fr
 
 
-class TheoryForge:
+class TheoryForge_MFLike:
 
     def __init__(self,mflike):
 
@@ -34,7 +34,10 @@ class TheoryForge:
         self.spec_meta  = mflike.spec_meta
         self.defaults_cuts = mflike.defaults
 
+        #Initialize foreground model
         self._init_foreground_model()
+
+        #Initialize template for marginalization  
         self._init_template_from_file()
 
         #Parameters for band integration
@@ -73,7 +76,7 @@ class TheoryForge:
         #Introduce spectra rotations
         cmbfg_dict = self._get_rotated_spectra(cmbfg_dict,**nuis_params)
 
-        #Introduce systematics templates from file
+        #Introduce templates of systematics from file
         templ_dict = self._get_template_from_file(**nuis_params)
 
         #Built theory 
@@ -84,7 +87,7 @@ class TheoryForge:
                 dls_dict[p,  m['nu1'], m['nu2']] = (cmbfg_dict[p, m['nu1'], m['nu2']]
                 	                                +templ_dict[p, m['nu1'], m['nu2']])
             else: #['te','tb','eb']
-                if m['xsp']: #not symmetrizing 
+                if m['hasYX_xsp']: #not symmetrizing 
                     dls_dict[p,  m['nu1'], m['nu2']] = (cmbfg_dict[p, m['nu2'], m['nu1']]
                     	                               +templ_dict[p, m['nu2'], m['nu1']])
                 else:
@@ -312,8 +315,8 @@ class TheoryForge:
         dltempl = self.templ_from_file(ell=self.l_bpws)
 
         for cls in self.requested_cls:
-        	for i1,f1 in enumerate(self.freqs):
-        		for i2,f2 in enumerate(self.freqs):
-        			dltempl[cls,f1,f2] *= templ_pars[cls][i1][i2]
+            for i1,f1 in enumerate(self.freqs):
+                for i2,f2 in enumerate(self.freqs):
+                    dltempl[cls,f1,f2] *= templ_pars[cls][i1][i2]
 
         return dltempl

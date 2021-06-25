@@ -14,7 +14,7 @@ from cobaya.conventions import _packages_path
 from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
 from cobaya.tools import are_different_params_lists
-from .theoryforge import TheoryForge
+from .theoryforge_MFLike import TheoryForge_MFLike
 
 class MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
@@ -69,7 +69,7 @@ class MFLike(InstallableLikelihood):
                                      "alpha_93","alpha_145","alpha_225",
                                     ]
 
-        self.ThFo = TheoryForge(self)
+        self.ThFo = TheoryForge_MFLike(self)
         self.log.info("Initialized!")
 
     def initialize_with_params(self):
@@ -310,7 +310,7 @@ class MFLike(InstallableLikelihood):
                                                np.arange(cls.size,
                                                          dtype=int)),
                                        'pol': ppol_dict[pol],
-                                       'xsp': pol in ['ET','BE','BT'],
+                                       'hasYX_xsp': pol in ['ET','BE','BT'], #This is necessary for handling symmetrization 
                                        't1': xp_nu(exp_1, freq_1),  #
                                        't2': xp_nu(exp_2, freq_2),  #
                                        'nu1': freq_1,
