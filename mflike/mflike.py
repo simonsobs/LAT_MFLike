@@ -58,7 +58,7 @@ class MFLike(InstallableLikelihood):
 
         self.expected_params_fg = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
                                 "a_c", "beta_c", "a_s", "a_gtt", "a_gte", "a_gee",
-                                "a_psee", "a_pste","n_CIBC", "xi", "T_d"]
+                                "a_psee", "a_pste", "xi", "T_d"]
    
         self.expected_params_nuis = ["bandint_shift_93",
                                      "bandint_shift_145",

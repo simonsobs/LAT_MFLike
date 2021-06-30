@@ -175,12 +175,6 @@ params:
       max: 0.2
     proposal: 0.05
     latex: \xi
-  n_CIBC:
-    prior:
-      min: 1.0
-      max: 1.4
-    proposal: 0.045
-    latex: n_\mathrm{CIBC}
   T_d:
     prior:
       min:  8.60
