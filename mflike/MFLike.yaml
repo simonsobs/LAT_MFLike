@@ -57,7 +57,7 @@ data:
       frequencies: [225, 225]
 
 # Parameters to handle the band integration:
-# - external_passband sets the usage of an external passband file
+# - external_bandpass sets the usage of an external bandpass file
 # - nsteps sets the number of frequencies used in the integration
 # - bandwidth sets the relative width of the band wrt the central frequency
 #     with bandwidth: 0 no band integration is performed
@@ -65,7 +65,7 @@ data:
 #     bandwidth can be a list if you want a different width for each band 
 #     e.g. bandwidth: [0.3,0.2,0.3] for 3 bands 
 band_integration:
-  external_passband: False
+  external_bandpass: False
   nsteps : 1
   bandwidth: 0
 
