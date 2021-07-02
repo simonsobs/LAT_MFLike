@@ -23,7 +23,7 @@ class PlikMFLike(Likelihood):
 			
 			'A_cnoise_e2e_100_100_EE', 'A_cnoise_e2e_100_143_EE', 'A_cnoise_e2e_100_217_EE', 'A_cnoise_e2e_143_143_EE', 'A_cnoise_e2e_143_217_EE', 'A_cnoise_e2e_217_217_EE',
 			
-			'calib_100T', 'calib_217T', 'calib_100P', 'calib_143P', 'calib_217P'
+			'calib_100T', 'calib_217T', 'calib_100P', 'calib_143P', 'calib_217P', 'A_planck'
 		]
 		
 		self.prepare_data()
@@ -234,6 +234,9 @@ class PlikMFLike(Likelihood):
 			i0 = sum(self.nbintt) + sum(self.nbinee)
 			x_model[ i0 + sum(self.nbinte[0:i]) : i0 + sum(self.nbinte[0:i+1]) ] = x_model[ i0 + sum(self.nbinte[0:i]) : i0 + sum(self.nbinte[0:i+1]) ] * (0.5 * ct[m1] * (ct[m2] * yp[m2]) + 0.5 * (ct[m1] * yp[m1]) * ct[m2])
 		
+		# Calibrating for the overall Planck calibration parameter.
+		x_model /= (params_values['A_planck'] ** 2.0)
+		
 		self.log.debug('Done calculating model.')
 		
 		return x_model
@@ -307,21 +310,20 @@ class PlikMFLike(Likelihood):
 	def input_shape(self):
 		return self.tt_lmax-1
 
+# The spectra templates for the foregrounds.
+ksz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.kSZ_Planck())
+tsz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.tSZ_Planck())
+cib = fgc.PlankCrossSpectrum(fgf.ConstantSED(), fgp.CIB_Planck())
+ttps = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.SquarePowerLaw())
+tszxcib = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.tSZxCIB_Planck())
+gal = fgc.PlankCrossSpectrum(fgf.ConstantSED(), fgp.gal_Planck())
+galte = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.PowerLaw())
+
 def get_Planck_foreground(fg_params, ell, requested_cls = ['tt', 'te', 'ee']):
 	frequencies = np.asarray([100, 143, 217], dtype=int)
 	
 	nu_0 = 150.0
 	ell_0 = 3000
-	
-	ksz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.kSZ_Planck())
-	radio = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.SquarePowerLaw())
-	tsz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.tSZ_Planck())
-	cib = fgc.PlankCrossSpectrum(fgf.ConstantSED(), fgp.CIB_Planck_bat())
-	ttps = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.SquarePowerLaw())
-	tszxcib = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.tSZxCIB_Planck_bat())
-	gal = fgc.PlankCrossSpectrum(fgf.ConstantSED(), fgp.gal_Planck_bat())
-	
-	galte = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.PowerLaw())
 	
 	tSZcorr = np.array([ 2.022, 0.95, 0.0000476 ])
 	CIBcorr = np.array([ 0.0, 0.094, 1.0 ])

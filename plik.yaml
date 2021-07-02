@@ -34,7 +34,7 @@ theory:
       lens_potential_accuracy: 1
 
 sampler:
-  evaluate:
+  mcmc:
 
 prior: !defaults [prior_SZ]
 

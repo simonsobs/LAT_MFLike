@@ -146,6 +146,18 @@ params:
   calib_100P: 1.021
   calib_143P: 0.966
   calib_217P: 1.04
+  A_planck:
+    prior:
+      dist: norm
+      loc: 1
+      scale: 0.0025
+    ref:
+      dist: norm
+      loc: 1
+      scale: 0.002
+    proposal: 0.0005
+    latex: y_\mathrm{cal}
+    renames: calPlanck
   
   # These parameters aren't used, but kept for backwards compatibility.
   A_sbpx_100_100_TT: 1
