@@ -84,7 +84,7 @@ class MFLike(InstallableLikelihood):
                 differences)
 
     def get_requirements(self):
-        return dict(Cl={k: max(c, 9000) for k, c in self.lcuts.items()})
+        return dict(Cl={k: max(c, self.lmax_theory+1) for k, c in self.lcuts.items()})
 
     def logp(self, **params_values):
         cl = self.theory.get_Cl(ell_factor=True)
