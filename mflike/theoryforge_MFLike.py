@@ -135,8 +135,11 @@ class TheoryForge_MFLike:
 
 
     #Gets the actual power spectrum of foregrounds given the passed parameters
-    def _get_foreground_model(self,**fg_params):
-        ell = self.l_bpws
+    def _get_foreground_model(self,**fg_params,ell = None):
+        #if ell = None, it uses the l_bpws, otherwise the ell provided
+        #useful to make tests at different l_max than the data
+        if ell == None:
+            ell = self.l_bpws
         ell_0 = self.fg_ell_0
         nu_0 = self.fg_nu_0
 
