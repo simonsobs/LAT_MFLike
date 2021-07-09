@@ -12,7 +12,7 @@ input_file: null
 # realizations that share the same bandpowers and covariance)
 cov_Bbl_file: null
 
-lmax_theory: 8000
+lmax_theory: 9000
 
 # Specify default set of spectra and scale cuts
 # to be used
