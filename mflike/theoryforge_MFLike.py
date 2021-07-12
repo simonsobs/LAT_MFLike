@@ -207,9 +207,18 @@ class TheoryForge_MFLike:
                 for s in self.requested_cls:
                     fg_dict[s, "all", f1, f2] = np.zeros(len(ell))
                     for comp in self.fg_component_list[s]:
-                        fg_dict[s, comp, f1, f2] = model[s, comp][c1, c2]
-                        fg_dict[s, "all", f1, f2] += fg_dict[s, comp, f1, f2]
-
+                        if comp == "tSZ_and_CIB":
+                            fg_dict[s, "tSZ", f1, f2] = model[s, "tSZ"][c1, c2]
+                            fg_dict[s, "cibc", f1, f2] = model[s, "cibc"][c1, c2]
+                            fg_dict[s, "tSZxCIB", f1, f2] = (
+                                model[s, comp][c1, c2]
+                                - model[s, "tSZ"][c1, c2]
+                                - model[s, "cibc"][c1, c2]
+                            )
+                            fg_dict[s, "all", f1, f2] += model[s, comp][c1, c2]
+                        else:
+                            fg_dict[s, comp, f1, f2] = model[s, comp][c1, c2]
+                            fg_dict[s, "all", f1, f2] += fg_dict[s, comp, f1, f2]
         return fg_dict
 
 

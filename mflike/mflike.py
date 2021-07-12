@@ -53,6 +53,7 @@ class MFLike(InstallableLikelihood):
         self.prepare_data()
 
         # State requisites to the theory code
+        self.lmax_theory = 9000
         self.requested_cls = ["tt", "te", "ee"]
 
 
