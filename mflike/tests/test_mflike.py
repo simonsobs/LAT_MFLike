@@ -46,7 +46,6 @@ nuisance_params = {
     "alpha_225": 0,
 }
 
-#chi2s = {"tt": 1384.8184, "te": 1400.4507, "ee": 1428.8454, "tt-te-et-ee": 2413.1038}
 chi2s = {"tt": 737.8571537677649, "te-et": 998.2730263280033, "ee": 716.4015196388742, "tt-te-et-ee": 2459.7250}
 pre = "data_sacc_"
 
@@ -87,7 +86,7 @@ class MFLikeTest(unittest.TestCase):
                     "band_integration":{
                         "nsteps": 1,
                         "bandwidth": 0,
-                        "external_passband": False,
+                        "external_bandpass": False,
                     },
                 }
             )

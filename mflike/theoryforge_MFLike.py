@@ -10,7 +10,7 @@ def _cmb2bb(nu):
     x = nu*constants.h * 1e9 / constants.k / T_CMB
     return  np.exp(x)*(nu * x / np.expm1(x))**2
 
-#Provides the frequency value given the passband name. To be modified - it is ACT based!!!!!!
+#Provides the frequency value given the bandpass name. To be modified - it is ACT based!!!!!!
 def _get_fr(array):
     a = array.split("_")[0]
     if a == 'PA1' or a == 'PA2':
@@ -46,8 +46,14 @@ class TheoryForge_MFLike:
         #Parameters for band integration
         self.bandint_nsteps = mflike.band_integration["nsteps"]
         self.bandint_width = mflike.band_integration["bandwidth"]
-        self.bandint_external_passband = mflike.band_integration["external_passband"]
+        self.bandint_external_bandpass = mflike.band_integration["external_bandpass"]
         
+        #Bandpass construction for band integration
+        if self.bandint_external_bandpass:
+            path = os.path.normpath(os.path.join(self.data_folder,
+                                                       '/bp_int/'))
+            arrays = os.listdir(path)
+            self._init_external_bandpass_construction(arrays)
 
     def get_modified_theory(self,Dls,**params):
        
@@ -55,11 +61,8 @@ class TheoryForge_MFLike:
         nuis_params = {k: params[k] for k in self.expected_params_nuis}
 
         #Bandpass construction for band integration
-        if self.bandint_external_passband:
-            path = os.path.normpath(os.path.join(self.data_folder,
-                                                       '/bp_int/'))
-            arrays = os.listdir(path)
-            self.bandint_freqs = self._external_bandpass_construction(arrays,**nuis_params)
+        if self.bandint_external_bandpass:
+            self.bandint_freqs = self._external_bandpass_construction(**nuis_params)
         else:
             self.bandint_freqs = self._bandpass_construction(**nuis_params)
 
@@ -135,8 +138,11 @@ class TheoryForge_MFLike:
 
 
     #Gets the actual power spectrum of foregrounds given the passed parameters
-    def _get_foreground_model(self,**fg_params):
-        ell = self.l_bpws
+    def _get_foreground_model(self,ell = None,**fg_params):
+        #if ell = None, it uses the l_bpws, otherwise the ell array provided
+        #useful to make tests at different l_max than the data
+        if not hasattr(ell,'__len__'):
+            ell = self.l_bpws
         ell_0 = self.fg_ell_0
         nu_0 = self.fg_nu_0
 
@@ -201,9 +207,18 @@ class TheoryForge_MFLike:
                 for s in self.requested_cls:
                     fg_dict[s, "all", f1, f2] = np.zeros(len(ell))
                     for comp in self.fg_component_list[s]:
-                        fg_dict[s, comp, f1, f2] = model[s, comp][c1, c2]
-                        fg_dict[s, "all", f1, f2] += fg_dict[s, comp, f1, f2]
-
+                        if comp == "tSZ_and_CIB":
+                            fg_dict[s, "tSZ", f1, f2] = model[s, "tSZ"][c1, c2]
+                            fg_dict[s, "cibc", f1, f2] = model[s, "cibc"][c1, c2]
+                            fg_dict[s, "tSZxCIB", f1, f2] = (
+                                model[s, comp][c1, c2]
+                                - model[s, "tSZ"][c1, c2]
+                                - model[s, "cibc"][c1, c2]
+                            )
+                            fg_dict[s, "all", f1, f2] += model[s, comp][c1, c2]
+                        else:
+                            fg_dict[s, comp, f1, f2] = model[s, comp][c1, c2]
+                            fg_dict[s, "all", f1, f2] += fg_dict[s, comp, f1, f2]
         return fg_dict
 
 
@@ -234,20 +249,24 @@ class TheoryForge_MFLike:
 
         return bandint_freqs 
 
-
-    def _external_bandpass_construction(self,arrays,**params):
-        bandint_freqs = []
+    def _init_external_bandpass_construction(self,arrays):
+        self.external_bandpass = []
         for array in arrays:
             fr = _get_fr(array)
+            nu_ghz, bp = np.loadtxt(array,usecols=(0,1),unpack=True)
+            trans_norm = np.trapz(bp * _cmb2bb(nu_ghz), nu_ghz)
+            self.external_bandpass.append([fr,nu_ghz,bp/trans_norm])            
+
+    def _external_bandpass_construction(self,**params):
+        bandint_freqs = []
+        for fr,nu_ghz,bp in self.external_bandpass:
             bandpar = 'bandint_shift_'+str(fr)
-            nu_ghz, pb = np.loadtxt(array,usecols=(0,1),unpack=True)
-            trans_norm = np.trapz(pb * _cmb2bb(nu_ghz), nu_ghz)
             nub = nu_ghz + params[bandpar]
-            trans = pb * _cmb2bb(nub) 
-            bandint_freqs.append([nub,trans/trans_norm])
+            trans = bp * _cmb2bb(nub) 
+            bandint_freqs.append([nub,trans])
 
         return bandint_freqs 
-
+       
 ###########################################################################
 ## This part deals with calibration factors 
 ## Here we implement an alm based calibration
