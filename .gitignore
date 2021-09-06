@@ -102,5 +102,8 @@ venv.bak/
 # mkdocs documentation
 /site
 
+# Covariance matrix
+data/covmat.dat
+
 # mypy
 .mypy_cache/

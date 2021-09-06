@@ -1,30 +1,39 @@
-from cobaya.likelihood import Likelihood
+from cobaya.likelihoods.base_classes import InstallableLikelihood
 import numpy as np
+from scipy import linalg
 import sys
 from .fgspectra import cross as fgc
 from .fgspectra import power as fgp
 from .fgspectra import frequency as fgf
 
-class PlikMFLike(Likelihood):
+class PlikMFLike(InstallableLikelihood):
 	def initialize(self):
 		self.expected_params = [
+			# TT parameters
 			'cib_index', 'A_cib_217', 'xi_sz_cib', 'A_sz', 'ksz_norm',
 			'gal545_A_100', 'gal545_A_143', 'gal545_A_143_217', 'gal545_A_217',
-			# These parameters aren't used, but they are kept for backwards compatibility.
-			'A_sbpx_100_100_TT', 'A_sbpx_143_143_TT', 'A_sbpx_143_217_TT', 'A_sbpx_217_217_TT',
 			
 			'ps_A_100_100', 'ps_A_143_143', 'ps_A_143_217', 'ps_A_217_217',
 			
+			# TE parameters
 			'galf_TE_index',
 			'galf_TE_A_100', 'galf_TE_A_100_143', 'galf_TE_A_100_217', 'galf_TE_A_143', 'galf_TE_A_143_217', 'galf_TE_A_217',
 			
+			# EE parameters
 			'galf_EE_index',
 			'galf_EE_A_100', 'galf_EE_A_100_143', 'galf_EE_A_100_217', 'galf_EE_A_143', 'galf_EE_A_143_217', 'galf_EE_A_217',
 			
-			'A_cnoise_e2e_100_100_EE', 'A_cnoise_e2e_100_143_EE', 'A_cnoise_e2e_100_217_EE', 'A_cnoise_e2e_143_143_EE', 'A_cnoise_e2e_143_217_EE', 'A_cnoise_e2e_217_217_EE',
+			# calibration parameters
+			'calib_100T', 'calib_217T', 'calib_100P', 'calib_143P', 'calib_217P', 'A_planck',
 			
-			'calib_100T', 'calib_217T', 'calib_100P', 'calib_143P', 'calib_217P', 'A_planck'
+			# These parameters aren't used, but they are kept for backwards compatibility.
+			'A_sbpx_100_100_TT', 'A_sbpx_143_143_TT', 'A_sbpx_143_217_TT', 'A_sbpx_217_217_TT',
+			'A_cnoise_e2e_100_100_EE', 'A_cnoise_e2e_100_143_EE', 'A_cnoise_e2e_100_217_EE', 'A_cnoise_e2e_143_143_EE', 'A_cnoise_e2e_143_217_EE', 'A_cnoise_e2e_217_217_EE'
 		]
+		
+		self.enable_tt = True
+		self.enable_te = True
+		self.enable_ee = True
 		
 		self.prepare_data()
 	
@@ -54,6 +63,7 @@ class PlikMFLike(Likelihood):
 		
 		self.log.debug('Loading inv cov.')
 		self.inv_cov = np.loadtxt(self.data_folder + self.covfile, dtype = float)[:self.nbin,:self.nbin]
+		self.covmat = linalg.inv(self.inv_cov)
 		
 		self.log.debug('Loading spectrum data.')
 		self.b_dat = np.loadtxt(self.data_folder + self.specfile, dtype = float)[:self.nbin, 1]
@@ -223,16 +233,17 @@ class PlikMFLike(Likelihood):
 			x_model[ sum(self.nbintt[0:i]) : sum(self.nbintt[0:i+1]) ] = x_model[ sum(self.nbintt[0:i]) : sum(self.nbintt[0:i+1]) ] * ct[m1] * ct[m2]
 		
 		for i in np.arange(len(self.nbinee)):
-			# Mode E[i]xE[j] should be calibrated using (CT[i]*YP[i]) * (CT[j]*YP[j])
+			# Mode E[i]xE[j] should be calibrated using YP[i] * YP[j]
 			m1, m2 = self.crossee[i]
 			i0 = sum(self.nbintt)
-			x_model[ i0 + sum(self.nbinee[0:i]) : i0 + sum(self.nbinee[0:i+1]) ] = x_model[ i0 + sum(self.nbinee[0:i]) : i0 + sum(self.nbinee[0:i+1]) ] * (ct[m1] * yp[m1]) * (ct[m2] * yp[m2])
+			x_model[ i0 + sum(self.nbinee[0:i]) : i0 + sum(self.nbinee[0:i+1]) ] = x_model[ i0 + sum(self.nbinee[0:i]) : i0 + sum(self.nbinee[0:i+1]) ] * yp[m1] * yp[m2]
 		
 		for i in np.arange(len(self.nbinte)):
-			# Mode T[i]xE[j] should be calibrated using CT[i] * (CT[j]*YP[j])
+			# Mode T[i]xE[j] should be calibrated using CT[i] * YP[j]
+			# Because of symmetric, it is calibrated using 1/2 * ( CT[i] * YP[j] + CT[j] * YP[i] )
 			m1, m2 = self.crosste[i]
 			i0 = sum(self.nbintt) + sum(self.nbinee)
-			x_model[ i0 + sum(self.nbinte[0:i]) : i0 + sum(self.nbinte[0:i+1]) ] = x_model[ i0 + sum(self.nbinte[0:i]) : i0 + sum(self.nbinte[0:i+1]) ] * (0.5 * ct[m1] * (ct[m2] * yp[m2]) + 0.5 * (ct[m1] * yp[m1]) * ct[m2])
+			x_model[ i0 + sum(self.nbinte[0:i]) : i0 + sum(self.nbinte[0:i+1]) ] = x_model[ i0 + sum(self.nbinte[0:i]) : i0 + sum(self.nbinte[0:i+1]) ] * (0.5 * ct[m1] * yp[m2] + 0.5 * yp[m1] * ct[m2])
 		
 		# Calibrating for the overall Planck calibration parameter.
 		x_model /= (params_values['A_planck'] ** 2.0)
@@ -249,7 +260,21 @@ class PlikMFLike(Likelihood):
 		x_model = self.get_model(cl, **params_values)
 		diff_vec = self.b_dat - x_model
 		
-		tmp = self.inv_cov @ diff_vec
+		if self.use_tt and self.use_te and self.use_ee:
+			tmp = self.inv_cov @ diff_vec
+			return -0.5 * np.dot(tmp, diff_vec)
+		
+		cov = self.covmat
+		mask = np.ones(cov.shape[0], dtype = bool)
+		if not self.use_tt: mask[0:sum(self.nbintt)] = False
+		if not self.use_ee: mask[sum(self.nbintt):sum(self.nbintt)+sum(self.nbinee)] = False
+		if not self.use_te: mask[sum(self.nbintt)+sum(self.nbinee):sum(self.nbintt)+sum(self.nbinte)+sum(self.nbinee)] = False
+		
+		cov = cov[mask,:][:,mask]
+		diff_vec = diff_vec[mask]
+		tmp_cov = linalg.inv(cov)
+		
+		tmp = tmp_cov @ diff_vec
 		return -0.5 * np.dot(tmp, diff_vec)
 	
 	@property
@@ -330,6 +355,10 @@ def get_Planck_foreground(fg_params, ell, requested_cls = ['tt', 'te', 'ee']):
 	
 	model = { }
 	
+	# A lot of the foreground modeling is done very explicitly, due to
+	# the way it is supposed to work with fgspectra and the way it
+	# used to be done in plik.
+	
 	tsz_amp = np.zeros((len(frequencies), len(frequencies)))
 	tsz_amp[0,0] = fg_params['A_sz'] * tSZcorr[0]
 	tsz_amp[1,1] = fg_params['A_sz'] * tSZcorr[1]
@@ -377,7 +406,6 @@ def get_Planck_foreground(fg_params, ell, requested_cls = ['tt', 'te', 'ee']):
 	szcib_amp[1,2] = -fg_params['xi_sz_cib'] * np.sqrt(fg_params['A_sz'] * tSZcorr[1] * fg_params['A_cib_217'] * CIBcorr[2]) - fg_params['xi_sz_cib'] * np.sqrt(fg_params['A_sz'] * tSZcorr[2] * fg_params['A_cib_217'] * CIBcorr[1])
 	szcib_amp[2,2] = -2.0 * fg_params['xi_sz_cib'] * np.sqrt(fg_params['A_sz'] * tSZcorr[2] * fg_params['A_cib_217'] * CIBcorr[2])
 	
-	# We keep it specific so yes this is all summed manually!
 	model['tt', 'kSZ'] = fg_params['ksz_norm'] * ksz({'nu' : frequencies}, {'ell' : ell, 'ell_0' : ell_0})
 	model['tt', 'tSZ'] = tsz_amp[...,np.newaxis] * tsz({"nu": frequencies}, {"ell": ell, "ell_0": ell_0})
 	model['tt', 'tSZxCIB'] = szcib_amp[...,np.newaxis] * tszxcib({"nu": frequencies}, {"ell": ell, "ell_0": ell_0})
