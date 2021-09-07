@@ -2,9 +2,9 @@ import numpy as np
 import os
 
 
-#Converts from cmb units to brightness. Numerical factors not included, it needs proper normalization when used. 
+#Converts from cmb units to brightness. Numerical factors not included, it needs proper normalization when used.
 def _cmb2bb(nu):
-    # NB: numerical factors not included 
+    # NB: numerical factors not included
     from scipy import constants
     T_CMB = 2.72548
     x = nu*constants.h * 1e9 / constants.k / T_CMB
@@ -39,7 +39,7 @@ class TheoryForge_MFLike:
 
         #Parameters for template from file
         self.systematics_template = mflike.systematics_template
-        #Initialize template for marginalization, if needed 
+        #Initialize template for marginalization, if needed
         if(self.systematics_template["has_file"]):
             self._init_template_from_file()
 
@@ -47,7 +47,7 @@ class TheoryForge_MFLike:
         self.bandint_nsteps = mflike.band_integration["nsteps"]
         self.bandint_width = mflike.band_integration["bandwidth"]
         self.bandint_external_bandpass = mflike.band_integration["external_bandpass"]
-        
+
         #Bandpass construction for band integration
         if self.bandint_external_bandpass:
             path = os.path.normpath(os.path.join(self.data_folder,
@@ -56,7 +56,7 @@ class TheoryForge_MFLike:
             self._init_external_bandpass_construction(arrays)
 
     def get_modified_theory(self,Dls,**params):
-       
+
         fg_params = {k: params[k] for k in self.expected_params_fg}
         nuis_params = {k: params[k] for k in self.expected_params_nuis}
 
@@ -86,14 +86,14 @@ class TheoryForge_MFLike:
         if(self.systematics_template['has_file']):
             cmbfg_dict = self._get_template_from_file(cmbfg_dict,**nuis_params)
 
-        #Built theory 
+        #Built theory
         dls_dict = {}
         for m in self.spec_meta:
             p = m['pol']
             if p in ['tt','ee','bb']:
                 dls_dict[p,  m['nu1'], m['nu2']] = cmbfg_dict[p, m['nu1'], m['nu2']]
             else: #['te','tb','eb']
-                if m['hasYX_xsp']: #not symmetrizing 
+                if m['hasYX_xsp']: #not symmetrizing
                     dls_dict[p,  m['nu1'], m['nu2']] = cmbfg_dict[p, m['nu2'], m['nu1']]
                 else:
                     dls_dict[p,  m['nu1'], m['nu2']] = cmbfg_dict[p, m['nu1'], m['nu2']]
@@ -109,16 +109,16 @@ class TheoryForge_MFLike:
 ## This part deals with foreground construction and bandpass integration ##
 ###########################################################################
 
-    #Initializes the foreground model. It sets the SED and reads the templates  
+    #Initializes the foreground model. It sets the SED and reads the templates
     def _init_foreground_model(self):
 
         from fgspectra import cross as fgc
         from fgspectra import frequency as fgf
         from fgspectra import power as fgp
-        
+
         template_path = os.path.join(os.path.dirname(os.path.abspath(fgp.__file__)),'data')
         cibc_file = os.path.join(template_path,'cl_cib_Choi2020.dat')
-        
+
         #set pivot freq and multipole
         self.fg_nu_0 = self.foregrounds["normalisation"]["nu_0"]
         self.fg_ell_0 = self.foregrounds["normalisation"]["ell_0"]
@@ -138,13 +138,16 @@ class TheoryForge_MFLike:
 
 
     #Gets the actual power spectrum of foregrounds given the passed parameters
-    def _get_foreground_model(self,ell = None,**fg_params):
+    def _get_foreground_model(self, ell = None, bandint_freqs = None, **fg_params):
         #if ell = None, it uses the l_bpws, otherwise the ell array provided
         #useful to make tests at different l_max than the data
         if not hasattr(ell,'__len__'):
             ell = self.l_bpws
         ell_0 = self.fg_ell_0
         nu_0 = self.fg_nu_0
+
+        if bandint_freqs is not None:
+            self.bandint_freqs = bandint_freqs
 
         # Normalisation of radio sources
         ell_clp = ell*(ell+1.)
@@ -175,19 +178,19 @@ class TheoryForge_MFLike:
         model["tt","tSZ_and_CIB"] = self.tSZ_and_CIB(
             {'kwseq': (
             {'nu': self.bandint_freqs, 'nu_0': nu_0},
-            {'nu': self.bandint_freqs, 'nu_0': nu_0, 'temp': fg_params['T_d'], 'beta': fg_params["beta_c"]} 
+            {'nu': self.bandint_freqs, 'nu_0': nu_0, 'temp': fg_params['T_d'], 'beta': fg_params["beta_c"]}
                                 )},
-            {'kwseq': ( 
-            {'ell':ell, 'ell_0': ell_0, 
+            {'kwseq': (
+            {'ell':ell, 'ell_0': ell_0,
             'amp': fg_params['a_tSZ']},
             {'ell':ell, 'ell_0': ell_0, 'amp': fg_params['a_c']},
-            {'ell':ell, 'ell_0': ell_0, 
+            {'ell':ell, 'ell_0': ell_0,
             'amp': - fg_params['xi'] * np.sqrt(fg_params['a_tSZ'] * fg_params['a_c'])}
                     )})
 
         model["ee", "radio"] = fg_params["a_psee"] * self.radio(
             {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": -0.5 - 2.},
-            {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})    
+            {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})
         model["ee", "dust"] = fg_params["a_gee"] * self.dust(
             {"nu": self.bandint_freqs, "nu_0": nu_0,
             "temp": 19.6, "beta": 1.5},
@@ -195,7 +198,7 @@ class TheoryForge_MFLike:
 
         model["te", "radio"] = fg_params["a_pste"] * self.radio(
             {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": -0.5 - 2.},
-            {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})     
+            {"ell": ell_clp, "ell_0": ell_0clp,"alpha":1})
         model["te", "dust"] = fg_params["a_gte"] * self.dust(
             {"nu": self.bandint_freqs, "nu_0": nu_0,
             "temp": 19.6, "beta": 1.5},
@@ -222,7 +225,7 @@ class TheoryForge_MFLike:
         return fg_dict
 
 
-    #Takes care of the bandpass construction. It returns a list of nu-transmittance for each frequency or an array with the effective freqs. 
+    #Takes care of the bandpass construction. It returns a list of nu-transmittance for each frequency or an array with the effective freqs.
     def _bandpass_construction(self,**params):
 
         if not hasattr(self.bandint_width, "__len__"):
@@ -247,7 +250,7 @@ class TheoryForge_MFLike:
                 bandpar = 'bandint_shift_'+str(fr)
                 bandint_freqs[ifr] = fr+params[bandpar]
 
-        return bandint_freqs 
+        return bandint_freqs
 
     def _init_external_bandpass_construction(self,arrays):
         self.external_bandpass = []
@@ -255,22 +258,22 @@ class TheoryForge_MFLike:
             fr = _get_fr(array)
             nu_ghz, bp = np.loadtxt(array,usecols=(0,1),unpack=True)
             trans_norm = np.trapz(bp * _cmb2bb(nu_ghz), nu_ghz)
-            self.external_bandpass.append([fr,nu_ghz,bp/trans_norm])            
+            self.external_bandpass.append([fr,nu_ghz,bp/trans_norm])
 
     def _external_bandpass_construction(self,**params):
         bandint_freqs = []
         for fr,nu_ghz,bp in self.external_bandpass:
             bandpar = 'bandint_shift_'+str(fr)
             nub = nu_ghz + params[bandpar]
-            trans = bp * _cmb2bb(nub) 
+            trans = bp * _cmb2bb(nub)
             bandint_freqs.append([nub,trans])
 
-        return bandint_freqs 
-       
+        return bandint_freqs
+
 ###########################################################################
-## This part deals with calibration factors 
+## This part deals with calibration factors
 ## Here we implement an alm based calibration
-## Each field {T,E,B}{freq1,freq2,...,freqn} gets an independent 
+## Each field {T,E,B}{freq1,freq2,...,freqn} gets an independent
 ## calibration factor, e.g. calT_145, calE_154, calT_225, etc..
 ## A global calibration factor calG_all is also considered.
 ###########################################################################
@@ -294,8 +297,8 @@ class TheoryForge_MFLike:
         return calib(cal1=cal_pars,cal2=cal_pars,nu=self.freqs)
 
 ###########################################################################
-## This part deals with rotation of spectra 
-## Each freq {freq1,freq2,...,freqn} gets a rotation angle alpha_93, alpha_145, etc.. 
+## This part deals with rotation of spectra
+## Each freq {freq1,freq2,...,freqn} gets a rotation angle alpha_93, alpha_145, etc..
 ###########################################################################
 
     def _get_rotated_spectra(self,dls_dict,**nuis_params):
@@ -309,7 +312,7 @@ class TheoryForge_MFLike:
         return rot(rot_pars,nu=self.freqs)
 
 ###########################################################################
-## This part deals with template marginalization 
+## This part deals with template marginalization
 ## A dictionary of template dls is read from yaml (likely to be not efficient)
 ## then rescaled and added to theory dls
 ###########################################################################
