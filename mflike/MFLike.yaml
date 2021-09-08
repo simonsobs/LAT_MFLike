@@ -11,7 +11,7 @@ input_file: null
 # (The logic here is that you may have many different
 # realizations that share the same bandpowers and covariance)
 cov_Bbl_file: null
-
+standalone: False
 
 # Specify default set of spectra and scale cuts
 # to be used
@@ -63,8 +63,8 @@ data:
 # - bandwidth sets the relative width of the band wrt the central frequency
 #     with bandwidth: 0 no band integration is performed
 #     if bandwidth > 0 , nsteps must be > 1
-#     bandwidth can be a list if you want a different width for each band 
-#     e.g. bandwidth: [0.3,0.2,0.3] for 3 bands 
+#     bandwidth can be a list if you want a different width for each band
+#     e.g. bandwidth: [0.3,0.2,0.3] for 3 bands
 band_integration:
   external_bandpass: False
   nsteps: 1
@@ -87,10 +87,10 @@ foregrounds:
       - cibp
       - dust
       - radio
-    te: 
+    te:
       - radio
       - dust
-    ee: 
+    ee:
       - radio
       - dust
 

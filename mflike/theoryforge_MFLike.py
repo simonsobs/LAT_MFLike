@@ -138,16 +138,13 @@ class TheoryForge_MFLike:
 
 
     #Gets the actual power spectrum of foregrounds given the passed parameters
-    def _get_foreground_model(self, ell = None, bandint_freqs = None, **fg_params):
+    def _get_foreground_model(self, ell = None, **fg_params):
         #if ell = None, it uses the l_bpws, otherwise the ell array provided
         #useful to make tests at different l_max than the data
         if not hasattr(ell,'__len__'):
             ell = self.l_bpws
         ell_0 = self.fg_ell_0
         nu_0 = self.fg_nu_0
-
-        if bandint_freqs is not None:
-            self.bandint_freqs = bandint_freqs
 
         # Normalisation of radio sources
         ell_clp = ell*(ell+1.)
