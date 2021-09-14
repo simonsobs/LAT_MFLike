@@ -60,6 +60,7 @@ class MFLike(InstallableLikelihood):
         self.requested_cls = ["tt", "te", "ee"]
 
         self.l_bpws = None
+        self.freqs = None
         self.spec_meta = []
 
         self.expected_params_fg = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
@@ -75,8 +76,8 @@ class MFLike(InstallableLikelihood):
                                      "calG_all",
                                      "alpha_93","alpha_145","alpha_225",
                                     ]
-        if not self.standalone:
-            self.ThFo = TheoryForge_MFLike(self)
+
+        self.ThFo = TheoryForge_MFLike(self)
         self.log.info("Initialized!")
 
     def initialize_with_params(self):
@@ -90,10 +91,7 @@ class MFLike(InstallableLikelihood):
                 differences)
 
     def get_requirements(self):
-        if not self.standalone:
-            return dict(Cl={k: max(c, self.lmax_theory+1) for k, c in self.lcuts.items()})
-        else:
-            return(dict())
+        return dict() if self.standalone else dict(Cl={k: max(c, self.lmax_theory+1) for k, c in self.lcuts.items()})
 
     def logp(self, **params_values):
         cl = self.theory.get_Cl(ell_factor=True)
