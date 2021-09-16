@@ -13,7 +13,9 @@ import numpy as np
 from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
 from cobaya.tools import are_different_params_lists
+
 from .theoryforge_MFLike import TheoryForge_MFLike
+
 
 class MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
@@ -32,25 +34,33 @@ class MFLike(InstallableLikelihood):
 
     def initialize(self):
 
+        # Set default values to data member not initialized via yaml file
+        self.l_bpws = None
+        self.freqs = None
+        self.spec_meta = []
+
         if not self.standalone:
             # Set path to data
-            if ((not getattr(self, "path", None)) and
-                    (not getattr(self, "packages_path", None))):
-                raise LoggedError(self.log,
-                                  "No path given to MFLike data. "
-                                  "Set the likelihood property "
-                                  "'path' or the common property '%s'.",
-                                  _packages_path)
+            if (not getattr(self, "path", None)) and (not getattr(self, "packages_path", None)):
+                raise LoggedError(
+                    self.log,
+                    "No path given to MFLike data. "
+                    "Set the likelihood property "
+                    "'path' or the common property '%s'.",
+                    _packages_path,
+                )
             # If no path specified, use the modules path
-            data_file_path = os.path.normpath(getattr(self, "path", None) or
-                                              os.path.join(self.packages_path,
-                                                           "data"))
+            data_file_path = os.path.normpath(
+                getattr(self, "path", None) or os.path.join(self.packages_path, "data")
+            )
 
             self.data_folder = os.path.join(data_file_path, self.data_folder)
             if not os.path.exists(self.data_folder):
                 raise LoggedError(
-                    self.log, "The 'data_folder' directory does not exist. "
-                              "Check the given path [%s].", self.data_folder)
+                    self.log,
+                    "The 'data_folder' directory does not exist. " "Check the given path [%s].",
+                    self.data_folder,
+                )
 
             # Read data
             self.prepare_data()
@@ -59,23 +69,38 @@ class MFLike(InstallableLikelihood):
         self.lmax_theory = 9000
         self.requested_cls = ["tt", "te", "ee"]
 
-        self.l_bpws = None
-        self.freqs = None
-        self.spec_meta = []
+        self.expected_params_fg = [
+            "a_tSZ",
+            "a_kSZ",
+            "a_p",
+            "beta_p",
+            "a_c",
+            "beta_c",
+            "a_s",
+            "a_gtt",
+            "a_gte",
+            "a_gee",
+            "a_psee",
+            "a_pste",
+            "xi",
+            "T_d",
+        ]
 
-        self.expected_params_fg = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
-                                "a_c", "beta_c", "a_s", "a_gtt", "a_gte", "a_gee",
-                                "a_psee", "a_pste", "xi", "T_d"]
-
-        self.expected_params_nuis = ["bandint_shift_93",
-                                     "bandint_shift_145",
-                                     "bandint_shift_225",
-                                     "calT_93","calE_93",
-                                     "calT_145","calE_145",
-                                     "calT_225","calE_225",
-                                     "calG_all",
-                                     "alpha_93","alpha_145","alpha_225",
-                                    ]
+        self.expected_params_nuis = [
+            "bandint_shift_93",
+            "bandint_shift_145",
+            "bandint_shift_225",
+            "calT_93",
+            "calE_93",
+            "calT_145",
+            "calE_145",
+            "calT_225",
+            "calE_225",
+            "calG_all",
+            "alpha_93",
+            "alpha_145",
+            "alpha_225",
+        ]
 
         self.ThFo = TheoryForge_MFLike(self)
         self.log.info("Initialized!")
@@ -83,19 +108,26 @@ class MFLike(InstallableLikelihood):
     def initialize_with_params(self):
         # Check that the parameters are the right ones
         differences = are_different_params_lists(
-            self.input_params, self.expected_params_fg + self.expected_params_nuis,
-            name_A="given", name_B="expected")
+            self.input_params,
+            self.expected_params_fg + self.expected_params_nuis,
+            name_A="given",
+            name_B="expected",
+        )
         if differences:
-            raise LoggedError(
-                self.log, "Configuration error in parameters: %r.",
-                differences)
+            raise LoggedError(self.log, "Configuration error in parameters: %r.", differences)
 
     def get_requirements(self):
-        return dict() if self.standalone else dict(Cl={k: max(c, self.lmax_theory+1) for k, c in self.lcuts.items()})
+        return (
+            dict()
+            if self.standalone
+            else dict(Cl={k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()})
+        )
 
     def logp(self, **params_values):
         cl = self.theory.get_Cl(ell_factor=True)
-        params_values_nocosmo = {k: params_values[k] for k in self.expected_params_fg + self.expected_params_nuis}
+        params_values_nocosmo = {
+            k: params_values[k] for k in self.expected_params_fg + self.expected_params_nuis
+        }
         return self.loglike(cl, **params_values_nocosmo)
 
     def loglike(self, cl, **params_values_nocosmo):
@@ -105,11 +137,13 @@ class MFLike(InstallableLikelihood):
         logp += self.logp_const
         self.log.debug(
             "Log-likelihood value computed "
-            "= {} (Χ² = {})".format(logp, -2 * (logp - self.logp_const)))
+            "= {} (Χ² = {})".format(logp, -2 * (logp - self.logp_const))
+        )
         return logp
 
     def prepare_data(self, verbose=False):
         import sacc
+
         data = self.data
         # Read data
         input_fname = os.path.join(self.data_folder, self.input_file)
@@ -120,8 +154,7 @@ class MFLike(InstallableLikelihood):
         s_b = s
         if self.cov_Bbl_file:
             if self.cov_Bbl_file != self.input_file:
-                cov_Bbl_fname = os.path.join(self.data_folder,
-                                             self.cov_Bbl_file)
+                cov_Bbl_fname = os.path.join(self.data_folder, self.cov_Bbl_file)
                 s_b = sacc.Sacc.load_fits(cov_Bbl_fname)
                 cbbl_extra = True
 
@@ -131,19 +164,19 @@ class MFLike(InstallableLikelihood):
             raise KeyError("You must provide a list of default cuts")
 
         # Translation betwen TEB and sacc C_ell types
-        pol_dict = {"T": "0",
-                    "E": "e",
-                    "B": "b"}
-        ppol_dict = {"TT": "tt",
-                     "EE": "ee",
-                     "TE": "te",
-                     "ET": "te",
-                     "BB": "bb",
-                     "EB": "eb",
-                     "BE": "eb",
-                     "TB": "tb",
-                     "BT": "tb",
-                     "BB": "bb"}
+        pol_dict = {"T": "0", "E": "e", "B": "b"}
+        ppol_dict = {
+            "TT": "tt",
+            "EE": "ee",
+            "TE": "te",
+            "ET": "te",
+            "BB": "bb",
+            "EB": "eb",
+            "BE": "eb",
+            "TB": "tb",
+            "BT": "tb",
+            "BB": "bb",
+        }
 
         def xp_nu(xp, nu):
             return f"{xp}_{nu}"
@@ -157,11 +190,9 @@ class MFLike(InstallableLikelihood):
             exp_1, exp_2 = spec["experiments"]
             freq_1, freq_2 = spec["frequencies"]
             # Read off polarization channel combinations
-            pols = spec.get("polarizations",
-                                default_cuts["polarizations"]).copy()
+            pols = spec.get("polarizations", default_cuts["polarizations"]).copy()
             # Read off scale cuts
-            scls = spec.get("scales",
-                                default_cuts["scales"]).copy()
+            scls = spec.get("scales", default_cuts["scales"]).copy()
 
             # For the same two channels, do not include ET and TE, only TE
             if (exp_1 == exp_2) and (freq_1 == freq_2):
@@ -174,8 +205,7 @@ class MFLike(InstallableLikelihood):
             else:
                 # Symmetrization
                 if ("TE" in pols) and ("ET" in pols):
-                    symm = spec.get("symmetrize",
-                                        default_cuts["symmetrize"])
+                    symm = spec.get("symmetrize", default_cuts["symmetrize"])
                 else:
                     symm = False
 
@@ -212,22 +242,21 @@ class MFLike(InstallableLikelihood):
         # Length of the final data vector
         len_compressed = 0
         for spectrum in data["spectra"]:
-            (exp_1, exp_2, freq_1, freq_2,
-             pols, scls, symm) = get_cl_meta(spectrum)
+            (exp_1, exp_2, freq_1, freq_2, pols, scls, symm) = get_cl_meta(spectrum)
             for pol in pols:
-                tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2,
-                                                         freq_1, freq_2)
+                tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2, freq_1, freq_2)
                 lmin, lmax = scls[pol]
-                ind = s.indices(dtype,  # Power spectrum type
-                                (tname_1, tname_2),  # Channel combinations
-                                ell__gt=lmin, ell__lt=lmax)  # Scale cuts
+                ind = s.indices(
+                    dtype,  # Power spectrum type
+                    (tname_1, tname_2),  # Channel combinations
+                    ell__gt=lmin,
+                    ell__lt=lmax,
+                )  # Scale cuts
                 indices += list(ind)
 
                 # Note that data in the cov_Bbl file may be in different order.
                 if cbbl_extra:
-                    ind_b = s_b.indices(dtype,
-                                        (tname_1, tname_2),
-                                        ell__gt=lmin, ell__lt=lmax)
+                    ind_b = s_b.indices(dtype, (tname_1, tname_2), ell__gt=lmin, ell__lt=lmax)
                     indices_b += list(ind_b)
 
                 if symm and pol == "ET":
@@ -258,22 +287,19 @@ class MFLike(InstallableLikelihood):
         index_sofar = 0
 
         for spectrum in data["spectra"]:
-            (exp_1, exp_2, freq_1, freq_2,
-             pols, scls, symm) = get_cl_meta(spectrum)
+            (exp_1, exp_2, freq_1, freq_2, pols, scls, symm) = get_cl_meta(spectrum)
             bands[xp_nu(exp_1, freq_1)] = freq_1
             bands[xp_nu(exp_2, freq_2)] = freq_2
             for k in scls.keys():
                 self.lcuts[k] = max(self.lcuts[k], scls[k][1])
             for pol in pols:
-                tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2,
-                                                         freq_1, freq_2)
+                tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2, freq_1, freq_2)
                 # The only reason why we need indices is the symmetrization.
                 # Otherwise all of this could have been done in the previous
                 # loop over data["spectra"].
                 ls, cls, ind = s.get_ell_cl(dtype, tname_1, tname_2, return_ind=True)
                 if cbbl_extra:
-                    ind_b = s_b.indices(dtype,
-                                        (tname_1, tname_2))
+                    ind_b = s_b.indices(dtype, (tname_1, tname_2))
                     ws = s_b.get_bandpower_windows(ind_b)
                 else:
                     ws = s.get_bandpower_windows(ind)
@@ -287,11 +313,8 @@ class MFLike(InstallableLikelihood):
                 if (pol in ["TE", "ET"]) and symm:
                     pol2 = pol[::-1]
                     pols.remove(pol2)
-                    tname_1, tname_2, dtype = get_sacc_names(pol2,
-                                                             exp_1, exp_2,
-                                                             freq_1, freq_2)
-                    ind2 = s.indices(dtype,
-                                     (tname_1, tname_2))
+                    tname_1, tname_2, dtype = get_sacc_names(pol2, exp_1, exp_2, freq_1, freq_2)
+                    ind2 = s.indices(dtype, (tname_1, tname_2))
                     cls2 = s.get_ell_cl(dtype, tname_1, tname_2)[1]
                     cls = 0.5 * (cls + cls2)
 
@@ -299,8 +322,7 @@ class MFLike(InstallableLikelihood):
                         mat_compress[index_sofar + i, j1] = 0.5
                         mat_compress[index_sofar + i, j2] = 0.5
                     if cbbl_extra:
-                        ind2_b = s_b.indices(dtype,
-                                             (tname_1, tname_2))
+                        ind2_b = s_b.indices(dtype, (tname_1, tname_2))
                         for i, (j1, j2) in enumerate(zip(ind_b, ind2_b)):
                             mat_compress_b[index_sofar + i, j1] = 0.5
                             mat_compress_b[index_sofar + i, j2] = 0.5
@@ -312,25 +334,27 @@ class MFLike(InstallableLikelihood):
                             mat_compress_b[index_sofar + i, j1] = 1
                 # The fields marked with # below aren't really used, but
                 # we store them just in case.
-                self.spec_meta.append({"ids": (index_sofar +
-                                               np.arange(cls.size,
-                                                         dtype=int)),
-                                       "pol": ppol_dict[pol],
-                                       "hasYX_xsp": pol in ["ET","BE","BT"], #This is necessary for handling symmetrization
-                                       "t1": xp_nu(exp_1, freq_1),  #
-                                       "t2": xp_nu(exp_2, freq_2),  #
-                                       "nu1": freq_1,
-                                       "nu2": freq_2,
-                                       "leff": ls,  #
-                                       "cl_data": cls,  #
-                                       "bpw": ws})
+                self.spec_meta.append(
+                    {
+                        "ids": (index_sofar + np.arange(cls.size, dtype=int)),
+                        "pol": ppol_dict[pol],
+                        "hasYX_xsp": pol
+                        in ["ET", "BE", "BT"],  # This is necessary for handling symmetrization
+                        "t1": xp_nu(exp_1, freq_1),  #
+                        "t2": xp_nu(exp_2, freq_2),  #
+                        "nu1": freq_1,
+                        "nu2": freq_2,
+                        "leff": ls,  #
+                        "cl_data": cls,  #
+                        "bpw": ws,
+                    }
+                )
                 index_sofar += cls.size
         if not cbbl_extra:
             mat_compress_b = mat_compress
         # Put data and covariance in the right order.
         self.data_vec = np.dot(mat_compress, s.mean)
-        self.cov = np.dot(mat_compress_b,
-                          s_b.covariance.covmat.dot(mat_compress_b.T))
+        self.cov = np.dot(mat_compress_b, s_b.covariance.covmat.dot(mat_compress_b.T))
         self.inv_cov = np.linalg.inv(self.cov)
         self.logp_const = np.log(2 * np.pi) * (-len(self.data_vec) / 2)
         self.logp_const -= 0.5 * np.linalg.slogdet(self.cov)[1]
@@ -347,7 +371,7 @@ class MFLike(InstallableLikelihood):
     def _get_power_spectra(self, cl, **params_values_nocosmo):
         # Get Cl's from the theory code
         Dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
-        DlsObs = self.ThFo.get_modified_theory(Dls,**params_values_nocosmo)
+        DlsObs = self.ThFo.get_modified_theory(Dls, **params_values_nocosmo)
 
         ps_vec = np.zeros_like(self.data_vec)
         for m in self.spec_meta:
