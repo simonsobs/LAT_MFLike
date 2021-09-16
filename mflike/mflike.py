@@ -28,39 +28,45 @@ class MFLike(InstallableLikelihood):
     foregrounds: dict
     band_integration: dict
     systematics_template: dict
+    standalone: bool
 
     def initialize(self):
-        # Set path to data
-        if ((not getattr(self, "path", None)) and
-                (not getattr(self, "packages_path", None))):
-            raise LoggedError(self.log,
-                              "No path given to MFLike data. "
-                              "Set the likelihood property "
-                              "'path' or the common property '%s'.",
-                              _packages_path)
-        # If no path specified, use the modules path
-        data_file_path = os.path.normpath(getattr(self, "path", None) or
-                                          os.path.join(self.packages_path,
-                                                       "data"))
 
-        self.data_folder = os.path.join(data_file_path, self.data_folder)
-        if not os.path.exists(self.data_folder):
-            raise LoggedError(
-                self.log, "The 'data_folder' directory does not exist. "
-                          "Check the given path [%s].", self.data_folder)
+        if not self.standalone:
+            # Set path to data
+            if ((not getattr(self, "path", None)) and
+                    (not getattr(self, "packages_path", None))):
+                raise LoggedError(self.log,
+                                  "No path given to MFLike data. "
+                                  "Set the likelihood property "
+                                  "'path' or the common property '%s'.",
+                                  _packages_path)
+            # If no path specified, use the modules path
+            data_file_path = os.path.normpath(getattr(self, "path", None) or
+                                              os.path.join(self.packages_path,
+                                                           "data"))
 
-        # Read data
-        self.prepare_data()
+            self.data_folder = os.path.join(data_file_path, self.data_folder)
+            if not os.path.exists(self.data_folder):
+                raise LoggedError(
+                    self.log, "The 'data_folder' directory does not exist. "
+                              "Check the given path [%s].", self.data_folder)
+
+            # Read data
+            self.prepare_data()
 
         # State requisites to the theory code
         self.lmax_theory = 9000
         self.requested_cls = ["tt", "te", "ee"]
 
+        self.l_bpws = None
+        self.freqs = None
+        self.spec_meta = []
 
         self.expected_params_fg = ["a_tSZ", "a_kSZ", "a_p", "beta_p",
                                 "a_c", "beta_c", "a_s", "a_gtt", "a_gte", "a_gee",
                                 "a_psee", "a_pste", "xi", "T_d"]
-   
+
         self.expected_params_nuis = ["bandint_shift_93",
                                      "bandint_shift_145",
                                      "bandint_shift_225",
@@ -85,7 +91,7 @@ class MFLike(InstallableLikelihood):
                 differences)
 
     def get_requirements(self):
-        return dict(Cl={k: max(c, self.lmax_theory+1) for k, c in self.lcuts.items()})
+        return dict() if self.standalone else dict(Cl={k: max(c, self.lmax_theory+1) for k, c in self.lcuts.items()})
 
     def logp(self, **params_values):
         cl = self.theory.get_Cl(ell_factor=True)
@@ -240,7 +246,6 @@ class MFLike(InstallableLikelihood):
             s_b.keep_indices(np.array(indices_b))
 
         # Now create metadata for each spectrum
-        self.spec_meta = []
         len_full = s.mean.size
         # These are the matrices we'll use to compress the data if
         # `symmetrize` is true.
@@ -252,7 +257,6 @@ class MFLike(InstallableLikelihood):
         self.lcuts = {k: c[1] for k, c in default_cuts["scales"].items()}
         index_sofar = 0
 
-        self.l_bpws = None
         for spectrum in data["spectra"]:
             (exp_1, exp_2, freq_1, freq_2,
              pols, scls, symm) = get_cl_meta(spectrum)
@@ -312,7 +316,7 @@ class MFLike(InstallableLikelihood):
                                                np.arange(cls.size,
                                                          dtype=int)),
                                        "pol": ppol_dict[pol],
-                                       "hasYX_xsp": pol in ["ET","BE","BT"], #This is necessary for handling symmetrization 
+                                       "hasYX_xsp": pol in ["ET","BE","BT"], #This is necessary for handling symmetrization
                                        "t1": xp_nu(exp_1, freq_1),  #
                                        "t2": xp_nu(exp_2, freq_2),  #
                                        "nu1": freq_1,
@@ -350,7 +354,7 @@ class MFLike(InstallableLikelihood):
             p = m["pol"]
             i = m["ids"]
             w = m["bpw"].weight.T
-            clt = np.dot(w, DlsObs[p, m["nu1"], m["nu2"]])       
+            clt = np.dot(w, DlsObs[p, m["nu1"], m["nu2"]])
             ps_vec[i] = clt
 
         return ps_vec
