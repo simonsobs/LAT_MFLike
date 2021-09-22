@@ -30,7 +30,6 @@ class MFLike(InstallableLikelihood):
     foregrounds: dict
     band_integration: dict
     systematics_template: dict
-    standalone: bool
 
     def initialize(self):
 
@@ -39,31 +38,30 @@ class MFLike(InstallableLikelihood):
         self.freqs = None
         self.spec_meta = []
 
-        if not self.standalone:
-            # Set path to data
-            if (not getattr(self, "path", None)) and (not getattr(self, "packages_path", None)):
-                raise LoggedError(
-                    self.log,
-                    "No path given to MFLike data. "
-                    "Set the likelihood property "
-                    "'path' or the common property '%s'.",
-                    _packages_path,
-                )
-            # If no path specified, use the modules path
-            data_file_path = os.path.normpath(
-                getattr(self, "path", None) or os.path.join(self.packages_path, "data")
+        # Set path to data
+        if (not getattr(self, "path", None)) and (not getattr(self, "packages_path", None)):
+            raise LoggedError(
+                self.log,
+                "No path given to MFLike data. "
+                "Set the likelihood property "
+                "'path' or the common property '%s'.",
+                _packages_path,
+            )
+        # If no path specified, use the modules path
+        data_file_path = os.path.normpath(
+            getattr(self, "path", None) or os.path.join(self.packages_path, "data")
+        )
+
+        self.data_folder = os.path.join(data_file_path, self.data_folder)
+        if not os.path.exists(self.data_folder):
+            raise LoggedError(
+                self.log,
+                "The 'data_folder' directory does not exist. " "Check the given path [%s].",
+                self.data_folder,
             )
 
-            self.data_folder = os.path.join(data_file_path, self.data_folder)
-            if not os.path.exists(self.data_folder):
-                raise LoggedError(
-                    self.log,
-                    "The 'data_folder' directory does not exist. " "Check the given path [%s].",
-                    self.data_folder,
-                )
-
-            # Read data
-            self.prepare_data()
+        # Read data
+        self.prepare_data()
 
         # State requisites to the theory code
         self.lmax_theory = 9000
@@ -117,11 +115,7 @@ class MFLike(InstallableLikelihood):
             raise LoggedError(self.log, "Configuration error in parameters: %r.", differences)
 
     def get_requirements(self):
-        return (
-            dict()
-            if self.standalone
-            else dict(Cl={k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()})
-        )
+        return dict(Cl={k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()})
 
     def logp(self, **params_values):
         cl = self.theory.get_Cl(ell_factor=True)

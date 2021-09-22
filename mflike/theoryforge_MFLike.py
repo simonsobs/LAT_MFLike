@@ -1,7 +1,7 @@
-import numpy as np
 import os
-
 from typing import Union
+
+import numpy as np
 
 
 # Converts from cmb units to brightness. Numerical factors not included, it needs proper normalization when used.
@@ -93,7 +93,7 @@ class TheoryForge_MFLike:
         nuis_params = {k: params[k] for k in self.expected_params_nuis}
 
         # Bandpass construction for band integration
-        # Bandpasses are regenerated at each iteration, even if 
+        # Bandpasses are regenerated at each iteration, even if
         # "bandint_shift_{ch}" is not explored in the MCMC
         # this might be optimized in the future
         if self.bandint_external_bandpass:
@@ -290,7 +290,7 @@ class TheoryForge_MFLike:
 
         if not hasattr(self.bandint_width, "__len__"):
             self.bandint_width = np.full_like(
-                self.freqs, self.bandint_width, dtype=np.float
+                self.freqs, self.bandint_width, dtype=float
             )
         if np.any(np.array(self.bandint_width) > 0):
             assert (
