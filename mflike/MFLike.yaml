@@ -11,7 +11,6 @@ input_file: null
 # (The logic here is that you may have many different
 # realizations that share the same bandpowers and covariance)
 cov_Bbl_file: null
-standalone: False
 
 # Specify default set of spectra and scale cuts
 # to be used
