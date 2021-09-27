@@ -84,21 +84,12 @@ class MFLike(InstallableLikelihood):
             "T_d",
         ]
 
-        self.expected_params_nuis = [
-            "bandint_shift_93",
-            "bandint_shift_145",
-            "bandint_shift_225",
-            "calT_93",
-            "calE_93",
-            "calT_145",
-            "calE_145",
-            "calT_225",
-            "calE_225",
-            "calG_all",
-            "alpha_93",
-            "alpha_145",
-            "alpha_225",
-        ]
+        self.expected_params_nuis = ["calG_all"]
+        for f in self.freqs:
+            self.expected_params_nuis.extend(("bandint_shift_"+str(f),
+                                              "calT_"+str(f),
+                                              "calE_"+str(f),
+                                              "alpha_"+str(f)))
 
         self.ThFo = TheoryForge_MFLike(self)
         self.log.info("Initialized!")
