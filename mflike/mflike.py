@@ -43,9 +43,7 @@ class MFLike(InstallableLikelihood):
             raise LoggedError(
                 self.log,
                 "No path given to MFLike data. "
-                "Set the likelihood property "
-                "'path' or the common property '%s'.",
-                _packages_path,
+                f"Set the likelihood property 'path' or the common property '{_packages_path}'.",
             )
         # If no path specified, use the modules path
         data_file_path = os.path.normpath(
@@ -56,8 +54,8 @@ class MFLike(InstallableLikelihood):
         if not os.path.exists(self.data_folder):
             raise LoggedError(
                 self.log,
-                "The 'data_folder' directory does not exist. " "Check the given path [%s].",
-                self.data_folder,
+                "The 'data_folder' directory does not exist. "
+                f"Check the given path [{self.data_folder}].",
             )
 
         # Read data
@@ -86,10 +84,12 @@ class MFLike(InstallableLikelihood):
 
         self.expected_params_nuis = ["calG_all"]
         for f in self.freqs:
-            self.expected_params_nuis.extend(("bandint_shift_"+str(f),
-                                              "calT_"+str(f),
-                                              "calE_"+str(f),
-                                              "alpha_"+str(f)))
+            self.expected_params_nuis += [
+                f"bandint_shift_{f}",
+                f"calT_{f}",
+                f"calE_{f}",
+                f"alpha_{f}",
+            ]
 
         self.ThFo = TheoryForge_MFLike(self)
         self.log.info("Initialized!")
@@ -121,8 +121,7 @@ class MFLike(InstallableLikelihood):
         logp = -0.5 * (delta @ self.inv_cov @ delta)
         logp += self.logp_const
         self.log.debug(
-            "Log-likelihood value computed "
-            "= {} (Χ² = {})".format(logp, -2 * (logp - self.logp_const))
+            f"Log-likelihood value computed = {logp} (Χ² = {-2 * (logp - self.logp_const)})"
         )
         return logp
 
