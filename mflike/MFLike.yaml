@@ -58,6 +58,7 @@ data:
 
 # Parameters to handle the band integration:
 # - external_bandpass sets the usage of an external bandpass file
+# - polarized_arrays sets the PA we want to use, e.g. polarized_arrays: ['PA1','PA2']
 # - nsteps sets the number of frequencies used in the integration
 # - bandwidth sets the relative width of the band wrt the central frequency
 #     with bandwidth: 0 no band integration is performed
@@ -66,6 +67,7 @@ data:
 #     e.g. bandwidth: [0.3,0.2,0.3] for 3 bands
 band_integration:
   external_bandpass: False
+  polarized_arrays: False
   nsteps: 1
   bandwidth: 0
 
