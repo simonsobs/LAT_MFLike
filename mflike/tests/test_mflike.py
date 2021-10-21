@@ -31,9 +31,9 @@ nuisance_params = {
     "a_psee": 0,
     "a_pste": 0,
     "xi": 0,
-    "bandint_shift_93" : 0,
-    "bandint_shift_145" : 0,
-    "bandint_shift_225" : 0,
+    "bandint_shift_93": 0,
+    "bandint_shift_145": 0,
+    "bandint_shift_225": 0,
     "calT_93": 1,
     "calE_93": 1,
     "calT_145": 1,
@@ -46,7 +46,12 @@ nuisance_params = {
     "alpha_225": 0,
 }
 
-chi2s = {"tt": 737.8571537677649, "te-et": 998.2730263280033, "ee": 716.4015196388742, "tt-te-et-ee": 2459.7250}
+chi2s = {
+    "tt": 737.8571537677649,
+    "te-et": 998.2730263280033,
+    "ee": 716.4015196388742,
+    "tt-te-et-ee": 2459.7250,
+}
 pre = "data_sacc_"
 
 
@@ -83,10 +88,11 @@ class MFLikeTest(unittest.TestCase):
                         },
                         "symmetrize": False,
                     },
-                    "band_integration":{
+                    "band_integration": {
                         "nsteps": 1,
                         "bandwidth": 0,
                         "external_bandpass": False,
+                        "polarized_arrays": False,
                     },
                 }
             )
