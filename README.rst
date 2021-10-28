@@ -65,6 +65,6 @@ Simulation releases
 
 - ``v0.7`` release includes the ACT like foregrounds. Simulation parameters are also stored within ``sacc`` metadata and the associated ``dict`` file can be viewed `here <https://gist.github.com/xgarrido/5d2fdbe4232cfa9ad1156ee30baa7811>`_.
 
-- ``v0.6`` release make use of CMB map based simulations (see https://github.com/simonsobs/map_based_simulations/blob/master/201911_lensed_cmb/README.md). Only temperature foregrounds where considered.
+- ``v0.6`` release make use of CMB map based simulations (see https://github.com/simonsobs/map_based_simulations/blob/master/201911_lensed_cmb/README.md). Only temperature foregrounds were considered.
 
 Releases prior to ``v0.6`` version were development simulations and should not be used for simulation analysis.
