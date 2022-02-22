@@ -11,6 +11,10 @@ An external likelihood using `cobaya <https://github.com/CobayaSampler/cobaya>`_
    :target: https://mybinder.org/v2/gh/simonsobs/LAT_MFLike/master?filepath=notebooks%2Fmflike_tutorial.ipynb
 
 
+.. image:: https://codecov.io/gh/simonsobs/LAT_MFLike/branch/master/graph/badge.svg?token=qrrVcbNCs5
+   :target: https://codecov.io/gh/simonsobs/LAT_MFLike
+
+
 Installing the code
 -------------------
 
