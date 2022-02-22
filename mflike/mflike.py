@@ -20,7 +20,7 @@ from .theoryforge_MFLike import TheoryForge_MFLike
 class MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
     _release = "v0.7"
-    install_options = {"download_url": "{}/{}.tar.gz".format(_url, _release)}
+    install_options = {"download_url": f"{_url}/{_release}.tar.gz"}
 
     # attributes set from .yaml
     input_file: Optional[str]
@@ -103,7 +103,7 @@ class MFLike(InstallableLikelihood):
             name_B="expected",
         )
         if differences:
-            raise LoggedError(self.log, "Configuration error in parameters: %r.", differences)
+            raise LoggedError(self.log, f"Configuration error in parameters: {difference}.")
 
     def get_requirements(self):
         return dict(Cl={k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()})

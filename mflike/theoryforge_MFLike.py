@@ -1,5 +1,4 @@
 import os
-from typing import Union
 
 import numpy as np
 
@@ -17,13 +16,13 @@ def _cmb2bb(nu):
 # Provides the frequency value given the bandpass name. To be modified - it is ACT based!!!!!!
 def _get_fr(array):
     a = array.split("_")[0]
-    if a == "PA1" or a == "PA2":
+    if a in ["PA1", "PA2"]:
         fr = 150
     if a == "PA3":
         fr = array.split("_")[3]
-    if a == "PA4" or a == "PA5" or a == "PA6":
+    if a in ["PA4", "PA5", "PA6"]:
         fr = array.split("_")[3].replace("f", "")
-    return np.int(fr), a
+    return int(fr), a
 
 
 def _get_arrays_weights(arrays, polarized_arrays, freqs):
@@ -328,7 +327,7 @@ class TheoryForge_MFLike:
 
             bandint_freqs = []
             for ifr, fr in enumerate(self.freqs):
-                bandpar = "bandint_shift_" + str(fr)
+                bandpar = f"bandint_shift_{fr}"
                 bandlow = fr * (1 - self.bandint_width[ifr] * 0.5)
                 bandhigh = fr * (1 + self.bandint_width[ifr] * 0.5)
                 nubtrue = np.linspace(bandlow, bandhigh, self.bandint_nsteps, dtype=float)
@@ -344,7 +343,7 @@ class TheoryForge_MFLike:
         else:
             bandint_freqs = np.empty_like(self.freqs, dtype=float)
             for ifr, fr in enumerate(self.freqs):
-                bandpar = "bandint_shift_" + str(fr)
+                bandpar = f"bandint_shift_{fr}"
                 bandint_freqs[ifr] = fr + params[bandpar]
 
         return bandint_freqs
@@ -362,11 +361,11 @@ class TheoryForge_MFLike:
         bandint_freqs = []
         order = []
         for pa, fr, nu_ghz, bp in self.external_bandpass:
-            bandpar = "bandint_shift_" + str(fr)
+            bandpar = f"bandint_shift_{fr}"
             nub = nu_ghz + params[bandpar]
             trans = bp * _cmb2bb(nub)
             bandint_freqs.append([nub, trans])
-            order.append(pa + "_" + str(fr))
+            order.append(f"{pa}_{fr}")
 
         return order, bandint_freqs
 
@@ -385,12 +384,12 @@ class TheoryForge_MFLike:
         cal_pars = {}
         if "tt" in self.requested_cls or "te" in self.requested_cls:
             cal_pars["tt"] = nuis_params["calG_all"] * np.array(
-                [nuis_params["calT_" + str(fr)] for fr in self.freqs]
+                [nuis_params[f"calT_{fr}"] for fr in self.freqs]
             )
 
         if "ee" in self.requested_cls or "te" in self.requested_cls:
             cal_pars["ee"] = nuis_params["calG_all"] * np.array(
-                [nuis_params["calE_" + str(fr)] for fr in self.freqs]
+                [nuis_params[f"calE_{fr}"] for fr in self.freqs]
             )
 
         calib = syl.Calibration_alm(ell=self.l_bpws, spectra=dls_dict)
@@ -406,7 +405,7 @@ class TheoryForge_MFLike:
 
         from syslibrary import syslib_mflike as syl
 
-        rot_pars = [nuis_params["alpha_" + str(fr)] for fr in self.freqs]
+        rot_pars = [nuis_params[f"alpha_{fr}"] for fr in self.freqs]
 
         rot = syl.Rotation_alm(ell=self.l_bpws, spectra=dls_dict, cls=self.requested_cls)
 
