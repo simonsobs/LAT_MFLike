@@ -1,9 +1,11 @@
 import os
+from itertools import product
 
 import numpy as np
 
 
-# Converts from cmb units to brightness. Numerical factors not included, it needs proper normalization when used.
+# Converts from cmb units to brightness. Numerical factors not included,
+# it needs proper normalization when used.
 def _cmb2bb(nu):
     # NB: numerical factors not included
     from scipy import constants
@@ -115,19 +117,17 @@ class TheoryForge_MFLike:
             order, self.bandint_freqs = self._external_bandpass_construction(**nuis_params)
             fg_dict = self._get_foreground_model(freqs_order=order, **fg_params)
 
-            for f1 in self.freqs:
-                for f2 in self.freqs:
-                    for s in self.requested_cls:
-                        fg_dict[s, "all", f1, f2] = np.zeros(len(self.l_bpws))
-                        for pa in self.polarized_arrays:
-                            o1 = pa + "_" + str(f1)
-                            o2 = pa + "_" + str(f2)
-                            if (o1 in order) and (o2 in order):
-                                fg_dict[s, "all", f1, f2] += (
-                                    fg_dict[s, "all", o1, o2]
-                                    / self.array_weights[f1]
-                                    / self.array_weights[f2]
-                                )
+            for f1, f2 in product(self.freqs, self.freqs):
+                for s in self.requested_cls:
+                    fg_dict[s, "all", f1, f2] = np.zeros(len(self.l_bpws))
+                    for pa in self.polarized_arrays:
+                        o1, o2 = f"{pa}_{f1}", f"{pa}_{f2}"
+                        if (o1 in order) and (o2 in order):
+                            fg_dict[s, "all", f1, f2] += (
+                                fg_dict[s, "all", o1, o2]
+                                / self.array_weights[f1]
+                                / self.array_weights[f2]
+                            )
 
         else:
             self.bandint_freqs = self._bandpass_construction(**nuis_params)
@@ -135,10 +135,9 @@ class TheoryForge_MFLike:
 
         cmbfg_dict = {}
         # Sum CMB and FGs
-        for f1 in self.freqs:
-            for f2 in self.freqs:
-                for s in self.requested_cls:
-                    cmbfg_dict[s, f1, f2] = Dls[s] + fg_dict[s, "all", f1, f2]
+        for f1, f2 in product(self.freqs, self.freqs):
+            for s in self.requested_cls:
+                cmbfg_dict[s, f1, f2] = Dls[s] + fg_dict[s, "all", f1, f2]
 
         # Apply alm based calibration factors
         cmbfg_dict = self._get_calibrated_spectra(cmbfg_dict, **nuis_params)
@@ -314,7 +313,8 @@ class TheoryForge_MFLike:
 
         return fg_dict
 
-    # Takes care of the bandpass construction. It returns a list of nu-transmittance for each frequency or an array with the effective freqs.
+    # Takes care of the bandpass construction. It returns a list of nu-transmittance
+    # for each frequency or an array with the effective freqs.
     def _bandpass_construction(self, **params):
 
         if not hasattr(self.bandint_width, "__len__"):
@@ -353,7 +353,7 @@ class TheoryForge_MFLike:
         for array in arrays:
             fr, pa = _get_fr(array)
             if pa in self.polarized_arrays and fr in self.freqs:
-                nu_ghz, bp = np.loadtxt(path + "/" + array, usecols=(0, 1), unpack=True)
+                nu_ghz, bp = np.loadtxt(os.path.join(path, array), usecols=(0, 1), unpack=True)
                 trans_norm = np.trapz(bp * _cmb2bb(nu_ghz), nu_ghz)
                 self.external_bandpass.append([pa, fr, nu_ghz, bp / trans_norm])
 
