@@ -407,9 +407,9 @@ class TheoryForge_MFLike:
 
         rot_pars = [nuis_params[f"alpha_{fr}"] for fr in self.freqs]
 
-        rot = syl.Rotation_alm(ell=self.l_bpws, spectra=dls_dict, cls=self.requested_cls)
+        rot = syl.Rotation_alm(ell=self.l_bpws, spectra=dls_dict)
 
-        return rot(rot_pars, nu=self.freqs)
+        return rot(rot_pars, nu=self.freqs, cls=self.requested_cls)
 
     ###########################################################################
     ## This part deals with template marginalization
