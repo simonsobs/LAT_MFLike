@@ -10,6 +10,7 @@ import os
 from typing import Optional
 
 import numpy as np
+from cobaya.conventions import packages_path_input
 from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
 from cobaya.tools import are_different_params_lists
@@ -39,11 +40,11 @@ class MFLike(InstallableLikelihood):
         self.spec_meta = []
 
         # Set path to data
-        if (not getattr(self, "path", None)) and (not getattr(self, "packages_path", None)):
+        if (not getattr(self, "path", None)) and (not getattr(self, packages_path_input, None)):
             raise LoggedError(
                 self.log,
-                "No path given to MFLike data. "
-                f"Set the likelihood property 'path' or the common property '{_packages_path}'.",
+                "No path given to MFLike data. Set the likelihood property "
+                f"'path' or the common property '{packages_path_input}'.",
             )
         # If no path specified, use the modules path
         data_file_path = os.path.normpath(
