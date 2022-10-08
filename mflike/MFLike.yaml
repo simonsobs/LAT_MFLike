@@ -16,16 +16,15 @@ cov_Bbl_file: null
 # to be used
 defaults:
   # Which spectra?
-  polarizations: ['TT', 'TE', 'ET', 'EE']
+  polarizations: [TT, TE, ET, EE]
   # Scale cuts (in ell) for each spectrum
   scales:
     TT: [2, 5000]
     TE: [2, 5000]
-    ET: [2, 5000]
     EE: [2, 5000]
   # If True, TE' = (TE + ET) / 2 will be used
   # instead of TE and ET separately.
-  symmetrize: False
+  symmetrize: false
 
 data:
   # List the names and frequencies of all the
@@ -43,17 +42,17 @@ data:
     # For each of them, you can specify which spectra
     # and scale cuts you'd like to use. If you don't
     # specify anything, the defaults will be used.
-    - experiments: ['LAT', 'LAT']
+    - experiments: [LAT, LAT]
       frequencies: [93, 93]
-    - experiments: ['LAT', 'LAT']
+    - experiments: [LAT, LAT]
       frequencies: [93, 145]
-    - experiments: ['LAT', 'LAT']
+    - experiments: [LAT, LAT]
       frequencies: [93, 225]
-    - experiments: ['LAT', 'LAT']
+    - experiments: [LAT, LAT]
       frequencies: [145, 145]
-    - experiments: ['LAT', 'LAT']
+    - experiments: [LAT, LAT]
       frequencies: [145, 225]
-    - experiments: ['LAT', 'LAT']
+    - experiments: [LAT, LAT]
       frequencies: [225, 225]
 
 # Parameters to handle the band integration:
@@ -66,13 +65,13 @@ data:
 #     bandwidth can be a list if you want a different width for each band
 #     e.g. bandwidth: [0.3,0.2,0.3] for 3 bands
 band_integration:
-  external_bandpass: False
-  polarized_arrays: False
+  external_bandpass: false
+  polarized_arrays: false
   nsteps: 1
   bandwidth: 0
 
 systematics_template:
-  has_file: False
+  has_file: false
   rootname: "test_template"
 
 foregrounds:
