@@ -21,6 +21,7 @@ defaults:
   scales:
     TT: [2, 5000]
     TE: [2, 5000]
+    ET: [2, 5000]
     EE: [2, 5000]
   # If True, TE' = (TE + ET) / 2 will be used
   # instead of TE and ET separately.
