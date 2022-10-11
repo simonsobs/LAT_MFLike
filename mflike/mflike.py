@@ -104,7 +104,7 @@ class MFLike(InstallableLikelihood):
             name_B="expected",
         )
         if differences:
-            raise LoggedError(self.log, f"Configuration error in parameters: {difference}.")
+            raise LoggedError(self.log, f"Configuration error in parameters: {differences}.")
 
     def get_requirements(self):
         return dict(Cl={k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()})
