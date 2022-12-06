@@ -20,7 +20,7 @@ from .theoryforge_MFLike import TheoryForge_MFLike
 
 class MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
-    _release = "v0.7"
+    _release = "v0.7.1"
     install_options = {"download_url": f"{_url}/{_release}.tar.gz"}
 
     # attributes set from .yaml
