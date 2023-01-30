@@ -69,9 +69,10 @@ data:
 # without the top_hat_band block: no top-hat band is built and 
 # bandpasses read from sacc file. Band integration is performed accordingly 
 # (if bandpass in sacc is a single freq, no band integration) 
-top_hat_band:
-  nsteps: 1
-  bandwidth: 0
+# the default is to read bandpasses from file, to build top-hat uncomment this block!
+#top_hat_band:
+#  nsteps: 1
+#  bandwidth: 0
 
 systematics_template:
   has_file: false
