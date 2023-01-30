@@ -29,7 +29,7 @@ class MFLike(InstallableLikelihood):
     data: dict
     defaults: dict
     foregrounds: dict
-    band_integration: dict
+    top_hat_band: dict
     systematics_template: dict
 
     def initialize(self):
