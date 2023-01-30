@@ -63,8 +63,9 @@ class MFLike(InstallableLikelihood):
         self.prepare_data()
 
         # State requisites to the theory code
-        self.lmax_theory = 9000
         self.requested_cls = ["tt", "te", "ee"]
+        self.lmax_theory = self.lmax_theory or 9000
+        self.log.debug(f"Maximum multipole value: {self.lmax_theory}")
 
         self.expected_params_fg = [
             "a_tSZ",
@@ -84,9 +85,10 @@ class MFLike(InstallableLikelihood):
         ]
 
         self.expected_params_nuis = ["calG_all"]
-        for f in self.freqs:
+        for f in self.experiments:
             self.expected_params_nuis += [
                 f"bandint_shift_{f}",
+                f"cal_{f}",
                 f"calT_{f}",
                 f"calE_{f}",
                 f"alpha_{f}",
@@ -126,7 +128,7 @@ class MFLike(InstallableLikelihood):
         )
         return logp
 
-    def prepare_data(self, verbose=False):
+    def prepare_data(self):
         import sacc
 
         data = self.data
@@ -163,24 +165,19 @@ class MFLike(InstallableLikelihood):
             "BB": "bb",
         }
 
-        def xp_nu(xp, nu):
-            return f"{xp}_{nu}"
-
         def get_cl_meta(spec):
             # For each of the entries of the `spectra` section of the
             # yaml file, extract the relevant information: experiments,
-            # frequencies, polarization combinations, scale cuts and
+            # polarization combinations, scale cuts and
             # whether TE should be symmetrized.
-            # Experiments/frequencies
             exp_1, exp_2 = spec["experiments"]
-            freq_1, freq_2 = spec["frequencies"]
             # Read off polarization channel combinations
             pols = spec.get("polarizations", default_cuts["polarizations"]).copy()
             # Read off scale cuts
             scls = spec.get("scales", default_cuts["scales"]).copy()
 
             # For the same two channels, do not include ET and TE, only TE
-            if (exp_1 == exp_2) and (freq_1 == freq_2):
+            if exp_1 == exp_2:
                 if "ET" in pols:
                     pols.remove("ET")
                     if "TE" not in pols:
@@ -194,16 +191,16 @@ class MFLike(InstallableLikelihood):
                 else:
                     symm = False
 
-            return exp_1, exp_2, freq_1, freq_2, pols, scls, symm
+            return exp_1, exp_2, pols, scls, symm
 
-        def get_sacc_names(pol, exp_1, exp_2, freq_1, freq_2):
-            # Translate the polarization combination, experiment
-            # and frequency names of a given entry in the `spectra`
+        def get_sacc_names(pol, exp_1, exp_2):
+            # Translate the polarization combination and experiment
+            # names of a given entry in the `spectra`
             # part of the input yaml file into the names expected
             # in the SACC files.
+            tname_1 = exp_1
+            tname_2 = exp_2
             p1, p2 = pol
-            tname_1 = xp_nu(exp_1, freq_1)
-            tname_2 = xp_nu(exp_2, freq_2)
             if p1 in ["E", "B"]:
                 tname_1 += "_s2"
             else:
@@ -227,9 +224,9 @@ class MFLike(InstallableLikelihood):
         # Length of the final data vector
         len_compressed = 0
         for spectrum in data["spectra"]:
-            (exp_1, exp_2, freq_1, freq_2, pols, scls, symm) = get_cl_meta(spectrum)
+            exp_1, exp_2, pols, scls, symm = get_cl_meta(spectrum)
             for pol in pols:
-                tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2, freq_1, freq_2)
+                tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2)
                 lmin, lmax = scls[pol]
                 ind = s.indices(
                     dtype,  # Power spectrum type
@@ -249,8 +246,7 @@ class MFLike(InstallableLikelihood):
                 else:
                     len_compressed += ind.size
 
-                if verbose:
-                    print(tname_1, tname_2, dtype, ind.shape, lmin, lmax)
+                self.log.debug(tname_1, tname_2, dtype, ind.shape, lmin, lmax)
 
         # Get rid of all the unselected power spectra.
         # Sacc takes care of performing the same cuts in the
@@ -267,18 +263,16 @@ class MFLike(InstallableLikelihood):
         # symmetrization option, for which SACC doesn't have native support.
         mat_compress = np.zeros([len_compressed, len_full])
         mat_compress_b = np.zeros([len_compressed, len_full])
-        bands = {}
+
         self.lcuts = {k: c[1] for k, c in default_cuts["scales"].items()}
         index_sofar = 0
 
         for spectrum in data["spectra"]:
-            (exp_1, exp_2, freq_1, freq_2, pols, scls, symm) = get_cl_meta(spectrum)
-            bands[xp_nu(exp_1, freq_1)] = freq_1
-            bands[xp_nu(exp_2, freq_2)] = freq_2
+            exp_1, exp_2, pols, scls, symm = get_cl_meta(spectrum)
             for k in scls.keys():
                 self.lcuts[k] = max(self.lcuts[k], scls[k][1])
             for pol in pols:
-                tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2, freq_1, freq_2)
+                tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2)
                 # The only reason why we need indices is the symmetrization.
                 # Otherwise all of this could have been done in the previous
                 # loop over data["spectra"].
@@ -325,10 +319,8 @@ class MFLike(InstallableLikelihood):
                         "pol": ppol_dict[pol],
                         "hasYX_xsp": pol
                         in ["ET", "BE", "BT"],  # This is necessary for handling symmetrization
-                        "t1": xp_nu(exp_1, freq_1),  #
-                        "t2": xp_nu(exp_2, freq_2),  #
-                        "nu1": freq_1,
-                        "nu2": freq_2,
+                        "t1": exp_1,
+                        "t2": exp_2,
                         "leff": ls,  #
                         "cl_data": cls,  #
                         "bpw": ws,
@@ -344,14 +336,18 @@ class MFLike(InstallableLikelihood):
         self.logp_const = np.log(2 * np.pi) * (-len(self.data_vec) / 2)
         self.logp_const -= 0.5 * np.linalg.slogdet(self.cov)[1]
 
-        # TODO: we should actually be using bandpass integration
-        self.bands = sorted(bands)
-        self.freqs = np.array([bands[b] for b in self.bands])
+        self.experiments = data["experiments"]
+        self.bands = {
+            name: {"nu": tracer.nu, "bandpass": tracer.bandpass}
+            for name, tracer in s.tracers.items()
+        }
 
         # Put lcuts in a format that is recognisable by CAMB.
         self.lcuts = {k.lower(): c for k, c in self.lcuts.items()}
         if "et" in self.lcuts:
             del self.lcuts["et"]
+
+        self.log.info(f"Number of bins used: {self.data_vec.size}")
 
     def _get_power_spectra(self, cl, **params_values_nocosmo):
         # Get Cl's from the theory code
@@ -363,7 +359,7 @@ class MFLike(InstallableLikelihood):
             p = m["pol"]
             i = m["ids"]
             w = m["bpw"].weight.T
-            clt = np.dot(w, DlsObs[p, m["nu1"], m["nu2"]])
+            clt = w @ DlsObs[p, m["t1"], m["t2"]]
             ps_vec[i] = clt
 
         return ps_vec

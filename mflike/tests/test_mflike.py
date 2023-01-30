@@ -31,19 +31,22 @@ nuisance_params = {
     "a_psee": 0,
     "a_pste": 0,
     "xi": 0.20,
-    "bandint_shift_93": 0,
-    "bandint_shift_145": 0,
-    "bandint_shift_225": 0,
-    "calT_93": 1,
-    "calE_93": 1,
-    "calT_145": 1,
-    "calE_145": 1,
-    "calT_225": 1,
-    "calE_225": 1,
+    "bandint_shift_LAT_93": 0,
+    "bandint_shift_LAT_145": 0,
+    "bandint_shift_LAT_225": 0,
+    "calT_LAT_93": 1,
+    "calE_LAT_93": 1,
+    "calT_LAT_145": 1,
+    "calE_LAT_145": 1,
+    "calT_LAT_225": 1,
+    "calE_LAT_225": 1,
+    "cal_LAT_93": 1,
+    "cal_LAT_145": 1,
+    "cal_LAT_225": 1,
     "calG_all": 1,
-    "alpha_93": 0,
-    "alpha_145": 0,
-    "alpha_225": 0,
+    "alpha_LAT_93": 0,
+    "alpha_LAT_145": 0,
+    "alpha_LAT_225": 0,
 }
 
 chi2s = {
@@ -88,12 +91,6 @@ class MFLikeTest(unittest.TestCase):
                         },
                         "symmetrize": False,
                     },
-                    "band_integration": {
-                        "nsteps": 1,
-                        "bandwidth": 0,
-                        "external_bandpass": False,
-                        "polarized_arrays": False,
-                    },
                 }
             )
             loglike = my_mflike.loglike(cl_dict, **nuisance_params)
@@ -118,7 +115,7 @@ class MFLikeTest(unittest.TestCase):
         chi2 = -2 * (model.loglikes(nuisance_params)[0] - my_mflike.logp_const)
         self.assertAlmostEqual(chi2[0], chi2s["tt-te-et-ee"], 2)
 
-    def test_bandpass_integration(self):
+    def test_top_hat_bandpasses(self):
         from copy import deepcopy
 
         # Let's vary values of bandint_shift parameters
@@ -135,11 +132,9 @@ class MFLikeTest(unittest.TestCase):
                 "mflike.MFLike": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": pre + "w_covar_and_Bbl.fits",
-                    "band_integration": {
+                    "top_hat_band": {
                         "nsteps": 10,  # 10 integration points
                         "bandwidth": 0.1,  # 10% of central frequency value
-                        "external_bandpass": False,
-                        "polarized_arrays": False,
                     },
                 }
             },
@@ -153,6 +148,41 @@ class MFLikeTest(unittest.TestCase):
         my_mflike = model.likelihood["mflike.MFLike"]
 
         for chi2, bandshift in zip([2368.52, 4252.83, 41828.56], [0.0, 1.0, 5.0]):
+            params.update(
+                {par: bandshift for par in params.keys() if par.startswith("bandint_shift")}
+            )
+            chi2_mflike = -2 * (model.loglikes(params)[0] - my_mflike.logp_const)
+            self.assertAlmostEqual(chi2_mflike[0], chi2, 2)
+
+        model.close()
+        params.update(
+            {
+                k: {"prior": dict(min=0.9 * v, max=1.1 * v)}
+                for k, v in params.items()
+                if k.startswith("bandint_shift")
+            }
+        )
+        info = {
+            "likelihood": {
+                "mflike.MFLike": {
+                    "input_file": pre + "00000.fits",
+                    "cov_Bbl_file": pre + "w_covar_and_Bbl.fits",
+                    "top_hat_band": {
+                        "nsteps": 1,  # 1 integration points
+                        "bandwidth": 0,  # no bandwidth 
+                        },
+                }
+            },
+            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
+            "params": {**cosmo_params, **params},
+            "packages_path": packages_path,
+        }
+        from cobaya.model import get_model
+
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.MFLike"]
+
+        for chi2, bandshift in zip([2287.13, 3763.01, 43776.27], [0.0, 1.0, 5.0]):
             params.update(
                 {par: bandshift for par in params.keys() if par.startswith("bandint_shift")}
             )
