@@ -80,7 +80,7 @@ class TheoryForge_MFLike:
                     self.bandint_width = np.full_like(
                         self.experiments, self.bandint_width, dtype=float
                     )
-                if self.bandint_nsteps > 1 and np.any(np.array(self.bandint_width)) == 0:
+                if self.bandint_nsteps > 1 and np.any(np.array(self.bandint_width) == 0):
                     raise LoggedError(
                         self.log, "One band has width = 0, set a positive width and run again"
                     )
