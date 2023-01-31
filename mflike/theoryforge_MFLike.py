@@ -165,7 +165,7 @@ class TheoryForge_MFLike:
         cmbfg_dict = self._get_rotated_spectra(cmbfg_dict, **nuis_params)
 
         # Introduce templates of systematics from file, if needed
-        if self.use_systematics_template and self.systematics_template["has_file"]:
+        if self.use_systematics_template:
             cmbfg_dict = self._get_template_from_file(cmbfg_dict, **nuis_params)
 
         # Built theory
