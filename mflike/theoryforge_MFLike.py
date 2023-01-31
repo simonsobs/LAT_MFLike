@@ -66,8 +66,7 @@ class TheoryForge_MFLike:
             if self.use_systematics_template:
                 self.systematics_template = mflike.systematics_template
                 # Initialize template for marginalization, if needed
-                if self.systematics_template["has_file"]:
-                    self._init_template_from_file()
+                self._init_template_from_file()
 
             # Parameters for band integration
             self.use_top_hat_band = hasattr(mflike, "top_hat_band")
@@ -386,6 +385,8 @@ class TheoryForge_MFLike:
     # Initializes the systematics templates
     # This is slow, but should be done only once
     def _init_template_from_file(self):
+        if not self.systematics_template.get("rootname"):
+            raise LoggedError(self.log, "Missing 'rootname' for systematics template!")
 
         from syslibrary import syslib_mflike as syl
 
