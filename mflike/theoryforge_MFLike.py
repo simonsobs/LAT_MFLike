@@ -95,9 +95,9 @@ class TheoryForge_MFLike:
             # Only temperature bandpass for the time being
             bands = self.bands[f"{exp}_s0"]
             nu_ghz, bp = bands["nu"], bands["bandpass"]
-            #computing top-hat bandpass to make band integration
+            # computing top-hat bandpass to make band integration
             if self.use_top_hat_band:
-                # Compute central frequency given bandpass in the sacc file 
+                # Compute central frequency given bandpass in the sacc file
                 fr = nu_ghz @ bp / bp.sum()
                 if self.bandint_nsteps > 1:
                     bandlow = fr * (1 - self.bandint_width[iexp] * 0.5)
@@ -112,12 +112,12 @@ class TheoryForge_MFLike:
                     tranb = _cmb2bb(nub)
                     tranb_norm = np.trapz(_cmb2bb(nubtrue), nubtrue)
                     self.bandint_freqs.append([nub, tranb / tranb_norm])
-                #in case we don't want to do band integration, e.g. when we have multifreq bandpass in sacc file
+                # in case we don't want to do band integration, e.g. when we have multifreq bandpass in sacc file
                 if self.bandint_nsteps == 1:
                     nub = fr + params[bandpar]
                     data_are_monofreq = True
                     self.bandint_freqs.append(nub)
-            #using the bandpass from sacc file
+            # using the bandpass from sacc file
             else:
                 nub = nu_ghz + params[bandpar]
                 if len(bp) == 1:
@@ -165,7 +165,7 @@ class TheoryForge_MFLike:
         cmbfg_dict = self._get_rotated_spectra(cmbfg_dict, **nuis_params)
 
         # Introduce templates of systematics from file, if needed
-        if self.systematics_template["has_file"]:
+        if self.use_systematics_template and self.systematics_template["has_file"]:
             cmbfg_dict = self._get_template_from_file(cmbfg_dict, **nuis_params)
 
         # Built theory
