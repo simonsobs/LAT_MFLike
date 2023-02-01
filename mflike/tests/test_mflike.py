@@ -127,64 +127,43 @@ class MFLikeTest(unittest.TestCase):
                 if k.startswith("bandint_shift")
             }
         )
-        info = {
-            "likelihood": {
-                "mflike.MFLike": {
-                    "input_file": pre + "00000.fits",
-                    "cov_Bbl_file": pre + "w_covar_and_Bbl.fits",
-                    "top_hat_band": {
-                        "nsteps": 10,  # 10 integration points
-                        "bandwidth": 0.1,  # 10% of central frequency value
-                    },
-                }
-            },
-            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
-            "params": {**cosmo_params, **params},
-            "packages_path": packages_path,
-        }
-        from cobaya.model import get_model
 
-        model = get_model(info)
-        my_mflike = model.likelihood["mflike.MFLike"]
-
-        for chi2, bandshift in zip([2368.52, 4252.83, 41828.56], [0.0, 1.0, 5.0]):
-            params.update(
-                {par: bandshift for par in params.keys() if par.startswith("bandint_shift")}
-            )
-            chi2_mflike = -2 * (model.loglikes(params)[0] - my_mflike.logp_const)
-            self.assertAlmostEqual(chi2_mflike[0], chi2, 2)
-
-        model.close()
-        params.update(
-            {
-                k: {"prior": dict(min=0.9 * v, max=1.1 * v)}
-                for k, v in params.items()
-                if k.startswith("bandint_shift")
-            }
-        )
-        info = {
-            "likelihood": {
-                "mflike.MFLike": {
-                    "input_file": pre + "00000.fits",
-                    "cov_Bbl_file": pre + "w_covar_and_Bbl.fits",
-                    "top_hat_band": {
-                        "nsteps": 1,  # 1 integration points
-                        "bandwidth": 0,  # no bandwidth 
+        def get_model(nsteps, bandwidth):
+            info = {
+                "likelihood": {
+                    "mflike.MFLike": {
+                        "input_file": pre + "00000.fits",
+                        "cov_Bbl_file": pre + "w_covar_and_Bbl.fits",
+                        "top_hat_band": {
+                            "nsteps": nsteps,  # 10 integration points
+                            "bandwidth": bandwidth,  # 10% of central frequency value
                         },
+                    }
+                },
+                "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
+                "params": {**cosmo_params, **params},
+                "packages_path": packages_path,
+            }
+
+            from cobaya.model import get_model
+
+            model = get_model(info)
+            return model, model.likelihood["mflike.MFLike"].logp_const
+
+        #  top hat band
+        self.model1, logp_const = get_model(nsteps=1, bandwidth=0)
+
+        # 10 integrationn points and 10% of central frequency value
+        self.model2, logp_const = get_model(nsteps=10, bandwidth=0.1)
+
+        # chi2 reference results for the different models and different bandshifts
+        chi2s = {"model1": [2287.13, 3763.01, 43776.27], "model2": [2368.52, 4252.83, 41828.56]}
+
+        for model, chi2 in chi2s.items():
+            for i, bandshift in enumerate([0.0, 1.0, 5.0]):
+                new_params = {
+                    **params,
+                    **{par: bandshift for par in params.keys() if par.startswith("bandint_shift")},
                 }
-            },
-            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
-            "params": {**cosmo_params, **params},
-            "packages_path": packages_path,
-        }
-        from cobaya.model import get_model
-
-        model = get_model(info)
-        my_mflike = model.likelihood["mflike.MFLike"]
-
-        for chi2, bandshift in zip([2287.13, 3763.01, 43776.27], [0.0, 1.0, 5.0]):
-            params.update(
-                {par: bandshift for par in params.keys() if par.startswith("bandint_shift")}
-            )
-            chi2_mflike = -2 * (model.loglikes(params)[0] - my_mflike.logp_const)
-            self.assertAlmostEqual(chi2_mflike[0], chi2, 2)
+                chi2_mflike = -2 * (getattr(self, model).loglikes(new_params)[0] - logp_const)
+                self.assertAlmostEqual(chi2_mflike[0], chi2[i], 2)
