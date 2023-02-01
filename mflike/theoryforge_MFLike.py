@@ -22,9 +22,9 @@ class TheoryForge_MFLike:
         if mflike is None:
             import logging
 
-            self.log = logging.getLogger(self.__class__.__name__.lowercase())
+            self.log = logging.getLogger(self.__class__.__name__.lower())
             self.data_folder = None
-            self.experiments = np.array(["LAT_145", "LAT_225", "LAT_93"])
+            self.experiments = np.array(["LAT_93", "LAT_145", "LAT_225"])
             self.foregrounds = {
                 "normalisation": {"nu_0": 150.0, "ell_0": 3000, "T_CMB": 2.725},
                 "components": {
@@ -35,16 +35,7 @@ class TheoryForge_MFLike:
             }
             self.l_bpws = np.arange(2, 6002)
             self.requested_cls = ["tt", "te", "ee"]
-            self.bandint_nsteps = 1
-            self.bandint_width = 0
-
-            nuis_params = {
-                "bandint_shift_LAT_93": 0,
-                "bandint_shift_LAT_145": 0,
-                "bandint_shift_LAT_225": 0,
-            }
-
-            self._bandpass_construction(**nuis_params)
+            self.bandint_freqs = np.array([93.0, 145.0, 225.0])
         else:
             self.log = mflike.log
             self.data_folder = mflike.data_folder
