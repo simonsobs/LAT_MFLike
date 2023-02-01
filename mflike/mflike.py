@@ -246,7 +246,7 @@ class MFLike(InstallableLikelihood):
                 else:
                     len_compressed += ind.size
 
-                self.log.debug(tname_1, tname_2, dtype, ind.shape, lmin, lmax)
+                self.log.debug(f"{tname_1} {tname_2} {dtype} {ind.shape} {lmin} {lmax}")
 
         # Get rid of all the unselected power spectra.
         # Sacc takes care of performing the same cuts in the
