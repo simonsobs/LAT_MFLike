@@ -85,7 +85,7 @@ class TheoryForge_MFLike:
             bandpar = f"bandint_shift_{exp}"
             # Only temperature bandpass for the time being
             bands = self.bands[f"{exp}_s0"]
-            nu_ghz, bp = bands["nu"], bands["bandpass"]
+            nu_ghz, bp = np.asarray(bands["nu"]), np.asarray(bands["bandpass"])
             # computing top-hat bandpass to make band integration
             if self.use_top_hat_band:
                 # Compute central frequency given bandpass in the sacc file
