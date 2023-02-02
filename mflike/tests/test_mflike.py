@@ -135,8 +135,8 @@ class MFLikeTest(unittest.TestCase):
                         "input_file": pre + "00000.fits",
                         "cov_Bbl_file": pre + "w_covar_and_Bbl.fits",
                         "top_hat_band": {
-                            "nsteps": nsteps,  # 10 integration points
-                            "bandwidth": bandwidth,  # 10% of central frequency value
+                            "nsteps": nsteps,
+                            "bandwidth": bandwidth,
                         },
                     }
                 },
