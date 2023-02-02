@@ -37,7 +37,6 @@ class TheoryForge_MFLike:
             self.requested_cls = ["tt", "te", "ee"]
             self.bandint_freqs = np.array([93.0, 145.0, 225.0])
             self.use_top_hat_band = False
-            self.use_systematics_template = False
         else:
             self.log = mflike.log
             self.data_folder = mflike.data_folder
