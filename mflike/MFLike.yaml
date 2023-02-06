@@ -66,18 +66,19 @@ data:
 #     - if nstep > 1,  bandwidth must be > 1
 #     bandwidth can be a list if you want a different width for each band
 #     e.g. bandwidth: [0.3,0.2,0.3] for 3 bands
-# without the top_hat_band block: no top-hat band is built and
+# when top_hat_band is a null dict: no top-hat band is built and
 # bandpasses read from sacc file. Band integration is performed accordingly
 # (if bandpass in sacc is a single freq, no band integration)
-# the default is to read bandpasses from file, to build top-hat uncomment this block!
-#top_hat_band:
+# the default is to read bandpasses from file, to build top-hat uncomment the
+# parameters of the block!
+top_hat_band:
 #  nsteps: 1
 #  bandwidth: 0
 
-# uncomment to include a systematic template
+# uncomment the block to include a systematic template
 # to be read from external file at "rootname"
-# default is without systematic template
-#systematics_template:
+# default is systematic_template to be a null dict
+systematics_template:
 #  rootname: "test_template"
 
 foregrounds:

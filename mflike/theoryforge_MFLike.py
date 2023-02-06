@@ -54,14 +54,15 @@ class TheoryForge_MFLike:
             self._init_foreground_model()
 
             # Parameters for template from file
-            self.use_systematics_template = hasattr(mflike, "systematics_template")
+            self.use_systematics_template = bool(mflike.systematics_template)
+            
             if self.use_systematics_template:
                 self.systematics_template = mflike.systematics_template
                 # Initialize template for marginalization, if needed
                 self._init_template_from_file()
 
             # Parameters for band integration
-            self.use_top_hat_band = hasattr(mflike, "top_hat_band")
+            self.use_top_hat_band = bool(mflike.top_hat_band)
             if self.use_top_hat_band:
                 self.bandint_nsteps = mflike.top_hat_band["nsteps"]
                 self.bandint_width = mflike.top_hat_band["bandwidth"]
