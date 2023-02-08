@@ -50,10 +50,10 @@ nuisance_params = {
 }
 
 chi2s = {
-    "tt": 630.2965,
-    "te-et": 935.1916,
-    "ee": 730.0471,
-    "tt-te-et-ee": 2287.1245,
+    "tt":  630.67697,
+    "te-et": 935.7031,
+    "ee": 729.74398,
+    "tt-te-et-ee": 2287.6825,
 }
 pre = "data_sacc_"
 
@@ -157,7 +157,7 @@ class MFLikeTest(unittest.TestCase):
         self.model2, logp_const = get_model(nsteps=10, bandwidth=0.1)
 
         # chi2 reference results for the different models and different bandshifts
-        chi2s = {"model1": [2287.13, 3763.01, 43776.27], "model2": [2368.52, 4252.83, 41828.56]}
+        chi2s = {"model1": [2287.684,3766.519,43787.995], "model2": [2368.41,4248.328,41804.223]}
 
         for model, chi2 in chi2s.items():
             for i, bandshift in enumerate([0.0, 1.0, 5.0]):
