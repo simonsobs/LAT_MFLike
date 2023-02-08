@@ -12,6 +12,10 @@ input_file: null
 # realizations that share the same bandpowers and covariance)
 cov_Bbl_file: null
 
+# Maximum multipole value up to compute theory Cl
+# If set to null i.e. None, the program will set the value to 9000
+lmax_theory: null
+
 # Specify default set of spectra and scale cuts
 # to be used
 defaults:
@@ -31,10 +35,10 @@ data:
   # List the names and frequencies of all the
   # relevant experiments.
   experiments:
-    LAT:
-      frequencies: [93, 145, 225]
-    # PlanckHFI:
-    #   frequencies: [545]
+    - LAT_93
+    - LAT_145
+    - LAT_225
+    # - PlanckHFI_545:
 
   spectra:
     # Here, list all the different cross-correlations
@@ -43,37 +47,39 @@ data:
     # For each of them, you can specify which spectra
     # and scale cuts you'd like to use. If you don't
     # specify anything, the defaults will be used.
-    - experiments: [LAT, LAT]
-      frequencies: [93, 93]
-    - experiments: [LAT, LAT]
-      frequencies: [93, 145]
-    - experiments: [LAT, LAT]
-      frequencies: [93, 225]
-    - experiments: [LAT, LAT]
-      frequencies: [145, 145]
-    - experiments: [LAT, LAT]
-      frequencies: [145, 225]
-    - experiments: [LAT, LAT]
-      frequencies: [225, 225]
+    - experiments: [LAT_93, LAT_93]
+    - experiments: [LAT_93, LAT_145]
+    - experiments: [LAT_93, LAT_225]
+    - experiments: [LAT_145, LAT_145]
+    - experiments: [LAT_145, LAT_225]
+    - experiments: [LAT_225, LAT_225]
 
-# Parameters to handle the band integration:
-# - external_bandpass sets the usage of an external bandpass file
-# - polarized_arrays sets the PA we want to use, e.g. polarized_arrays: ['PA1','PA2']
-# - nsteps sets the number of frequencies used in the integration
+# Parameters to build a top-hat band:
+# - nsteps sets the number of frequencies used in the band integration
 # - bandwidth sets the relative width of the band wrt the central frequency
-#     with bandwidth: 0 no band integration is performed
-#     if bandwidth > 0 , nsteps must be > 1
+#   the central frequency of each band is set from the bands stored in the sacc file
+#     - with nstep: 1, bandwidth must be 0
+#     Dirac delta bandpass, no band integration
+#     useful if you don't want to do band integration
+#     when the bandpasses in the sacc file are multifrequency
+#     the freq used is the effective frequency from the bandpass
+#     - if nstep > 1,  bandwidth must be > 1
 #     bandwidth can be a list if you want a different width for each band
 #     e.g. bandwidth: [0.3,0.2,0.3] for 3 bands
-band_integration:
-  external_bandpass: false
-  polarized_arrays: false
-  nsteps: 1
-  bandwidth: 0
+# when top_hat_band is a null dict: no top-hat band is built and
+# bandpasses read from sacc file. Band integration is performed accordingly
+# (if bandpass in sacc is a single freq, no band integration)
+# the default is to read bandpasses from file, to build top-hat uncomment the
+# parameters of the block!
+top_hat_band:
+#  nsteps: 1
+#  bandwidth: 0
 
+# uncomment the block to include a systematic template
+# to be read from external file at "rootname"
+# default is systematic_template to be a null dict
 systematics_template:
-  has_file: false
-  rootname: "test_template"
+#  rootname: "test_template"
 
 foregrounds:
   normalisation:
@@ -184,42 +190,51 @@ params:
     proposal: 0.6
     latex: T_d
   # Systematics
-  bandint_shift_93:
+  bandint_shift_LAT_93:
     value: 0
     latex: \Delta_{\rm band}^{93}
-  bandint_shift_145:
+  bandint_shift_LAT_145:
     value: 0
     latex: \Delta_{\rm band}^{145}
-  bandint_shift_225:
+  bandint_shift_LAT_225:
     value: 0
     latex: \Delta_{\rm band}^{225}
-  calT_93:
+  calT_LAT_93:
     value: 1
     latex: \mathrm{Cal}_{\rm T}^{93}
-  calE_93:
+  calE_LAT_93:
     value: 1
     latex: \mathrm{Cal}_{\rm E}^{93}
-  calT_145:
+  calT_LAT_145:
     value: 1
     latex: \mathrm{Cal}_{\rm T}^{145}
-  calE_145:
+  calE_LAT_145:
     value: 1
     latex: \mathrm{Cal}_{\rm E}^{145}
-  calT_225:
+  calT_LAT_225:
     value: 1
     latex: \mathrm{Cal}_{\rm T}^{225}
-  calE_225:
+  calE_LAT_225:
     value: 1
     latex: \mathrm{Cal}_{\rm E}^{225}
+  cal_LAT_93:
+    value: 1
+    latex: \mathrm{Cal}^{93}
+  cal_LAT_145:
+    value: 1
+    latex: \mathrm{Cal}^{145}
+  cal_LAT_225:
+    value: 1
+    latex: \mathrm{Cal}^{225}
   calG_all:
     value: 1
     latex: \mathrm{Cal}_{\rm G}^{\rm All}
-  alpha_93:
+  alpha_LAT_93:
     value: 0 #deg
     latex: \alpha^{93}
-  alpha_145:
+  alpha_LAT_145:
     value: 0 #deg
     latex: \alpha^{145}
-  alpha_225:
+  alpha_LAT_225:
     value: 0 #deg
     latex: \alpha^{225}
