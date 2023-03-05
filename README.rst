@@ -23,13 +23,13 @@ You first need to clone this repository to some location
 
 .. code:: shell
 
-    $ git clone https://github.com/simonsobs/LAT_MFLike.git /where/to/clone
+    git clone https://github.com/simonsobs/LAT_MFLike.git /where/to/clone
 
 Then you can install the ``mflike`` likelihood and its dependencies *via*
 
 .. code:: shell
 
-    $ pip install -e /where/to/clone
+    pip install -e /where/to/clone
 
 The ``-e`` option allow the developer to make changes within the ``mflike`` directory without having
 to reinstall at every changes. If you plan to just use the likelihood and do not develop it, you can
@@ -45,7 +45,7 @@ do the next command
 
 .. code:: shell
 
-    $ cobaya-install /where/to/clone/examples/mflike_example.yaml -p /where/to/put/packages
+    cobaya-install /where/to/clone/examples/mflike_example.yaml -p /where/to/put/packages
 
 data and code such as `CAMB <https://github.com/cmbant/CAMB>`_ will be downloaded and installed
 within the ``/where/to/put/packages`` directory. For more details, you can have a look to ``cobaya``
@@ -58,7 +58,7 @@ You can test the ``mflike`` likelihood by doing
 
 .. code:: shell
 
-    $ cobaya-run /where/to/clone/examples/mflike_example.yaml -p /where/to/put/packages
+    cobaya-run /where/to/clone/examples/mflike_example.yaml -p /where/to/put/packages
 
 which should run a MCMC sampler for the simulation n°44 (*i.e.* ``data_sacc_00044.fits`` in the
 ``mflike_example.yaml`` file) using the combination of TT, TE and EE spectra (*i.e.*
