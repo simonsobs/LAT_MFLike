@@ -10,7 +10,7 @@ import os
 from typing import Optional
 
 import numpy as np
-from cobaya.conventions import packages_path_input
+from cobaya.conventions import data_path, packages_path_input
 from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
 from cobaya.tools import are_different_params_lists
@@ -48,7 +48,7 @@ class MFLike(InstallableLikelihood):
             )
         # If no path specified, use the modules path
         data_file_path = os.path.normpath(
-            getattr(self, "path", None) or os.path.join(self.packages_path, "data")
+            getattr(self, "path", None) or os.path.join(self.packages_path, data_path)
         )
 
         self.data_folder = os.path.join(data_file_path, self.data_folder)
