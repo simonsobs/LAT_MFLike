@@ -16,9 +16,8 @@ def _cmb2bb(nu):
     return np.exp(x) * (nu * x / np.expm1(x)) ** 2
 
 
-class TheoryForge_MFLike:
+class TheoryForge:
     def __init__(self, mflike=None):
-
         if mflike is None:
             import logging
 
@@ -55,7 +54,7 @@ class TheoryForge_MFLike:
 
             # Parameters for template from file
             self.use_systematics_template = bool(mflike.systematics_template)
-            
+
             if self.use_systematics_template:
                 self.systematics_template = mflike.systematics_template
                 # Initialize template for marginalization, if needed
@@ -127,7 +126,6 @@ class TheoryForge_MFLike:
             self.bandint_freqs = np.asarray(self.bandint_freqs)
 
     def get_modified_theory(self, Dls, **params):
-
         fg_params = {k: params[k] for k in self.expected_params_fg}
         nuis_params = {k: params[k] for k in self.expected_params_nuis}
 
@@ -184,7 +182,6 @@ class TheoryForge_MFLike:
 
     # Initializes the foreground model. It sets the SED and reads the templates
     def _init_foreground_model(self):
-
         from fgspectra import cross as fgc
         from fgspectra import frequency as fgf
         from fgspectra import power as fgp
@@ -334,7 +331,6 @@ class TheoryForge_MFLike:
     ###########################################################################
 
     def _get_calibrated_spectra(self, dls_dict, **nuis_params):
-
         from syslibrary import syslib_mflike as syl
 
         cal_pars = {}
@@ -360,7 +356,6 @@ class TheoryForge_MFLike:
     ###########################################################################
 
     def _get_rotated_spectra(self, dls_dict, **nuis_params):
-
         from syslibrary import syslib_mflike as syl
 
         rot_pars = [nuis_params[f"alpha_{exp}"] for exp in self.experiments]
@@ -389,7 +384,6 @@ class TheoryForge_MFLike:
         self.dltempl_from_file = templ_from_file(ell=self.l_bpws)
 
     def _get_template_from_file(self, dls_dict, **nuis_params):
-
         # templ_pars=[nuis_params['templ_'+str(exp)] for exp in self.experiments]
         # templ_pars currently hard-coded
         # but ideally should be passed as input nuisance
