@@ -15,7 +15,7 @@ from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
 from cobaya.tools import are_different_params_lists
 
-from .theoryforge_MFLike import TheoryForge_MFLike
+from .theoryforge import TheoryForge
 
 
 class MFLike(InstallableLikelihood):
@@ -33,7 +33,6 @@ class MFLike(InstallableLikelihood):
     systematics_template: dict
 
     def initialize(self):
-
         # Set default values to data member not initialized via yaml file
         self.l_bpws = None
         self.freqs = None
@@ -94,7 +93,7 @@ class MFLike(InstallableLikelihood):
                 f"alpha_{f}",
             ]
 
-        self.ThFo = TheoryForge_MFLike(self)
+        self.ThFo = TheoryForge(self)
         self.log.info("Initialized!")
 
     def initialize_with_params(self):

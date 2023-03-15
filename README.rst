@@ -4,9 +4,11 @@ LAT Multifrequency Likelihood
 
 An external likelihood using `cobaya <https://github.com/CobayaSampler/cobaya>`_.
 
+.. image:: https://img.shields.io/pypi/v/mflike.svg?style=flat
+   :target: https://pypi.python.org/pypi/mflike
+
 .. image:: https://img.shields.io/github/actions/workflow/status/simonsobs/LAT_MFLike/testing.yml?branch=master
    :target: https://github.com/simonsobs/LAT_MFLike/actions
-   :alt: GitHub Workflow Status
 
 .. image:: https://mybinder.org/badge_logo.svg
    :target: https://mybinder.org/v2/gh/simonsobs/LAT_MFLike/master?filepath=notebooks%2Fmflike_tutorial.ipynb
@@ -19,7 +21,13 @@ An external likelihood using `cobaya <https://github.com/CobayaSampler/cobaya>`_
 Installing the code
 -------------------
 
-You first need to clone this repository to some location
+The easiest way to install and to use ``mflike`` likelihood is *via* ``pip``
+
+.. code:: shell
+
+    pip install mflike
+
+If you want to dig into the code, you'd better clone this repository to some location
 
 .. code:: shell
 
