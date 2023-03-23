@@ -50,10 +50,10 @@ nuisance_params = {
 }
 
 chi2s = {
-    "tt":  630.67697,
-    "te-et": 935.7031,
-    "ee": 729.74398,
-    "tt-te-et-ee": 2287.6825,
+    "tt": 625.889,
+    "te-et": 925.511,
+    "ee": 722.076,
+    "tt-te-et-ee": 2265.168,
 }
 pre = "data_sacc_"
 
@@ -84,10 +84,10 @@ class MFLikeTest(unittest.TestCase):
                     "defaults": {
                         "polarizations": select.upper().split("-"),
                         "scales": {
-                            "TT": [2, 5000],
-                            "TE": [2, 5000],
-                            "ET": [2, 5000],
-                            "EE": [2, 5000],
+                            "TT": [50, 5000],
+                            "TE": [50, 5000],
+                            "ET": [50, 5000],
+                            "EE": [50, 5000],
                         },
                         "symmetrize": False,
                     },
@@ -157,7 +157,10 @@ class MFLikeTest(unittest.TestCase):
         self.model2, logp_const = get_model(nsteps=10, bandwidth=0.1)
 
         # chi2 reference results for the different models and different bandshifts
-        chi2s = {"model1": [2287.684,3766.519,43787.995], "model2": [2368.41,4248.328,41804.223]}
+        chi2s = {
+            "model1": [2265.168, 3742.528, 43753.810],
+            "model2": [2345.508, 4224.293, 41764.366],
+        }
 
         for model, chi2 in chi2s.items():
             for i, bandshift in enumerate([0.0, 1.0, 5.0]):
