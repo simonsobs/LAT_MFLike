@@ -5,7 +5,10 @@ import numpy as np
 from cobaya.log import LoggedError
 
 
-# Converts from cmb units to brightness. Numerical factors not included,
+# Converts from cmb units to brightness.
+# There is an additional nu**2 factor to convert the bandpasses
+# from RJ to brightness units.
+# Numerical factors not included,
 # it needs proper normalization when used.
 def _cmb2bb(nu):
     # NB: numerical factors not included
@@ -78,6 +81,7 @@ class TheoryForge:
 
     # Takes care of the bandpass construction. It returns a list of nu-transmittance
     # for each frequency or an array with the effective freqs.
+    # bandpasses saved in the sacc file have to be in RJ units
     def _bandpass_construction(self, **params):
         data_are_monofreq = False
         self.bandint_freqs = []
@@ -93,7 +97,7 @@ class TheoryForge:
                 if self.bandint_nsteps > 1:
                     bandlow = fr * (1 - self.bandint_width[iexp] * 0.5)
                     bandhigh = fr * (1 + self.bandint_width[iexp] * 0.5)
-                    nubtrue = np.linspace(bandlow, bandhigh, self.bandint_nsteps, dtype=float)
+                    #nubtrue = np.linspace(bandlow, bandhigh, self.bandint_nsteps, dtype=float)
                     nub = np.linspace(
                         bandlow + params[bandpar],
                         bandhigh + params[bandpar],
@@ -101,7 +105,9 @@ class TheoryForge:
                         dtype=float,
                     )
                     tranb = _cmb2bb(nub)
-                    tranb_norm = np.trapz(_cmb2bb(nubtrue), nubtrue)
+                    # normalization integral to be evaluated at the shifted freqs 
+                    # in order to have cmb component calibrated to 1
+                    tranb_norm = np.trapz(_cmb2bb(nub), nub)
                     self.bandint_freqs.append([nub, tranb / tranb_norm])
                 # in case we don't want to do band integration, e.g. when we have multifreq bandpass in sacc file
                 if self.bandint_nsteps == 1:
@@ -116,7 +122,7 @@ class TheoryForge:
                     data_are_monofreq = True
                     self.bandint_freqs.append(nub[0])
                 else:
-                    trans_norm = np.trapz(bp * _cmb2bb(nu_ghz), nu_ghz)
+                    trans_norm = np.trapz(bp * _cmb2bb(nub), nub)
                     trans = bp / trans_norm * _cmb2bb(nub)
                     self.bandint_freqs.append([nub, trans])
 
@@ -124,6 +130,7 @@ class TheoryForge:
         # assume all of them and pass to fgspectra an array (not list!!) of frequencies
         if data_are_monofreq:
             self.bandint_freqs = np.asarray(self.bandint_freqs)
+            self.log.info("bandpass is delta function, no band integration performed")
 
     def get_modified_theory(self, Dls, **params):
         fg_params = {k: params[k] for k in self.expected_params_fg}

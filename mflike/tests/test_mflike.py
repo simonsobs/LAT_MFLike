@@ -158,8 +158,8 @@ class MFLikeTest(unittest.TestCase):
 
         # chi2 reference results for the different models and different bandshifts
         chi2s = {
-            "model1": [2265.168, 3742.528, 43753.810],
-            "model2": [2345.508, 4224.293, 41764.366],
+            "model1": [2265.168, 3742.528, 43753.809],
+            "model2": [2345.508, 4458.148, 47533.477],
         }
 
         for model, chi2 in chi2s.items():
