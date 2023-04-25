@@ -71,6 +71,7 @@ data:
 # (if bandpass in sacc is a single freq, no band integration)
 # the default is to read bandpasses from file, to build top-hat uncomment the
 # parameters of the block!
+# Bandpass has to be in RJ units
 top_hat_band:
 #  nsteps: 1
 #  bandwidth: 0
