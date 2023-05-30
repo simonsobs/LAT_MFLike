@@ -35,7 +35,6 @@ class MFLike(InstallableLikelihood):
     def initialize(self):
         # Set default values to data member not initialized via yaml file
         self.l_bpws = None
-        self.freqs = None
         self.spec_meta = []
 
         # Set path to data
@@ -291,7 +290,7 @@ class MFLike(InstallableLikelihood):
                 if (pol in ["TE", "ET"]) and symm:
                     pol2 = pol[::-1]
                     pols.remove(pol2)
-                    tname_1, tname_2, dtype = get_sacc_names(pol2, exp_1, exp_2, freq_1, freq_2)
+                    tname_1, tname_2, dtype = get_sacc_names(pol2, exp_1, exp_2)
                     ind2 = s.indices(dtype, (tname_1, tname_2))
                     cls2 = s.get_ell_cl(dtype, tname_1, tname_2)[1]
                     cls = 0.5 * (cls + cls2)
