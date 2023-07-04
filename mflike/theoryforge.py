@@ -5,9 +5,11 @@ import numpy as np
 from cobaya.log import LoggedError
 
 
-# Converts from cmb units to brightness.
-# There is an additional nu**2 factor to convert the bandpasses
-# from RJ to brightness units.
+# Converts from cmb temperature to differential source intensity
+# (see eq. 8 of https://arxiv.org/abs/1303.5070).
+# The bandpass transmission needs to be divided by
+# nu^2 if measured with respect to a RJ source.
+# This factor is already included here.
 # Numerical factors not included,
 # it needs proper normalization when used.
 def _cmb2bb(nu):
@@ -81,7 +83,9 @@ class TheoryForge:
 
     # Takes care of the bandpass construction. It returns a list of nu-transmittance
     # for each frequency or an array with the effective freqs.
-    # bandpasses saved in the sacc file have to be in RJ units
+    # bandpasses saved in the sacc file have to be divided by nu^2
+    # if measured with respect to a RJ source.
+    # This factor is already included in the _cmb2bb function
     def _bandpass_construction(self, **params):
         data_are_monofreq = False
         self.bandint_freqs = []
