@@ -4,7 +4,7 @@ debug: True
 
 likelihood:
   mflike.MFLike:
-    input_file: data_sacc_00044.fits
+    input_file: LAT_simu_sacc_00044.fits
     cov_Bbl_file: data_sacc_w_covar_and_Bbl.fits
 
 params:
@@ -70,7 +70,16 @@ theory:
   camb:
     stop_at_error: False
     extra_args:
-      lens_potential_accuracy: 1
+      kmax: 10
+      k_per_logint: 130
+      nonlinear: True
+      lens_potential_accuracy: 8
+      lens_margin: 2050
+      AccuracyBoost: 2.0
+      lSampleBoost: 2.0
+      lAccuracyBoost: 2.0
+      DoLateRadTruncation: False
+
 
 sampler:
   mcmc:

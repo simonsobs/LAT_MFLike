@@ -1,6 +1,6 @@
 # A simple cobaya likelihood for SO/LAT
 
-data_folder: MFLike/v0.7.1
+data_folder: MFLike/v0.8
 # Path to the input SACC file, containing, minimally,
 # information about the different tracers (i.e. frequency
 # bands) and the set of power spectra.
