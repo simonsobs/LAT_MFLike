@@ -50,10 +50,10 @@ nuisance_params = {
 }
 
 chi2s = {
-    "tt": 905.8812272729269,
-    "te-et": 1374.842827270626,
-    "ee": 851.9276278564446,
-    "tt-te-et-ee": 3124.1580328431046,
+    "tt": 920.2630056646808,
+    "te-et": 1375.0253752060808,
+    "ee": 850.9616194876838,
+    "tt-te-et-ee": 3137.874002938912,
 }
 pre = "LAT_simu_sacc_"
 
@@ -68,10 +68,8 @@ class MFLikeTest(unittest.TestCase):
         import camb
 
         camb_cosmo = cosmo_params.copy()
-        camb_cosmo.update({"lmax": 9000, "lens_potential_accuracy": 8, 
-            "lens_margin": 2050, "AccuracyBoost": 2.0, "lSampleBoost": 2.0, 
-            "lAccuracyBoost": 2.0, "kmax": 10, "k_per_logint": 130, 
-            "nonlinear": True, "DoLateRadTruncation": False})
+        #using camb low accuracy parameters for the test
+        camb_cosmo.update({"lmax": 9001, "lens_potential_accuracy": 1})
         pars = camb.set_params(**camb_cosmo)
         results = camb.get_results(pars)
         powers = results.get_cmb_power_spectra(pars, CMB_unit="muK")
@@ -105,12 +103,9 @@ class MFLikeTest(unittest.TestCase):
                 "mflike.MFLike": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
-                }
+                    },
             },
-            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 8, 
-            "lens_margin": 2050, "AccuracyBoost": 2.0, "lSampleBoost": 2.0, 
-            "lAccuracyBoost": 2.0, "kmax": 10, "k_per_logint": 130, 
-            "nonlinear": True, "DoLateRadTruncation": False}}},
+            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
             "params": cosmo_params,
             "packages_path": packages_path,
         }
@@ -146,10 +141,7 @@ class MFLikeTest(unittest.TestCase):
                         },
                     }
                 },
-                "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 8, 
-            "lens_margin": 2050, "AccuracyBoost": 2.0, "lSampleBoost": 2.0, 
-            "lAccuracyBoost": 2.0, "kmax": 10, "k_per_logint": 130, 
-            "nonlinear": True, "DoLateRadTruncation": False}}},
+                "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
                 "params": {**cosmo_params, **params},
                 "packages_path": packages_path,
             }
@@ -167,8 +159,8 @@ class MFLikeTest(unittest.TestCase):
 
         # chi2 reference results for the different models and different bandshifts
         chi2s = {
-            "model1": [4452.73192658, 4784.73094702, 92920.08087479],
-            "model2": [3612.08291407, 5928.8849437, 103667.19176202],
+            "model1": [4614.10014353, 4929.98648522, 92894.01666485],
+            "model2": [3734.34320513, 6034.08286905, 103597.03300165],
         }
 
         for model, chi2 in chi2s.items():
