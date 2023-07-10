@@ -1,6 +1,6 @@
 # A simple cobaya likelihood for SO/LAT
 
-data_folder: MFLike/v0.7.1
+data_folder: MFLike/v0.8
 # Path to the input SACC file, containing, minimally,
 # information about the different tracers (i.e. frequency
 # bands) and the set of power spectra.
@@ -23,10 +23,10 @@ defaults:
   polarizations: [TT, TE, ET, EE]
   # Scale cuts (in ell) for each spectrum
   scales:
-    TT: [50, 5000]
-    TE: [50, 5000]
-    ET: [50, 5000]
-    EE: [50, 5000]
+    TT: [30, 9000]
+    TE: [30, 9000]
+    ET: [30, 9000]
+    EE: [30, 9000]
   # If True, TE' = (TE + ET) / 2 will be used
   # instead of TE and ET separately.
   symmetrize: false
@@ -71,7 +71,8 @@ data:
 # (if bandpass in sacc is a single freq, no band integration)
 # the default is to read bandpasses from file, to build top-hat uncomment the
 # parameters of the block!
-# Bandpass has to be in RJ units
+# Bandpass has to be divided by nu^2 if measured with respect to a RJ source
+# the nu^2 factor is set back again in the _bandpass_construction function
 top_hat_band:
 #  nsteps: 1
 #  bandwidth: 0
