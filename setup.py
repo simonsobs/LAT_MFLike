@@ -17,7 +17,7 @@ setup(
     license="BSD license",
     zip_safe=True,
     packages=find_packages(),
-    python_requires=">=3.5",
+    python_requires=">=3.8",
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Developers",
@@ -31,8 +31,8 @@ setup(
     install_requires=[
         "fgspectra>=1.1.0",
         "syslibrary>=0.1.0",
-        "cobaya>=3.1.0",
-        "sacc>=0.4.2",
+        "cobaya>=3.3.0",
+        "sacc>=0.9.0",
     ],
     package_data={"mflike": ["MFLike.yaml"]},
 )
