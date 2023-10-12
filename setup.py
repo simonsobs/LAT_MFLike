@@ -31,7 +31,7 @@ setup(
     install_requires=[
         "fgspectra>=1.1.0",
         "syslibrary>=0.1.0",
-        "cobaya>=3.3.0",
+        "cobaya>=3.4.1",
         "sacc>=0.9.0",
     ],
     package_data={"mflike": ["MFLike.yaml"]},
