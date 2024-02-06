@@ -83,7 +83,7 @@ class TheoryForge:
 
             # Fixing the total calibration and calibration per temperature to 1
             # for ACT DR6 analysis (so that we don't have to fix them in the yaml)
-            self.expected_params_nuis["calG_all"] = 1
+            self.expected_params_nuis.update({"calG_all": 1})
             self.expected_params_nuis.update({f"calT_{exp}": 1 for exp in self.experiments})  
 
 
