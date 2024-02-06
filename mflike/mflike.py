@@ -91,7 +91,7 @@ class MFLike(InstallableLikelihood):
 
         #self.expected_params_nuis = ["calG_all"]
         for f in self.experiments:
-            self.expected_params_nuis += [
+            self.expected_params_nuis = [
                 f"bandint_shift_{f}",
                 f"cal_{f}",
         #       f"calT_{f}",

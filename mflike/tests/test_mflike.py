@@ -31,19 +31,26 @@ nuisance_params = {
     "a_psee": 0,
     "a_pste": 0,
     "xi": 0.10,
+    "beta_s": -2.5    
+    "alpha_s": 1      
+    "T_effd": 19.6    
+    "beta_d": 1.5     
+    "alpha_dT": -0.6  
+    "alpha_dE": -0.4  
+    "alpha_p": 1 
     "bandint_shift_LAT_93": 0,
     "bandint_shift_LAT_145": 0,
     "bandint_shift_LAT_225": 0,
-    "calT_LAT_93": 1,
+   # "calT_LAT_93": 1,
     "calE_LAT_93": 1,
-    "calT_LAT_145": 1,
+   # "calT_LAT_145": 1,
     "calE_LAT_145": 1,
-    "calT_LAT_225": 1,
+   # "calT_LAT_225": 1,
     "calE_LAT_225": 1,
     "cal_LAT_93": 1,
     "cal_LAT_145": 1,
     "cal_LAT_225": 1,
-    "calG_all": 1,
+   # "calG_all": 1,
     "alpha_LAT_93": 0,
     "alpha_LAT_145": 0,
     "alpha_LAT_225": 0,
