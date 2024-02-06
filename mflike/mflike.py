@@ -88,17 +88,21 @@ class MFLike(InstallableLikelihood):
             "alpha_dE",
             "alpha_p"
         ]
+        
+        # removing params not needed for ACT DR6 analysis
 
         #self.expected_params_nuis = ["calG_all"]
+        self.expected_params_nuis = []
         for f in self.experiments:
-            self.expected_params_nuis = [
+            self.expected_params_nuis += [
                 f"bandint_shift_{f}",
+            #   f"calT_{f}",
                 f"cal_{f}",
-        #       f"calT_{f}",
                 f"calE_{f}",
-        #        f"alpha_{f}",
-            ]
+            #   f"alpha_{f}",
 
+            ]
+        
         self.ThFo = TheoryForge(self)
         self.log.info("Initialized!")
 
