@@ -80,14 +80,21 @@ class MFLike(InstallableLikelihood):
             "a_pste",
             "xi",
             "T_d",
+            "beta_s",
+            "alpha_s",
+            "T_effd",
+            "beta_d",
+            "alpha_dT",
+            "alpha_dE",
+            "alpha_p"
         ]
 
-        self.expected_params_nuis = ["calG_all"]
+        #self.expected_params_nuis = ["calG_all"]
         for f in self.experiments:
             self.expected_params_nuis += [
                 f"bandint_shift_{f}",
                 f"cal_{f}",
-                f"calT_{f}",
+        #       f"calT_{f}",
                 f"calE_{f}",
                 f"alpha_{f}",
             ]
