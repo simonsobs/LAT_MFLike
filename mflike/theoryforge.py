@@ -81,6 +81,12 @@ class TheoryForge:
                         self.log, "One band has width = 0, set a positive width and run again"
                     )
 
+            # Fixing the total calibration and calibration per temperature to 1
+            # for ACT DR6 analysis (so that we don't have to fix them in the yaml)
+            self.expected_params_nuis["calG_all"] = 1
+            self.expected_params_nuis.update({f"calT_{exp}": 1 for exp in self.experiments})  
+
+
     # Takes care of the bandpass construction. It returns a list of nu-transmittance
     # for each frequency or an array with the effective freqs.
     # bandpasses saved in the sacc file have to be divided by nu^2
@@ -245,11 +251,11 @@ class TheoryForge:
                 "temp": fg_params["T_d"],
                 "beta": fg_params["beta_p"],
             },
-            {"ell": ell_clp, "ell_0": ell_0clp, "alpha": 1},
+            {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_p"]},
         )
         model["tt", "radio"] = fg_params["a_s"] * self.radio(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": -0.5 - 2.0},
-            {"ell": ell_clp, "ell_0": ell_0clp, "alpha": 1},
+            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": fg_params["beta_s"]},
+            {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
         )
         model["tt", "tSZ"] = fg_params["a_tSZ"] * self.tsz(
             {"nu": self.bandint_freqs, "nu_0": nu_0},
@@ -265,8 +271,9 @@ class TheoryForge:
             {"ell": ell, "ell_0": ell_0},
         )
         model["tt", "dust"] = fg_params["a_gtt"] * self.dust(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, "temp": 19.6, "beta": 1.5},
-            {"ell": ell, "ell_0": 500.0, "alpha": -0.6},
+            {"nu": self.bandint_freqs, "nu_0": nu_0, 
+             "temp": fg_params["T_effd"], "beta": fg_params["beta_d"]},
+            {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dT"]},
         )
         model["tt", "tSZ_and_CIB"] = self.tSZ_and_CIB(
             {
@@ -294,21 +301,23 @@ class TheoryForge:
         )
 
         model["ee", "radio"] = fg_params["a_psee"] * self.radio(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": -0.5 - 2.0},
-            {"ell": ell_clp, "ell_0": ell_0clp, "alpha": 1},
+            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": fg_params["beta_s"]},
+            {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
         )
         model["ee", "dust"] = fg_params["a_gee"] * self.dust(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, "temp": 19.6, "beta": 1.5},
-            {"ell": ell, "ell_0": 500.0, "alpha": -0.4},
+            {"nu": self.bandint_freqs, "nu_0": nu_0, 
+             "temp": fg_params["T_effd"], "beta": fg_params["beta_d"]},
+            {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
         )
 
         model["te", "radio"] = fg_params["a_pste"] * self.radio(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": -0.5 - 2.0},
-            {"ell": ell_clp, "ell_0": ell_0clp, "alpha": 1},
+            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": fg_params["beta_s"]},
+            {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
         )
         model["te", "dust"] = fg_params["a_gte"] * self.dust(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, "temp": 19.6, "beta": 1.5},
-            {"ell": ell, "ell_0": 500.0, "alpha": -0.4},
+            {"nu": self.bandint_freqs, "nu_0": nu_0, 
+             "temp": fg_params["T_effd"], "beta": fg_params["beta_d"]},
+            {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
         )
 
         fg_dict = {}

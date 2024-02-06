@@ -191,6 +191,14 @@ params:
       max: 10.60
     proposal: 0.6
     latex: T_d
+  beta_s: -2.5    #beta radio
+  alpha_s: 1      #alpha radio
+  T_effd: 19.6    #effective dust temperature
+  beta_d: 1.5     #beta dust
+  alpha_dT: -0.6  #alpha dust T
+  alpha_dE: -0.4  #alpha dust E
+  alpha_p: 1      #alpha CIB poisson
+
   # Systematics
   bandint_shift_LAT_93:
     value: 0
@@ -201,21 +209,21 @@ params:
   bandint_shift_LAT_225:
     value: 0
     latex: \Delta_{\rm band}^{225}
-  calT_LAT_93:
-    value: 1
-    latex: \mathrm{Cal}_{\rm T}^{93}
+      # calT_LAT_93:
+      #   value: 1
+      #   latex: \mathrm{Cal}_{\rm T}^{93}
   calE_LAT_93:
     value: 1
     latex: \mathrm{Cal}_{\rm E}^{93}
-  calT_LAT_145:
-    value: 1
-    latex: \mathrm{Cal}_{\rm T}^{145}
+      # calT_LAT_145:
+      #value: 1
+      #latex: \mathrm{Cal}_{\rm T}^{145}
   calE_LAT_145:
     value: 1
     latex: \mathrm{Cal}_{\rm E}^{145}
-  calT_LAT_225:
-    value: 1
-    latex: \mathrm{Cal}_{\rm T}^{225}
+      #calT_LAT_225:
+      #value: 1
+      #latex: \mathrm{Cal}_{\rm T}^{225}
   calE_LAT_225:
     value: 1
     latex: \mathrm{Cal}_{\rm E}^{225}
@@ -228,9 +236,9 @@ params:
   cal_LAT_225:
     value: 1
     latex: \mathrm{Cal}^{225}
-  calG_all:
-    value: 1
-    latex: \mathrm{Cal}_{\rm G}^{\rm All}
+      #calG_all:
+      #value: 1
+      #latex: \mathrm{Cal}_{\rm G}^{\rm All}
   alpha_LAT_93:
     value: 0 #deg
     latex: \alpha^{93}
