@@ -52,7 +52,7 @@ class TheoryForge:
             self.expected_params_nuis = mflike.expected_params_nuis
             self.spec_meta = mflike.spec_meta
             self.defaults_cuts = mflike.defaults
-
+ 
             # Initialize foreground model
             self._init_foreground_model()
 
