@@ -16,7 +16,7 @@ cosmo_params = {
     "tau": 0.0544,
 }
 
-nuisance_params = {
+nuis_params = {
     "a_tSZ": 3.30,
     "a_kSZ": 1.60,
     "a_p": 6.90,
@@ -51,9 +51,9 @@ nuisance_params = {
     "cal_LAT_145": 1,
     "cal_LAT_225": 1,
    # "calG_all": 1,
-    "alpha_LAT_93": 0,
-    "alpha_LAT_145": 0,
-    "alpha_LAT_225": 0,
+   # "alpha_LAT_93": 0,
+   # "alpha_LAT_145": 0,
+   # "alpha_LAT_225": 0,
 }
 
 chi2s = {
@@ -101,7 +101,7 @@ class MFLikeTest(unittest.TestCase):
                     },
                 }
             )
-            loglike = my_mflike.loglike(cl_dict, **nuisance_params)
+            loglike = my_mflike.loglike(cl_dict,  **nuis_params)
             self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 2)
 
     def test_cobaya(self):
@@ -120,14 +120,14 @@ class MFLikeTest(unittest.TestCase):
 
         model = get_model(info)
         my_mflike = model.likelihood["mflike.MFLike"]
-        chi2 = -2 * (model.loglikes(nuisance_params)[0] - my_mflike.logp_const)
+        chi2 = -2 * (model.loglikes(nuis_params)[0] - my_mflike.logp_const)
         self.assertAlmostEqual(chi2[0], chi2s["tt-te-et-ee"], 2)
 
     def test_top_hat_bandpasses(self):
         from copy import deepcopy
 
         # Let's vary values of bandint_shift parameters
-        params = deepcopy(nuisance_params)
+        params = deepcopy(nuis_params)
         params.update(
             {
                 k: {"prior": dict(min=0.9 * v, max=1.1 * v)}
@@ -149,7 +149,7 @@ class MFLikeTest(unittest.TestCase):
                     }
                 },
                 "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
-                "params": {**cosmo_params, **params},
+                "params": {**cosmo_params,  **params},
                 "packages_path": packages_path,
             }
 

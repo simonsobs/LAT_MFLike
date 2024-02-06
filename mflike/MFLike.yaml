@@ -239,12 +239,12 @@ params:
       #calG_all:
       #value: 1
       #latex: \mathrm{Cal}_{\rm G}^{\rm All}
-  alpha_LAT_93:
-    value: 0 #deg
-    latex: \alpha^{93}
-  alpha_LAT_145:
-    value: 0 #deg
-    latex: \alpha^{145}
-  alpha_LAT_225:
-    value: 0 #deg
-    latex: \alpha^{225}
+      #alpha_LAT_93:
+      #  value: 0 #deg
+      #  latex: \alpha^{93}
+      #alpha_LAT_145:
+      #  value: 0 #deg
+      #  latex: \alpha^{145}
+      #alpha_LAT_225:
+      #  value: 0 #deg
+      #  latex: \alpha^{225}
