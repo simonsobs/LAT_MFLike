@@ -380,7 +380,7 @@ class TheoryForge:
 
         #allowing for not having polarization angles in the yaml for ACT DR6
 
-        rot_pars = [nuis_params.get(f"alpha_{exp}", 1) for exp in self.experiments]
+        rot_pars = [nuis_params.get(f"alpha_{exp}", 0) for exp in self.experiments]
 
         rot = syl.Rotation_alm(ell=self.l_bpws, spectra=dls_dict)
 
