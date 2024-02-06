@@ -96,7 +96,7 @@ class MFLike(InstallableLikelihood):
                 f"cal_{f}",
         #       f"calT_{f}",
                 f"calE_{f}",
-                f"alpha_{f}",
+        #        f"alpha_{f}",
             ]
 
         self.ThFo = TheoryForge(self)

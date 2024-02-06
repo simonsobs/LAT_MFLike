@@ -4,7 +4,6 @@ from itertools import product
 import numpy as np
 from cobaya.log import LoggedError
 
-
 # Converts from cmb temperature to differential source intensity
 # (see eq. 8 of https://arxiv.org/abs/1303.5070).
 # The bandpass transmission needs to be divided by
@@ -81,11 +80,6 @@ class TheoryForge:
                         self.log, "One band has width = 0, set a positive width and run again"
                     )
 
-            # Fixing the total calibration and calibration per temperature to 1
-            # for ACT DR6 analysis (so that we don't have to fix them in the yaml)
-            self.expected_params_nuis += ["calG_all"]
-            self.expected_params_nuis += [f"calT_{exp}" for exp in self.experiments]  
-
 
     # Takes care of the bandpass construction. It returns a list of nu-transmittance
     # for each frequency or an array with the effective freqs.
@@ -145,7 +139,7 @@ class TheoryForge:
     def get_modified_theory(self, Dls, **params):
         fg_params = {k: params[k] for k in self.expected_params_fg}
         nuis_params = {k: params[k] for k in self.expected_params_nuis}
-
+        
         # compute bandpasses at each step only if bandint_shift params are not null
         # and bandint_freqs has been computed at least once
         if np.all(
@@ -357,19 +351,17 @@ class TheoryForge:
     def _get_calibrated_spectra(self, dls_dict, **nuis_params):
         from syslibrary import syslib_mflike as syl
 
-        #fixing these params for act dr6 analysis (so that they don't appear in the yaml)
-        nuis_params["calG_all"] = 1
-        nuis_params.update({f"calT_{exp}": 1 for exp in self.experiment})
+        #allowing for not having calG_all and calT_{exp} in the yaml for ACT DR6
 
         cal_pars = {}
         if "tt" in self.requested_cls or "te" in self.requested_cls:
-            cal = nuis_params["calG_all"] * np.array(
-                [nuis_params[f"cal_{exp}"] * nuis_params[f"calT_{exp}"] for exp in self.experiments]
+            cal = nuis_params.get("calG_all",1) * np.array(
+                [nuis_params[f"cal_{exp}"] * nuis_params.get(f"calT_{exp}",1) for exp in self.experiments]
             )
             cal_pars["t"] = 1 / cal
 
         if "ee" in self.requested_cls or "te" in self.requested_cls:
-            cal = nuis_params["calG_all"] * np.array(
+            cal = nuis_params.get("calG_all",1) * np.array(
                 [nuis_params[f"cal_{exp}"] * nuis_params[f"calE_{exp}"] for exp in self.experiments]
             )
             cal_pars["e"] = 1 / cal
@@ -386,7 +378,9 @@ class TheoryForge:
     def _get_rotated_spectra(self, dls_dict, **nuis_params):
         from syslibrary import syslib_mflike as syl
 
-        rot_pars = [nuis_params[f"alpha_{exp}"] for exp in self.experiments]
+        #allowing for not having polarization angles in the yaml for ACT DR6
+
+        rot_pars = [nuis_params.get(f"alpha_{exp}", 1) for exp in self.experiments]
 
         rot = syl.Rotation_alm(ell=self.l_bpws, spectra=dls_dict)
 
