@@ -83,8 +83,8 @@ class TheoryForge:
 
             # Fixing the total calibration and calibration per temperature to 1
             # for ACT DR6 analysis (so that we don't have to fix them in the yaml)
-            self.expected_params_nuis.update({"calG_all": 1})
-            self.expected_params_nuis.update({f"calT_{exp}": 1 for exp in self.experiments})  
+            self.expected_params_nuis += ["calG_all"]
+            self.expected_params_nuis += [f"calT_{exp}" for exp in self.experiments]  
 
 
     # Takes care of the bandpass construction. It returns a list of nu-transmittance
@@ -356,6 +356,10 @@ class TheoryForge:
 
     def _get_calibrated_spectra(self, dls_dict, **nuis_params):
         from syslibrary import syslib_mflike as syl
+
+        #fixing these params for act dr6 analysis (so that they don't appear in the yaml)
+        nuis_params["calG_all"] = 1
+        nuis_params.update({f"calT_{exp}": 1 for exp in self.experiment})
 
         cal_pars = {}
         if "tt" in self.requested_cls or "te" in self.requested_cls:
