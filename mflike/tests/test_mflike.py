@@ -50,7 +50,7 @@ nuis_params = {
     "cal_LAT_93": 1,
     "cal_LAT_145": 1,
     "cal_LAT_225": 1,
-   # "calG_all": 1,
+    "calG_all": 1,
    # "alpha_LAT_93": 0,
    # "alpha_LAT_145": 0,
    # "alpha_LAT_225": 0,

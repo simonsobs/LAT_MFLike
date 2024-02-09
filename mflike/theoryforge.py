@@ -351,17 +351,17 @@ class TheoryForge:
     def _get_calibrated_spectra(self, dls_dict, **nuis_params):
         from syslibrary import syslib_mflike as syl
 
-        #allowing for not having calG_all and calT_{exp} in the yaml for ACT DR6
+        #allowing for not having calT_{exp} in the yaml for ACT DR6
 
         cal_pars = {}
         if "tt" in self.requested_cls or "te" in self.requested_cls:
-            cal = nuis_params.get("calG_all",1) * np.array(
+            cal = nuis_params["calG_all"] * np.array(
                 [nuis_params[f"cal_{exp}"] * nuis_params.get(f"calT_{exp}",1) for exp in self.experiments]
             )
             cal_pars["t"] = 1 / cal
 
         if "ee" in self.requested_cls or "te" in self.requested_cls:
-            cal = nuis_params.get("calG_all",1) * np.array(
+            cal = nuis_params["calG_all"] * np.array(
                 [nuis_params[f"cal_{exp}"] * nuis_params[f"calE_{exp}"] for exp in self.experiments]
             )
             cal_pars["e"] = 1 / cal
