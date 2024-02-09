@@ -91,8 +91,7 @@ class MFLike(InstallableLikelihood):
         
         # removing params not needed for ACT DR6 analysis
 
-        #self.expected_params_nuis = ["calG_all"]
-        self.expected_params_nuis = []
+        self.expected_params_nuis = ["calG_all"]
         for f in self.experiments:
             self.expected_params_nuis += [
                 f"bandint_shift_{f}",

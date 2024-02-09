@@ -251,9 +251,9 @@ params:
   cal_LAT_225:
     value: 1
     latex: \mathrm{Cal}^{225}
-      #calG_all:
-      #value: 1
-      #latex: \mathrm{Cal}_{\rm G}^{\rm All}
+  calG_all:
+    value: 1
+    latex: \mathrm{Cal}_{\rm G}^{\rm All}
       #alpha_LAT_93:
       #  value: 0 #deg
       #  latex: \alpha^{93}
