@@ -41,19 +41,19 @@ nuis_params = {
     "bandint_shift_LAT_93": 0,
     "bandint_shift_LAT_145": 0,
     "bandint_shift_LAT_225": 0,
-   # "calT_LAT_93": 1,
+    "calT_LAT_93": 1,
     "calE_LAT_93": 1,
-   # "calT_LAT_145": 1,
+    "calT_LAT_145": 1,
     "calE_LAT_145": 1,
-   # "calT_LAT_225": 1,
+    "calT_LAT_225": 1,
     "calE_LAT_225": 1,
     "cal_LAT_93": 1,
     "cal_LAT_145": 1,
     "cal_LAT_225": 1,
     "calG_all": 1,
-   # "alpha_LAT_93": 0,
-   # "alpha_LAT_145": 0,
-   # "alpha_LAT_225": 0,
+    "alpha_LAT_93": 0,
+    "alpha_LAT_145": 0,
+    "alpha_LAT_225": 0,
 }
 
 chi2s = {
@@ -101,6 +101,7 @@ class MFLikeTest(unittest.TestCase):
                     },
                 }
             )
+
             loglike = my_mflike.loglike(cl_dict,  **nuis_params)
             self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 2)
 
