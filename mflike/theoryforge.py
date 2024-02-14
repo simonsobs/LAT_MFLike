@@ -52,7 +52,7 @@ class TheoryForge:
             self.expected_params_nuis = mflike.expected_params_nuis
             self.spec_meta = mflike.spec_meta
             self.defaults_cuts = mflike.defaults
- 
+
             # Initialize foreground model
             self._init_foreground_model()
 
@@ -347,7 +347,7 @@ class TheoryForge:
     def _get_calibrated_spectra(self, dls_dict, **nuis_params):
         from syslibrary import syslib_mflike as syl
 
-        #allowing for not having calT_{exp} in the yaml for ACT DR6
+        #allowing for not having calT_{exp} in the yaml
 
         cal_pars = {}
         if "tt" in self.requested_cls or "te" in self.requested_cls:
@@ -374,7 +374,7 @@ class TheoryForge:
     def _get_rotated_spectra(self, dls_dict, **nuis_params):
         from syslibrary import syslib_mflike as syl
 
-        #allowing for not having polarization angles in the yaml for ACT DR6
+        #allowing for not having polarization angles in the yaml
 
         rot_pars = [nuis_params.get(f"alpha_{exp}", 0) for exp in self.experiments]
 
