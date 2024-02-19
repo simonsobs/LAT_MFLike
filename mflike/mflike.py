@@ -357,7 +357,9 @@ class MFLike(InstallableLikelihood):
             p = m["pol"]
             i = m["ids"]
             w = m["bpw"].weight.T
-            clt = w @ DlsObs[p, m["t1"], m["t2"], m["hasYX_xsp"]]
+            dls_obs = DlsObs[p, m["t1"], m["t2"]]
+            if m["hasYX_xsp"]: dls_obs = DlsObs[p, m["t2"], m["t1"]]
+            clt = w @ DlsObs[p, m["t1"], m["t2"]]
             ps_vec[i] = clt
 
         return ps_vec

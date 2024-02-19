@@ -177,7 +177,7 @@ class TheoryForge:
                 dls_dict[p, m["t1"], m["t2"], m["hasYX_xsp"]] = cmbfg_dict[p, m["t1"], m["t2"]]
             else:  # ['te','tb','eb']
                 if m["hasYX_xsp"]:  # not symmetrizing
-                    dls_dict[p, m["t1"], m["t2"], m["hasYX_xsp"]] = cmbfg_dict[p, m["t2"], m["t1"]]
+                    dls_dict[p, m["t2"], m["t1"], m["hasYX_xsp"]] = cmbfg_dict[p, m["t2"], m["t1"]]
                 else:
                     dls_dict[p, m["t1"], m["t2"], m["hasYX_xsp"]] = cmbfg_dict[p, m["t1"], m["t2"]]
 
