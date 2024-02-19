@@ -174,16 +174,16 @@ class TheoryForge:
         for m in self.spec_meta:
             p = m["pol"]
             if p in ["tt", "ee", "bb"]:
-                dls_dict[p, m["t1"], m["t2"]] = cmbfg_dict[p, m["t1"], m["t2"]]
+                dls_dict[p, m["t1"], m["t2"], m["hasYX_xsp"]] = cmbfg_dict[p, m["t1"], m["t2"]]
             else:  # ['te','tb','eb']
                 if m["hasYX_xsp"]:  # not symmetrizing
-                    dls_dict[p, m["t1"], m["t2"]] = cmbfg_dict[p, m["t2"], m["t1"]]
+                    dls_dict[p, m["t1"], m["t2"], m["hasYX_xsp"]] = cmbfg_dict[p, m["t2"], m["t1"]]
                 else:
-                    dls_dict[p, m["t1"], m["t2"]] = cmbfg_dict[p, m["t1"], m["t2"]]
+                    dls_dict[p, m["t1"], m["t2"], m["hasYX_xsp"]] = cmbfg_dict[p, m["t1"], m["t2"]]
 
                 if self.defaults_cuts["symmetrize"]:  # we average TE and ET (as we do for data)
-                    dls_dict[p, m["t1"], m["t2"]] += cmbfg_dict[p, m["t2"], m["t1"]]
-                    dls_dict[p, m["t1"], m["t2"]] *= 0.5
+                    dls_dict[p, m["t1"], m["t2"], m["hasYX_xsp"]] += cmbfg_dict[p, m["t2"], m["t1"]]
+                    dls_dict[p, m["t1"], m["t2"], m["hasYX_xsp"]] *= 0.5
 
         return dls_dict
 
