@@ -317,7 +317,7 @@ class MFLike(InstallableLikelihood):
                     {
                         "ids": (index_sofar + np.arange(cls.size, dtype=int)),
                         "pol": ppol_dict[pol],
-                        "hasYX_xsp": pol        # this flag is true for pol = TE, BE, BT
+                        "hasYX_xsp": pol        # this flag is true for pol = ET, BE, BT
                         in ["ET", "BE", "BT"],  
                         "t1": exp_1,
                         "t2": exp_2,
