@@ -359,13 +359,12 @@ class MFLike(InstallableLikelihood):
             p = m["pol"]
             i = m["ids"]
             w = m["bpw"].weight.T
-            dls_obs = DlsObs[p, m["t1"], m["t2"]]
             # If symmetrize = False, the (ET, exp1, exp2) spectrum 
             # will have the flag m["hasYX_xsp"] = True. 
             # In this case, the power spectrum
             # is computed as DlsObs["te", m["t2"], m["t1"]], to associate
             # T --> exp2, E --> exp1
-            if m["hasYX_xsp"]: dls_obs = DlsObs[p, m["t2"], m["t1"]]
+            dls_obs = DlsObs[p, m["t2"], m["t1"]] if m["hasYX_xsp"] else DlsObs[p, m["t1"], m["t2"]]
             clt = w @ dls_obs
             ps_vec[i] = clt
 
