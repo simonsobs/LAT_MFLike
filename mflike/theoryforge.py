@@ -176,12 +176,16 @@ class TheoryForge:
             if p in ["tt", "ee", "bb"]:
                 dls_dict[p, m["t1"], m["t2"]] = cmbfg_dict[p, m["t1"], m["t2"]]
             else:  # ['te','tb','eb']
-                if m["hasYX_xsp"]:  # not symmetrizing
-                    dls_dict[p, m["t1"], m["t2"]] = cmbfg_dict[p, m["t2"], m["t1"]]
-                else:
+                if m["hasYX_xsp"]:  # case with symmetrize = False and ET/BT/BE spectra
+                    dls_dict[p, m["t2"], m["t1"]] = cmbfg_dict[p, m["t2"], m["t1"]]
+                else: # case of TE/TB/EB spectra, or symmetrize = True
                     dls_dict[p, m["t1"], m["t2"]] = cmbfg_dict[p, m["t1"], m["t2"]]
 
-                if self.defaults_cuts["symmetrize"]:  # we average TE and ET (as we do for data)
+                # if symmetrize = True, dls_dict has already been set 
+                # equal to cmbfg_dict[p, m["t1"], m["t2"]
+                # now we add cmbfg_dict[p, m["t2"], m["t1"] and we average them
+                # as we do for our data
+                if self.defaults_cuts["symmetrize"]:  
                     dls_dict[p, m["t1"], m["t2"]] += cmbfg_dict[p, m["t2"], m["t1"]]
                     dls_dict[p, m["t1"], m["t2"]] *= 0.5
 

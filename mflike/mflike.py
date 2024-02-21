@@ -286,7 +286,9 @@ class MFLike(InstallableLikelihood):
                     # will all be sampled at the same ells.
                     self.l_bpws = ws.values
 
-                # Symmetrize if needed.
+                # Symmetrize if needed. If symmetrize = True, the "ET" polarization
+                # is eliminated by the polarization list and the TE spectrum becomes
+                # (TE + ET)/2. The associated spec_meta dict will have "hasYX_xsp": False
                 if (pol in ["TE", "ET"]) and symm:
                     pol2 = pol[::-1]
                     pols.remove(pol2)
@@ -315,8 +317,8 @@ class MFLike(InstallableLikelihood):
                     {
                         "ids": (index_sofar + np.arange(cls.size, dtype=int)),
                         "pol": ppol_dict[pol],
-                        "hasYX_xsp": pol
-                        in ["ET", "BE", "BT"],  # This is necessary for handling symmetrization
+                        "hasYX_xsp": pol        # this flag is true for pol = ET, BE, BT
+                        in ["ET", "BE", "BT"],  
                         "t1": exp_1,
                         "t2": exp_2,
                         "leff": ls,  #
@@ -357,7 +359,13 @@ class MFLike(InstallableLikelihood):
             p = m["pol"]
             i = m["ids"]
             w = m["bpw"].weight.T
-            clt = w @ DlsObs[p, m["t1"], m["t2"]]
+            # If symmetrize = False, the (ET, exp1, exp2) spectrum 
+            # will have the flag m["hasYX_xsp"] = True. 
+            # In this case, the power spectrum
+            # is computed as DlsObs["te", m["t2"], m["t1"]], to associate
+            # T --> exp2, E --> exp1
+            dls_obs = DlsObs[p, m["t2"], m["t1"]] if m["hasYX_xsp"] else DlsObs[p, m["t1"], m["t2"]]
+            clt = w @ dls_obs
             ps_vec[i] = clt
 
         return ps_vec
