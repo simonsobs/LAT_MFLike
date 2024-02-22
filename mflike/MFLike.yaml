@@ -191,6 +191,29 @@ params:
       max: 10.60
     proposal: 0.6
     latex: T_d
+  
+  beta_s:               #beta radio
+    value: -2.5
+    latex: \beta_s    
+  alpha_s:              #alpha radio
+    value: 1.0
+    latex: \alpha_s
+  T_effd:               #effective galactic dust temperature
+    value: 19.6
+    latex: T_{\mathrm{dust},\mathrm{eff}}
+  beta_d:               #beta galactic dust
+    value: 1.5
+    latex: \beta_\mathrm{dust}
+  alpha_dT:             #galactic dust ell slope for T
+    value: -0.6
+    latex: \alpha_{\mathrm{dust},T}
+  alpha_dE:             #galactic dust ell slope for E
+    value: -0.4
+    latex: \alpha_{\mathrm{dust},E}
+  alpha_p:              #CIB poisson ell slope
+    value: 1.0
+    latex: \alpha_p
+
   # Systematics
   bandint_shift_LAT_93:
     value: 0

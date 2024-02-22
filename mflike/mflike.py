@@ -80,23 +80,49 @@ class MFLike(InstallableLikelihood):
             "a_pste",
             "xi",
             "T_d",
+            "beta_s",
+            "alpha_s",
+            "T_effd",
+            "beta_d",
+            "alpha_dT",
+            "alpha_dE",
+            "alpha_p"
         ]
+        
 
         self.expected_params_nuis = ["calG_all"]
         for f in self.experiments:
             self.expected_params_nuis += [
                 f"bandint_shift_{f}",
-                f"cal_{f}",
                 f"calT_{f}",
+                f"cal_{f}",
                 f"calE_{f}",
                 f"alpha_{f}",
-            ]
 
+            ]
+        
         self.ThFo = TheoryForge(self)
         self.log.info("Initialized!")
 
+    def initialize_non_sampled_params(self):
+        #allowing for systematic params not used in some analysis not to be sampled
+        self.non_sampled_params = {}
+        for exp in self.experiments:
+            self.non_sampled_params.update({f"calT_{exp}": 1.0, f"alpha_{exp}": 0.0})
+
     def initialize_with_params(self):
         # Check that the parameters are the right ones
+        self.initialize_non_sampled_params()
+
+        # Remove the parameters if it appears in the input/samples ones
+        for par in self.input_params:
+            self.non_sampled_params.pop(par, None)
+
+        # Finally set the list of nuisance params
+        self.expected_params_nuis = [
+            par for par in self.expected_params_nuis if par not in self.non_sampled_params
+        ]
+
         differences = are_different_params_lists(
             self.input_params,
             self.expected_params_fg + self.expected_params_nuis,
@@ -114,9 +140,18 @@ class MFLike(InstallableLikelihood):
         params_values_nocosmo = {
             k: params_values[k] for k in self.expected_params_fg + self.expected_params_nuis
         }
+
         return self.loglike(cl, **params_values_nocosmo)
 
     def loglike(self, cl, **params_values_nocosmo):
+        # This is needed if someone calls the function without initializing the likelihood
+        # (typically a call with a precomputed Cl and no cobaya initialization steps e.g
+        # test_mflike)
+        if not hasattr(self, "non_sampled_params"):
+            self.initialize_non_sampled_params()
+
+        params_values_nocosmo = self.non_sampled_params | params_values_nocosmo
+
         ps_vec = self._get_power_spectra(cl, **params_values_nocosmo)
         delta = self.data_vec - ps_vec
         logp = -0.5 * (delta @ self.inv_cov @ delta)
