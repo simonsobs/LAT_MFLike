@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mflike"
+dynamic = ["version"]
+authors = [
+  { name = "Simons Observatory Collaboration Power Spectrum Group aka so_ps 1 & 2" },
+]
+description = "SO LAT multi-frequency likelihood for cobaya"
+readme = "README.rst"
+license = { file = "LICENSE" }
+keywords = ["likelihood", "SO LAT", "cosmology"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: BSD License",
+  "Natural Language :: English",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+]
+requires-python = ">=3.9.0"
+dependencies = [
+  "fgspectra>=1.1.0",
+  "syslibrary>=0.2.0",
+  "cobaya>=3.4.1",
+  "sacc>=0.9.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-cov", "camb"]
+
+[project.urls]
+Homepage = "https://github.com/simonsobs/LAT_MFLike"
+# Documentation = "https://.readthedocs.io"
+Source = "https://github.com/simonsobs/LAT_MFLike"
+Tracker = "https://github.com/simonsobs/LAT_MFLike/issues"
+Licensing = "https://github.com/simonsobs/LAT_MFLike/blob/master/LICENCE"
+
+[tool.setuptools_scm]
+version_file = "mflike/_version.py"
+
+[tool.setuptools.package-data]
+"*" = ["*.yaml"]
+
+[tool.setuptools.packages.find]
+exclude = ["binder", "docs", "tests"]
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+
+[tool.coverage.run]
+omit = ["mflike/tests/*", "mflike/_version.py"]
+
+[tool.coverage.report]
+exclude_lines = ["raise LoggedError", "except AttributeError"]

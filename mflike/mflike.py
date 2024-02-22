@@ -2,10 +2,10 @@
 .. module:: mflike
 
 :Synopsis: Definition of simplistic likelihood for Simons Observatory
-:Authors: Thibaut Louis, Xavier Garrido, Max Abitbol,
-          Erminia Calabrese, Antony Lewis, David Alonso.
+:Authors: Simons Observatory Collaboration PS Group
 
 """
+
 import os
 from typing import Optional
 
@@ -86,9 +86,8 @@ class MFLike(InstallableLikelihood):
             "beta_d",
             "alpha_dT",
             "alpha_dE",
-            "alpha_p"
+            "alpha_p",
         ]
-        
 
         self.expected_params_nuis = ["calG_all"]
         for f in self.experiments:
@@ -98,14 +97,13 @@ class MFLike(InstallableLikelihood):
                 f"cal_{f}",
                 f"calE_{f}",
                 f"alpha_{f}",
-
             ]
-        
+
         self.ThFo = TheoryForge(self)
         self.log.info("Initialized!")
 
     def initialize_non_sampled_params(self):
-        #allowing for systematic params not used in some analysis not to be sampled
+        # allowing for systematic params not used in some analysis not to be sampled
         self.non_sampled_params = {}
         for exp in self.experiments:
             self.non_sampled_params.update({f"calT_{exp}": 1.0, f"alpha_{exp}": 0.0})
@@ -352,8 +350,8 @@ class MFLike(InstallableLikelihood):
                     {
                         "ids": (index_sofar + np.arange(cls.size, dtype=int)),
                         "pol": ppol_dict[pol],
-                        "hasYX_xsp": pol        # this flag is true for pol = ET, BE, BT
-                        in ["ET", "BE", "BT"],  
+                        # this flag is true for pol = ET, BE, BT
+                        "hasYX_xsp": pol in ["ET", "BE", "BT"],
                         "t1": exp_1,
                         "t2": exp_2,
                         "leff": ls,  #
@@ -394,8 +392,8 @@ class MFLike(InstallableLikelihood):
             p = m["pol"]
             i = m["ids"]
             w = m["bpw"].weight.T
-            # If symmetrize = False, the (ET, exp1, exp2) spectrum 
-            # will have the flag m["hasYX_xsp"] = True. 
+            # If symmetrize = False, the (ET, exp1, exp2) spectrum
+            # will have the flag m["hasYX_xsp"] = True.
             # In this case, the power spectrum
             # is computed as DlsObs["te", m["t2"], m["t1"]], to associate
             # T --> exp2, E --> exp1
