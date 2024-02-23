@@ -1,2 +1,8 @@
-include versioneer.py
 include mflike/_version.py
+
+exclude .git*
+exclude codecov.yml
+
+prune binder
+prune notebooks
+prune .github

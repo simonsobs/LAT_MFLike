@@ -86,3 +86,9 @@ Simulation releases
 - ``v0.6`` release make use of CMB map based simulations (see https://github.com/simonsobs/map_based_simulations/blob/master/201911_lensed_cmb/README.md). Only temperature foregrounds were considered.
 
 Releases prior to ``v0.6`` version were development simulations and should not be used for simulation analysis.
+
+Contributors
+------------
+
+.. image:: https://contrib.rocks/image?repo=simonsobs/LAT_MFLike
+   :target: https://github.com/simonsobs/LAT_MFLike/graphs/contributors
