@@ -1,5 +1,5 @@
-``TheoryForge``
-===============
+``TheoryForge`` – Application of foregrounds & systematics
+==========================================================
 
 .. automodule:: mflike.theoryforge
 

@@ -1,4 +1,4 @@
-``LAT_MFLike`` (LAT MultiFrequency Likelihood)
+``LAT_MFLike`` – LAT MultiFrequency Likelihood
 ==============================================
 
 .. automodule:: mflike.mflike
