@@ -5,6 +5,11 @@ try:
 except DistributionNotFound:
     __version__ = "unknown version"
 
+import os
+import sys
+
+sys.path.append(os.path.abspath("../.."))
+
 # General stuff
 extensions = [
     "sphinx.ext.autodoc",
