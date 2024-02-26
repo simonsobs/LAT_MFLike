@@ -1,4 +1,4 @@
-"""
+r"""
 .. module:: theoryforge
 
 The ``TheoryForge`` class applies the foreground spectra and systematics
@@ -20,8 +20,7 @@ transmissions, which are used for the actual foreground spectra computation.
 If one wants to use this class as standalone, the ``bands`` dictionary is
 filled when initializing ``TheoryForge``.
 
-This class applies three kinds of systematic effects to the CMB + foreground
-power spectrum:
+This class applies three kinds of systematic effects to the CMB + foreground power spectrum:
     * calibrations (global ``calG_all``, per channel ``cal_exp``, per field
       ``calT_exp``, ``calE_exp``)
     * polarization angles effect (``alpha_exp``)
@@ -34,15 +33,14 @@ power spectrum:
         systematics_template:
           rootname: "test_template"
 
-      If left ``null``, no systematic template is applied.
+If left ``null``, no systematic template is applied.
 
 The values of the systematic parameters are set in ``MFLike.yaml``.
 They have to be named as ``cal/calT/calE/alpha`` + ``_``  + experiment_channel string
 (e.g. ``LAT_93/dr6_pa4_f150``).
 
 
-The bandpass shifts are applied within the ``_bandpass_construction`` function.
-There are two possibilities:
+The bandpass shifts are applied within the ``_bandpass_construction`` function. There are two possibilities:
     * reading the passband :math:`\tau(\nu)` stored in a sacc file
       (which is the default now)
     * building the passbands :math:`\tau(\nu)`, either as Dirac delta or as top-hat
@@ -60,12 +58,10 @@ has to be filled with two keys:
       (either 1 for a Dirac delta or > 1)
     * ``bandwidth``: setting the relative width :math:`\delta` of the band with respect to
       the central frequency, such that the frequency extremes are
-      :math:`\nu_{\rm{low/high}} = \nu_{\rm{center}}(1 \mp \delta/2) +
-      \Delta^{\nu}_{\rm band}` (with :math:`\Delta^{\nu}_{\rm band}`
-       being the possible bandpass shift). ``bandwidth`` has to be 0
-       if ``nstep`` = 1, > 0 otherwise. ``bandwidth`` can be a list
-       if you want a different width for each band
-       e.g. ``bandwidth: [0.3,0.2,0.3]`` for 3 bands.
+      :math:`\nu_{\rm{low/high}} = \nu_{\rm{center}}(1 \mp \delta/2) + \Delta^{\nu}_{\rm band}` 
+      (with :math:`\Delta^{\nu}_{\rm band}` being the possible bandpass shift). 
+      ``bandwidth`` has to be 0 if ``nstep`` = 1, > 0 otherwise. 
+      ``bandwidth`` can be a list if you want a different width for each band e.g. ``bandwidth: [0.3,0.2,0.3]`` for 3 bands.
 
 The effective frequencies, used as central frequencies
 to build the bandpasses, are read from the ``bands`` dictionary as before.
@@ -249,7 +245,7 @@ class TheoryForge:
             self.log.info("bandpass is delta function, no band integration performed")
 
     def get_modified_theory(self, Dls, **params):
-         """
+        """
         Takes the theory :math:`D_{\ell}`, sums it to the total
         foreground power spectrum (possibly computed with bandpass
         shift and bandpass integration) computed by ``_get_foreground_model``

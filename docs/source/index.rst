@@ -1,6 +1,14 @@
 .. include:: ../../README.rst
 
 .. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: API
+
+   mflike.rst
+   theoryforge.rst
+
+.. toctree::
    :maxdepth: 1
    :hidden:
    :caption: Tutorials

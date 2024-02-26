@@ -5,12 +5,19 @@ try:
 except DistributionNotFound:
     __version__ = "unknown version"
 
+import os
+import sys
+
+sys.path.append(os.path.abspath("../.."))
+autodoc_mock_imports = ["numpy", "cobaya"]
+
 # General stuff
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
+    "sphinx.ext.viewcode",
     "sphinx_copybutton",
     "myst_nb",
 ]
