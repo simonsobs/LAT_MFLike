@@ -3,8 +3,8 @@ TheoryForge
 
 .. automodule:: mflike.theoryforge
 
-Application of foregrounds and systematics
-------------------------------------------
+TheoryForge
+-----------
 
 .. autoclass:: mflike.TheoryForge
    :exclude-members: initialize
