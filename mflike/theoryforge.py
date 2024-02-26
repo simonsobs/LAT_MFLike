@@ -1,24 +1,21 @@
 r"""
 .. module:: theoryforge
 
-The ``TheoryForge`` class applies the foreground spectra and systematics
-effects to the theory spectra provided by ``MFLike``. To do that, ``TheoryForge`` 
-gets from ``MFLike`` the appropriate list of arrays, the
-requested temperature/polarization fields, the
-:math:`\ell` ranges, the list of expected parameters, a dictionary of 
-the passbands read from the ``sacc`` file:
+The ``TheoryForge`` class applies the foreground spectra and systematics effects to the theory
+spectra provided by ``MFLike``. To do that, ``TheoryForge`` gets from ``MFLike`` the appropriate
+list of arrays, the requested temperature/polarization fields, the :math:`\ell` ranges, the list of
+expected parameters, a dictionary of the passbands read from the ``sacc`` file:
 
 .. code-block:: python
 
-   bands = {"experiment_channel": {{"nu": [freqs...],
-     "bandpass": [...]}}, ...}
+   bands = {"experiment_channel": {{"nu": [freqs...], "bandpass": [...]}}, ...}
 
-This dictionary is then used to compute the bandpass
-transmissions, which are used for the actual foreground spectra computation.
+This dictionary is then used to compute the bandpass transmissions, which are used for the actual
+foreground spectra computation.
 
 
-If one wants to use this class as standalone, the ``bands`` dictionary is
-filled when initializing ``TheoryForge``.
+If one wants to use this class as standalone, the ``bands`` dictionary is filled when initializing
+``TheoryForge``.
 
 This class applies three kinds of systematic effects to the CMB + foreground power spectrum:
     * calibrations (global ``calG_all``, per channel ``cal_exp``, per field
@@ -35,9 +32,8 @@ This class applies three kinds of systematic effects to the CMB + foreground pow
 
 If left ``null``, no systematic template is applied.
 
-The values of the systematic parameters are set in ``MFLike.yaml``.
-They have to be named as ``cal/calT/calE/alpha`` + ``_``  + experiment_channel string
-(e.g. ``LAT_93/dr6_pa4_f150``).
+The values of the systematic parameters are set in ``MFLike.yaml``.  They have to be named as
+``cal/calT/calE/alpha`` + ``_`` + experiment_channel string (e.g. ``LAT_93/dr6_pa4_f150``).
 
 
 The bandpass shifts are applied within the ``_bandpass_construction`` function. There are two possibilities:
@@ -49,24 +45,20 @@ For the first option, it is necessary to leave the `top_hat_band` key empty in `
 
 .. code-block:: yaml
 
-  top_hat_band: 
+  top_hat_band: null
 
-For the second option, the ``top_hat_band`` dictionary in ``MFLike.yaml``
-has to be filled with two keys:
-
+For the second option, the ``top_hat_band`` dictionary in ``MFLike.yaml`` has to be filled with two keys:
     * ``nsteps``: setting the number of frequencies used in the band integration
       (either 1 for a Dirac delta or > 1)
     * ``bandwidth``: setting the relative width :math:`\delta` of the band with respect to
       the central frequency, such that the frequency extremes are
-      :math:`\nu_{\rm{low/high}} = \nu_{\rm{center}}(1 \mp \delta/2) + \Delta^{\nu}_{\rm band}` 
-      (with :math:`\Delta^{\nu}_{\rm band}` being the possible bandpass shift). 
-      ``bandwidth`` has to be 0 if ``nstep`` = 1, > 0 otherwise. 
+      :math:`\nu_{\rm{low/high}} = \nu_{\rm{center}}(1 \mp \delta/2) + \Delta^{\nu}_{\rm band}`
+      (with :math:`\Delta^{\nu}_{\rm band}` being the possible bandpass shift).
+      ``bandwidth`` has to be 0 if ``nstep`` = 1, > 0 otherwise.
       ``bandwidth`` can be a list if you want a different width for each band e.g. ``bandwidth: [0.3,0.2,0.3]`` for 3 bands.
 
-The effective frequencies, used as central frequencies
-to build the bandpasses, are read from the ``bands`` dictionary as before.
-
-To build a Dirac delta, use:
+The effective frequencies, used as central frequencies to build the bandpasses, are read from the
+``bands`` dictionary as before. To build a Dirac delta, use:
 
 .. code-block:: yaml
 
@@ -75,11 +67,13 @@ To build a Dirac delta, use:
     bandwidth: 0
 
 """
+
 import os
 from itertools import product
 
 import numpy as np
 from cobaya.log import LoggedError
+
 
 # Converts from cmb temperature to differential source intensity
 # (see eq. 8 of https://arxiv.org/abs/1303.5070).
@@ -127,8 +121,10 @@ class TheoryForge:
             self.requested_cls = ["tt", "te", "ee"]
             self.bandint_freqs = np.array([93.0, 145.0, 225.0])
             self.use_top_hat_band = False
-            self.bands = {f"{exp}_s0": {'nu': [self.bandint_freqs[iexp]], 'bandpass': [1.]}
-                      for iexp, exp in enumerate(self.experiments)}
+            self.bands = {
+                f"{exp}_s0": {"nu": [self.bandint_freqs[iexp]], "bandpass": [1.0]}
+                for iexp, exp in enumerate(self.experiments)
+            }
         else:
             self.log = mflike.log
             self.data_folder = mflike.data_folder
@@ -169,7 +165,6 @@ class TheoryForge:
                         self.log, "One band has width = 0, set a positive width and run again"
                     )
 
-
     # Takes care of the bandpass construction. It returns a list of nu-transmittance
     # for each frequency or an array with the effective freqs.
     # bandpasses saved in the sacc file have to be divided by nu^2
@@ -191,7 +186,7 @@ class TheoryForge:
         If ``nstep = 1`` and ``bandint_width = 0``, the passband is a Dirac delta
         centered at :math:`\nu+\Delta \nu`.
 
-        :param *params: dictionary of nuisance parameters
+        :param \**params: dictionary of nuisance parameters
         :return: the list of [nu, transmission] in the multifrequency case
                  or just an array of frequencies in the single frequency one
         """
@@ -209,7 +204,7 @@ class TheoryForge:
                 if self.bandint_nsteps > 1:
                     bandlow = fr * (1 - self.bandint_width[iexp] * 0.5)
                     bandhigh = fr * (1 + self.bandint_width[iexp] * 0.5)
-                    #nubtrue = np.linspace(bandlow, bandhigh, self.bandint_nsteps, dtype=float)
+                    # nubtrue = np.linspace(bandlow, bandhigh, self.bandint_nsteps, dtype=float)
                     nub = np.linspace(
                         bandlow + params[bandpar],
                         bandhigh + params[bandpar],
@@ -217,7 +212,7 @@ class TheoryForge:
                         dtype=float,
                     )
                     tranb = _cmb2bb(nub)
-                    # normalization integral to be evaluated at the shifted freqs 
+                    # normalization integral to be evaluated at the shifted freqs
                     # in order to have cmb component calibrated to 1
                     tranb_norm = np.trapz(_cmb2bb(nub), nub)
                     self.bandint_freqs.append([nub, tranb / tranb_norm])
@@ -245,7 +240,7 @@ class TheoryForge:
             self.log.info("bandpass is delta function, no band integration performed")
 
     def get_modified_theory(self, Dls, **params):
-        """
+        r"""
         Takes the theory :math:`D_{\ell}`, sums it to the total
         foreground power spectrum (possibly computed with bandpass
         shift and bandpass integration) computed by ``_get_foreground_model``
@@ -253,14 +248,14 @@ class TheoryForge:
         polarization angles rotation and systematic templates.
 
         :param Dls: CMB theory spectra
-        :param *params: dictionary of nuisance and foregrounds parameters
+        :param \**params: dictionary of nuisance and foregrounds parameters
 
         :return: the CMB+foregrounds :math:`D_{\ell}` dictionary,
                  modulated by systematics
         """
         fg_params = {k: params[k] for k in self.expected_params_fg}
         nuis_params = {k: params[k] for k in self.expected_params_nuis}
-        
+
         # compute bandpasses at each step only if bandint_shift params are not null
         # and bandint_freqs has been computed at least once
         if np.all(
@@ -299,14 +294,14 @@ class TheoryForge:
             else:  # ['te','tb','eb']
                 if m["hasYX_xsp"]:  # case with symmetrize = False and ET/BT/BE spectra
                     dls_dict[p, m["t2"], m["t1"]] = cmbfg_dict[p, m["t2"], m["t1"]]
-                else: # case of TE/TB/EB spectra, or symmetrize = True
+                else:  # case of TE/TB/EB spectra, or symmetrize = True
                     dls_dict[p, m["t1"], m["t2"]] = cmbfg_dict[p, m["t1"], m["t2"]]
 
-                # if symmetrize = True, dls_dict has already been set 
+                # if symmetrize = True, dls_dict has already been set
                 # equal to cmbfg_dict[p, m["t1"], m["t2"]
                 # now we add cmbfg_dict[p, m["t2"], m["t1"] and we average them
                 # as we do for our data
-                if self.defaults_cuts["symmetrize"]:  
+                if self.defaults_cuts["symmetrize"]:
                     dls_dict[p, m["t1"], m["t2"]] += cmbfg_dict[p, m["t2"], m["t1"]]
                     dls_dict[p, m["t1"], m["t2"]] *= 0.5
 
@@ -358,9 +353,9 @@ class TheoryForge:
                     set in ``mflike.l_bpws`` is used
         :param freqs_order: list of the effective frequencies for each channel
                           used to compute the foreground components. Useful when
-                          this function is called outside of mflike, used in place of 
+                          this function is called outside of mflike, used in place of
                           ``self.experiments``
-        :param *fg_params: parameters of the foreground components
+        :param \**fg_params: parameters of the foreground components
 
         :return: the foreground dictionary
         """
@@ -407,8 +402,12 @@ class TheoryForge:
             {"ell": ell, "ell_0": ell_0},
         )
         model["tt", "dust"] = fg_params["a_gtt"] * self.dust(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, 
-             "temp": fg_params["T_effd"], "beta": fg_params["beta_d"]},
+            {
+                "nu": self.bandint_freqs,
+                "nu_0": nu_0,
+                "temp": fg_params["T_effd"],
+                "beta": fg_params["beta_d"],
+            },
             {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dT"]},
         )
         model["tt", "tSZ_and_CIB"] = self.tSZ_and_CIB(
@@ -441,8 +440,12 @@ class TheoryForge:
             {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
         )
         model["ee", "dust"] = fg_params["a_gee"] * self.dust(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, 
-             "temp": fg_params["T_effd"], "beta": fg_params["beta_d"]},
+            {
+                "nu": self.bandint_freqs,
+                "nu_0": nu_0,
+                "temp": fg_params["T_effd"],
+                "beta": fg_params["beta_d"],
+            },
             {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
         )
 
@@ -451,8 +454,12 @@ class TheoryForge:
             {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
         )
         model["te", "dust"] = fg_params["a_gte"] * self.dust(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, 
-             "temp": fg_params["T_effd"], "beta": fg_params["beta_d"]},
+            {
+                "nu": self.bandint_freqs,
+                "nu_0": nu_0,
+                "temp": fg_params["T_effd"],
+                "beta": fg_params["beta_d"],
+            },
             {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
         )
 
@@ -515,18 +522,21 @@ class TheoryForge:
         It uses the ``syslibrary.syslib_mflike.Calibration_alm`` function.
 
         :param dls_dict: the CMB+foregrounds :math:`D_{\ell}` dictionary
-        :param *nuis_params: dictionary of nuisance parameters
+        :param \**nuis_params: dictionary of nuisance parameters
 
         :return: dictionary of calibrated CMB+foregrounds :math:`D_{\ell}`
         """
         from syslibrary import syslib_mflike as syl
 
-        #allowing for not having calT_{exp} in the yaml
+        # allowing for not having calT_{exp} in the yaml
 
         cal_pars = {}
         if "tt" in self.requested_cls or "te" in self.requested_cls:
             cal = nuis_params["calG_all"] * np.array(
-                [nuis_params[f"cal_{exp}"] * nuis_params.get(f"calT_{exp}",1) for exp in self.experiments]
+                [
+                    nuis_params[f"cal_{exp}"] * nuis_params.get(f"calT_{exp}", 1)
+                    for exp in self.experiments
+                ]
             )
             cal_pars["t"] = 1 / cal
 
@@ -560,13 +570,13 @@ class TheoryForge:
         It uses the ``syslibrary.syslib_mflike.Rotation_alm`` function.
 
         :param dls_dict: the CMB+foregrounds :math:`D_{\ell}` dictionary
-        :param *nuis_params: dictionary of nuisance parameters
+        :param \**nuis_params: dictionary of nuisance parameters
 
         :return: dictionary of rotated CMB+foregrounds :math:`D_{\ell}`
         """
         from syslibrary import syslib_mflike as syl
 
-        #allowing for not having polarization angles in the yaml
+        # allowing for not having polarization angles in the yaml
 
         rot_pars = [nuis_params.get(f"alpha_{exp}", 0) for exp in self.experiments]
 
@@ -598,12 +608,12 @@ class TheoryForge:
         self.dltempl_from_file = templ_from_file(ell=self.l_bpws)
 
     def _get_template_from_file(self, dls_dict, **nuis_params):
-        """
+        r"""
         Adds the systematics template, modulated by ``nuis_params['templ_freq']``
         parameters, to the :math:`D_{\ell}`.
 
         :param dls_dict: the CMB+foregrounds :math:`D_{\ell}` dictionary
-        :param *nuis_params: dictionary of nuisance parameters
+        :param \**nuis_params: dictionary of nuisance parameters
 
         :return: dictionary of CMB+foregrounds :math:`D_{\ell}`
                  with systematics templates

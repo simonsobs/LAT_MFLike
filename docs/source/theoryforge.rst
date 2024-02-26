@@ -1,10 +1,10 @@
-TheoryForge
-===========
+``TheoryForge``
+===============
 
 .. automodule:: mflike.theoryforge
 
-TheoryForge
------------
+``TheoryForge`` class content
+-----------------------------
 
 .. autoclass:: mflike.TheoryForge
    :exclude-members: initialize

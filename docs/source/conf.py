@@ -9,7 +9,7 @@ import os
 import sys
 
 sys.path.append(os.path.abspath("../.."))
-autodoc_mock_imports = ["numpy", "cobaya"]
+# autodoc_mock_imports = ["numpy", "cobaya"]
 
 # General stuff
 extensions = [

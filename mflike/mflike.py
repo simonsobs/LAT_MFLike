@@ -14,7 +14,7 @@ from the ``MFLike.yaml`` file.
 
 The theory :math:`C_{\ell}` are then summed to the (possibly frequency
 integrated) foreground power spectra and modified by systematic effects
-in the ``TheoryForge_MFLike`` class. The foreground spectra are computed
+in the ``TheoryForge`` class. The foreground spectra are computed
 through ``fgspectra``.
 
 """
@@ -117,7 +117,7 @@ class MFLike(InstallableLikelihood):
 
     def initialize_non_sampled_params(self):
         """
-        Allows for systematic params such as polarization angles and calT
+        Allows for systematic params such as polarization angles and ``calT``
         not to be sampled and not to be required
         """
         self.non_sampled_params = {}
@@ -167,10 +167,8 @@ class MFLike(InstallableLikelihood):
         """
         Computes the gaussian log-likelihood
 
-        :param cl: the dictionary of theory + foregrounds
-                           :math:`D_{\ell}`
-        :param params_values_nocosmo: the dictionary of required foreground + 
-                                      systematic parameters
+        :param cl: the dictionary of theory + foregrounds :math:`D_{\ell}`
+        :param params_values_nocosmo: the dictionary of required foreground + systematic parameters
 
         :return: the exact loglikelihood :math:`\ln \mathcal{L}`
         """
@@ -195,11 +193,11 @@ class MFLike(InstallableLikelihood):
         """
         Reads the sacc data, extracts the data tracers,
         trims the spectra and covariance according to the :math:`\ell` scales
-        set in the input file, inverts the covariance, extracts bandpass info from 
-        the sacc file. 
-        It fills the list `self.spec_meta` (used throughout the code) of
+        set in the input file, inverts the covariance, extracts bandpass info from
+        the sacc file.
+        It fills the list ``self.spec_meta`` (used throughout the code) of
         dictionaries with info about polarization, arrays combination, :math:`\ell`
-        range, bandpowers and :math:`D_{\ell}` for each power spectrum required 
+        range, bandpowers and :math:`D_{\ell}` for each power spectrum required
         in the yaml.
         """
         import sacc
@@ -447,7 +445,7 @@ class MFLike(InstallableLikelihood):
         like the data.
 
         :param cl: the dictionary of theory :math:`D_{\ell}`
-        :param params_values_nocosmo: the dictionary of required foregrounds 
+        :param params_values_nocosmo: the dictionary of required foregrounds
                                       and systematics parameters
 
         :return: the binned data vector

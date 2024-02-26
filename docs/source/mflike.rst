@@ -1,10 +1,10 @@
-LAT_MFLike (LAT MultiFrequency Likelihood)
-==========================================
+``LAT_MFLike`` (LAT MultiFrequency Likelihood)
+==============================================
 
 .. automodule:: mflike.mflike
 
-MFLike
-------
+``MFLike`` class content
+------------------------
 
 .. autoclass:: mflike.MFLike
     :exclude-members: initialize
