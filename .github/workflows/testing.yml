@@ -45,6 +45,6 @@ jobs:
     - name: Test notebooks (Only on Linux for saving time)
       if: ${{ (matrix.os == 'ubuntu-latest') && (matrix.python-version == '3.11') }}
       run: |
-        python -m pip install jupyter seaborn latex2mathml
+        python -m pip install .[notebook]
         cd docs/source/notebooks
         make
