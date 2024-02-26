@@ -1,3 +1,84 @@
+"""
+.. module:: theoryforge
+
+The ``TheoryForge`` class applies the foreground spectra and systematics
+effects to the theory spectra provided by ``MFLike``. To do that, ``TheoryForge`` 
+gets from ``MFLike`` the appropriate list of arrays, the
+requested temperature/polarization fields, the
+:math:`\ell` ranges, the list of expected parameters, a dictionary of 
+the passbands read from the ``sacc`` file:
+
+.. code-block:: python
+
+   bands = {"experiment_channel": {{"nu": [freqs...],
+     "bandpass": [...]}}, ...}
+
+This dictionary is then used to compute the bandpass
+transmissions, which are used for the actual foreground spectra computation.
+
+
+If one wants to use this class as standalone, the ``bands`` dictionary is
+filled when initializing ``TheoryForge``.
+
+This class applies three kinds of systematic effects to the CMB + foreground
+power spectrum:
+    * calibrations (global ``calG_all``, per channel ``cal_exp``, per field
+      ``calT_exp``, ``calE_exp``)
+    * polarization angles effect (``alpha_exp``)
+    * systematic templates (e.g. T --> P leakage). In this case the dictionary
+      ``systematics_template`` has to be filled with the correct path
+      ``rootname``:
+
+      .. code-block:: yaml
+
+        systematics_template:
+          rootname: "test_template"
+
+      If left ``null``, no systematic template is applied.
+
+The values of the systematic parameters are set in ``MFLike.yaml``.
+They have to be named as ``cal/calT/calE/alpha`` + ``_``  + experiment_channel string
+(e.g. ``LAT_93/dr6_pa4_f150``).
+
+
+The bandpass shifts are applied within the ``_bandpass_construction`` function.
+There are two possibilities:
+    * reading the passband :math:`\tau(\nu)` stored in a sacc file
+      (which is the default now)
+    * building the passbands :math:`\tau(\nu)`, either as Dirac delta or as top-hat
+
+For the first option, it is necessary to leave the `top_hat_band` key empty in ``MFLike.yaml``:
+
+.. code-block:: yaml
+
+  top_hat_band: 
+
+For the second option, the ``top_hat_band`` dictionary in ``MFLike.yaml``
+has to be filled with two keys:
+
+    * ``nsteps``: setting the number of frequencies used in the band integration
+      (either 1 for a Dirac delta or > 1)
+    * ``bandwidth``: setting the relative width :math:`\delta` of the band with respect to
+      the central frequency, such that the frequency extremes are
+      :math:`\nu_{\rm{low/high}} = \nu_{\rm{center}}(1 \mp \delta/2) +
+      \Delta^{\nu}_{\rm band}` (with :math:`\Delta^{\nu}_{\rm band}`
+       being the possible bandpass shift). ``bandwidth`` has to be 0
+       if ``nstep`` = 1, > 0 otherwise. ``bandwidth`` can be a list
+       if you want a different width for each band
+       e.g. ``bandwidth: [0.3,0.2,0.3]`` for 3 bands.
+
+The effective frequencies, used as central frequencies
+to build the bandpasses, are read from the ``bands`` dictionary as before.
+
+To build a Dirac delta, use:
+
+.. code-block:: yaml
+
+  top_hat_band:
+    nsteps: 1
+    bandwidth: 0
+
+"""
 import os
 from itertools import product
 
@@ -9,10 +90,20 @@ from cobaya.log import LoggedError
 # The bandpass transmission needs to be divided by
 # nu^2 if measured with respect to a RJ source.
 # This factor is already included here.
-# Numerical factors not included,
-# it needs proper normalization when used.
 def _cmb2bb(nu):
-    # NB: numerical factors not included
+    r"""
+    Computes the conversion factor :math:`\frac{\partial B_{\nu}}{\partial T}`
+    from CMB thermodynamic units to differential source intensity.
+    Passbands measured with respect to a RJ source have to be divided by a
+    :math:`\nu^2` factor.
+
+    Numerical constants are not included, which is not a problem when using this
+    conversion both at numerator and denominator.
+
+    :param nu: frequency array
+
+    :return: the array :math:`\frac{\partial B_{\nu}}{\partial T}`. See note above.
+    """
     from scipy import constants
 
     T_CMB = 2.72548
@@ -40,6 +131,8 @@ class TheoryForge:
             self.requested_cls = ["tt", "te", "ee"]
             self.bandint_freqs = np.array([93.0, 145.0, 225.0])
             self.use_top_hat_band = False
+            self.bands = {f"{exp}_s0": {'nu': [self.bandint_freqs[iexp]], 'bandpass': [1.]}
+                      for iexp, exp in enumerate(self.experiments)}
         else:
             self.log = mflike.log
             self.data_folder = mflike.data_folder
@@ -87,6 +180,25 @@ class TheoryForge:
     # if measured with respect to a RJ source.
     # This factor is already included in the _cmb2bb function
     def _bandpass_construction(self, **params):
+        r"""
+        Builds the bandpass transmission
+        :math:`\frac{\frac{\partial B_{\nu+\Delta \nu}}{\partial T}
+        \tau(\nu+\Delta \nu)}{\int d\nu
+        \frac{\partial B_{\nu+\Delta \nu}}{\partial T} \tau(\nu+\Delta \nu)}`
+        using passbands :math:`\tau(\nu)` (divided by :math:`\nu^2` if
+        measured with respect to a RJ source, not read from a txt
+        file) and bandpass shift :math:`\Delta \nu`. As a default,
+        :math:`\tau(\nu)` is read from the sacc file.
+        If ``use_top_hat_band``, :math:`\tau(\nu)` is built as a top-hat
+        with width ``bandint_width`` and number of samples ``nsteps``,
+        read from the ``MFLike.yaml``.
+        If ``nstep = 1`` and ``bandint_width = 0``, the passband is a Dirac delta
+        centered at :math:`\nu+\Delta \nu`.
+
+        :param *params: dictionary of nuisance parameters
+        :return: the list of [nu, transmission] in the multifrequency case
+                 or just an array of frequencies in the single frequency one
+        """
         data_are_monofreq = False
         self.bandint_freqs = []
         for iexp, exp in enumerate(self.experiments):
@@ -137,6 +249,19 @@ class TheoryForge:
             self.log.info("bandpass is delta function, no band integration performed")
 
     def get_modified_theory(self, Dls, **params):
+         """
+        Takes the theory :math:`D_{\ell}`, sums it to the total
+        foreground power spectrum (possibly computed with bandpass
+        shift and bandpass integration) computed by ``_get_foreground_model``
+        and applies calibration,
+        polarization angles rotation and systematic templates.
+
+        :param Dls: CMB theory spectra
+        :param *params: dictionary of nuisance and foregrounds parameters
+
+        :return: the CMB+foregrounds :math:`D_{\ell}` dictionary,
+                 modulated by systematics
+        """
         fg_params = {k: params[k] for k in self.expected_params_fg}
         nuis_params = {k: params[k] for k in self.expected_params_nuis}
         
@@ -197,6 +322,11 @@ class TheoryForge:
 
     # Initializes the foreground model. It sets the SED and reads the templates
     def _init_foreground_model(self):
+        """
+        Initializes the foreground models from ``fgspectra``. Sets the SED
+        of kSZ, tSZ, dust, radio, CIB Poisson and clustered,
+        tSZxCIB, and reads the templates for CIB and tSZxCIB.
+        """
         from fgspectra import cross as fgc
         from fgspectra import frequency as fgf
         from fgspectra import power as fgp
@@ -223,6 +353,22 @@ class TheoryForge:
 
     # Gets the actual power spectrum of foregrounds given the passed parameters
     def _get_foreground_model(self, ell=None, freqs_order=None, **fg_params):
+        r"""
+        Gets the foreground power spectra for each component computed by ``fgspectra``.
+        The computation assumes the bandpass transmissions computed in ``_bandpass_construction``
+        and integration in frequency is performed if the passbands are not Dirac delta.
+
+        :param ell: ell range. If ``None`` the default range
+                    set in ``mflike.l_bpws`` is used
+        :param freqs_order: list of the effective frequencies for each channel
+                          used to compute the foreground components. Useful when
+                          this function is called outside of mflike, used in place of 
+                          ``self.experiments``
+        :param *fg_params: parameters of the foreground components
+
+        :return: the foreground dictionary
+        """
+
         # if ell = None, it uses the l_bpws, otherwise the ell array provided
         # useful to make tests at different l_max than the data
         if not hasattr(ell, "__len__"):
@@ -349,6 +495,34 @@ class TheoryForge:
     ###########################################################################
 
     def _get_calibrated_spectra(self, dls_dict, **nuis_params):
+        r"""
+        Calibrates the spectra through calibration factors at
+        the map level:
+
+        .. math::
+
+           D^{{\rm cal}, TT, \nu_1 \nu_2}_{\ell} &= \frac{1}{
+           {\rm cal}_{G}\, {\rm cal}^{\nu_1} \, {\rm cal}^{\nu_2}\,
+           {\rm cal}^{\nu_1}_{\rm T}\,
+           {\rm cal}^{\nu_2}_{\rm T}}\, D^{TT, \nu_1 \nu_2}_{\ell}
+
+           D^{{\rm cal}, TE, \nu_1 \nu_2}_{\ell} &= \frac{1}{
+           {\rm cal}_{G}\,{\rm cal}^{\nu_1} \, {\rm cal}^{\nu_2}\,
+           {\rm cal}^{\nu_1}_{\rm T}\,
+           {\rm cal}^{\nu_2}_{\rm E}}\, D^{TT, \nu_1 \nu_2}_{\ell}
+
+           D^{{\rm cal}, EE, \nu_1 \nu_2}_{\ell} &= \frac{1}{
+           {\rm cal}_{G}\,{\rm cal}^{\nu_1} \, {\rm cal}^{\nu_2}\,
+           {\rm cal}^{\nu_1}_{\rm E}\,
+           {\rm cal}^{\nu_2}_{\rm E}}\, D^{EE, \nu_1 \nu_2}_{\ell}
+
+        It uses the ``syslibrary.syslib_mflike.Calibration_alm`` function.
+
+        :param dls_dict: the CMB+foregrounds :math:`D_{\ell}` dictionary
+        :param *nuis_params: dictionary of nuisance parameters
+
+        :return: dictionary of calibrated CMB+foregrounds :math:`D_{\ell}`
+        """
         from syslibrary import syslib_mflike as syl
 
         #allowing for not having calT_{exp} in the yaml
@@ -376,6 +550,24 @@ class TheoryForge:
     ###########################################################################
 
     def _get_rotated_spectra(self, dls_dict, **nuis_params):
+        r"""
+        Rotates the polarization spectra through polarization angles:
+
+        .. math::
+
+           D^{{\rm rot}, TE, \nu_1 \nu_2}_{\ell} &= \cos(\alpha^{\nu_2})
+           D^{TE, \nu_1 \nu_2}_{\ell}
+
+           D^{{\rm rot}, EE, \nu_1 \nu_2}_{\ell} &= \cos(\alpha^{\nu_1})
+           \cos(\alpha^{\nu_2}) D^{EE, \nu_1 \nu_2}_{\ell}
+
+        It uses the ``syslibrary.syslib_mflike.Rotation_alm`` function.
+
+        :param dls_dict: the CMB+foregrounds :math:`D_{\ell}` dictionary
+        :param *nuis_params: dictionary of nuisance parameters
+
+        :return: dictionary of rotated CMB+foregrounds :math:`D_{\ell}`
+        """
         from syslibrary import syslib_mflike as syl
 
         #allowing for not having polarization angles in the yaml
@@ -392,9 +584,13 @@ class TheoryForge:
     ## then rescaled and added to theory dls
     ###########################################################################
 
-    # Initializes the systematics templates
     # This is slow, but should be done only once
     def _init_template_from_file(self):
+        """
+        Reads the systematics template from file, using
+        the ``syslibrary.syslib_mflike.ReadTemplateFromFile``
+        function.
+        """
         if not self.systematics_template.get("rootname"):
             raise LoggedError(self.log, "Missing 'rootname' for systematics template!")
 
@@ -406,6 +602,16 @@ class TheoryForge:
         self.dltempl_from_file = templ_from_file(ell=self.l_bpws)
 
     def _get_template_from_file(self, dls_dict, **nuis_params):
+        """
+        Adds the systematics template, modulated by ``nuis_params['templ_freq']``
+        parameters, to the :math:`D_{\ell}`.
+
+        :param dls_dict: the CMB+foregrounds :math:`D_{\ell}` dictionary
+        :param *nuis_params: dictionary of nuisance parameters
+
+        :return: dictionary of CMB+foregrounds :math:`D_{\ell}`
+                 with systematics templates
+        """
         # templ_pars=[nuis_params['templ_'+str(exp)] for exp in self.experiments]
         # templ_pars currently hard-coded
         # but ideally should be passed as input nuisance

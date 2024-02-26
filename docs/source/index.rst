@@ -10,3 +10,10 @@
    notebooks/tutorial_foregrounds
    notebooks/tutorial_residuals
    notebooks/tutorial_fisher
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: API modules
+
+   mflike.rst

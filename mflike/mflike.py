@@ -4,6 +4,19 @@
 :Synopsis: Definition of simplistic likelihood for Simons Observatory
 :Authors: Simons Observatory Collaboration PS Group
 
+MFLike is a multi frequency likelihood code interfaced with the Cobaya
+sampler and a theory Boltzmann code such as CAMB, CLASS or Cosmopower.
+The ``MFLike`` likelihood class reads the data file (in ``sacc`` format)
+and all the settings
+for the MCMC run (such as file paths, :math:`\ell` ranges, experiments
+and frequencies to be used, parameters priors...)
+from the ``MFLike.yaml`` file.
+
+The theory :math:`C_{\ell}` are then summed to the (possibly frequency
+integrated) foreground power spectra and modified by systematic effects
+in the ``TheoryForge_MFLike`` class. The foreground spectra are computed
+through ``fgspectra``.
+
 """
 
 import os
@@ -103,7 +116,10 @@ class MFLike(InstallableLikelihood):
         self.log.info("Initialized!")
 
     def initialize_non_sampled_params(self):
-        # allowing for systematic params not used in some analysis not to be sampled
+        """
+        Allows for systematic params such as polarization angles and calT
+        not to be sampled and not to be required
+        """
         self.non_sampled_params = {}
         for exp in self.experiments:
             self.non_sampled_params.update({f"calT_{exp}": 1.0, f"alpha_{exp}": 0.0})
@@ -131,6 +147,12 @@ class MFLike(InstallableLikelihood):
             raise LoggedError(self.log, f"Configuration error in parameters: {differences}.")
 
     def get_requirements(self):
+        r"""
+        Gets the theory :math:`D_{\ell}` from the Boltzmann solver code used,
+        for the :math:`\ell` range up to the :math:`\ell_{max}` specified in the yaml
+
+        :return: the dictionary of theory :math:`D_{\ell}`
+        """
         return dict(Cl={k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()})
 
     def logp(self, **params_values):
@@ -142,6 +164,16 @@ class MFLike(InstallableLikelihood):
         return self.loglike(cl, **params_values_nocosmo)
 
     def loglike(self, cl, **params_values_nocosmo):
+        """
+        Computes the gaussian log-likelihood
+
+        :param cl: the dictionary of theory + foregrounds
+                           :math:`D_{\ell}`
+        :param params_values_nocosmo: the dictionary of required foreground + 
+                                      systematic parameters
+
+        :return: the exact loglikelihood :math:`\ln \mathcal{L}`
+        """
         # This is needed if someone calls the function without initializing the likelihood
         # (typically a call with a precomputed Cl and no cobaya initialization steps e.g
         # test_mflike)
@@ -160,6 +192,16 @@ class MFLike(InstallableLikelihood):
         return logp
 
     def prepare_data(self):
+        """
+        Reads the sacc data, extracts the data tracers,
+        trims the spectra and covariance according to the :math:`\ell` scales
+        set in the input file, inverts the covariance, extracts bandpass info from 
+        the sacc file. 
+        It fills the list `self.spec_meta` (used throughout the code) of
+        dictionaries with info about polarization, arrays combination, :math:`\ell`
+        range, bandpowers and :math:`D_{\ell}` for each power spectrum required 
+        in the yaml.
+        """
         import sacc
 
         data = self.data
@@ -197,10 +239,15 @@ class MFLike(InstallableLikelihood):
         }
 
         def get_cl_meta(spec):
-            # For each of the entries of the `spectra` section of the
-            # yaml file, extract the relevant information: experiments,
-            # polarization combinations, scale cuts and
-            # whether TE should be symmetrized.
+            """
+            Lower-level function of `prepare_data`.
+            For each of the entries of the `spectra` section of the
+            yaml file, extracts the relevant information: channel,
+            polarization combinations, scale cuts and
+            whether TE should be symmetrized.
+
+            :param spec: the dictionary ``data["spectra"]``
+            """
             exp_1, exp_2 = spec["experiments"]
             # Read off polarization channel combinations
             pols = spec.get("polarizations", default_cuts["polarizations"]).copy()
@@ -225,10 +272,20 @@ class MFLike(InstallableLikelihood):
             return exp_1, exp_2, pols, scls, symm
 
         def get_sacc_names(pol, exp_1, exp_2):
-            # Translate the polarization combination and experiment
-            # names of a given entry in the `spectra`
-            # part of the input yaml file into the names expected
-            # in the SACC files.
+            """
+            Lower-level function of `prepare_data`.
+            Translates the polarization combination and channel
+            name of a given entry in the `spectra`
+            part of the input yaml file into the names expected
+            in the SACC files.
+
+            :param pol: temperature or polarization fields, i.e. 'TT', 'TE'
+            :param exp_1: frequency array of map 1
+            :param exp_2: frequency array of map 2
+
+            :return: tracer name 1, tracer name 2, string for :math:`C_{\ell}`
+                     type (whether temperature or polarization)
+            """
             tname_1 = exp_1
             tname_2 = exp_2
             p1, p2 = pol
@@ -383,7 +440,18 @@ class MFLike(InstallableLikelihood):
         self.log.info(f"Number of bins used: {self.data_vec.size}")
 
     def _get_power_spectra(self, cl, **params_values_nocosmo):
-        # Get Cl's from the theory code
+        """
+        Gets the theory :math:`D_{\ell}`, adds foregrounds :math:`D_{\ell}`
+        and applies possible systematic effects through the ``get_modified_theory``
+        function from the ``TheoryForge`` class. The spectra get then binned
+        like the data.
+
+        :param cl: the dictionary of theory :math:`D_{\ell}`
+        :param params_values_nocosmo: the dictionary of required foregrounds 
+                                      and systematics parameters
+
+        :return: the binned data vector
+        """
         Dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
         DlsObs = self.ThFo.get_modified_theory(Dls, **params_values_nocosmo)
 
