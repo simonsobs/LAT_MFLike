@@ -10,9 +10,11 @@ An external likelihood using `cobaya <https://github.com/CobayaSampler/cobaya>`_
 .. image:: https://img.shields.io/github/actions/workflow/status/simonsobs/LAT_MFLike/testing.yml?branch=master
    :target: https://github.com/simonsobs/LAT_MFLike/actions
 
+.. image:: https://readthedocs.org/projects/lat-mflike/badge/?version=latest
+   :target: https://lat-mflike.readthedocs.io/en/latest/?badge=latest
+
 .. image:: https://mybinder.org/badge_logo.svg
    :target: https://mybinder.org/v2/gh/simonsobs/LAT_MFLike/master?filepath=notebooks%2Fmflike_tutorial.ipynb
-
 
 .. image:: https://codecov.io/gh/simonsobs/LAT_MFLike/branch/master/graph/badge.svg?token=qrrVcbNCs5
    :target: https://codecov.io/gh/simonsobs/LAT_MFLike

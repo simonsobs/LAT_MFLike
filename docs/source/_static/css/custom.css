@@ -1,0 +1,8 @@
+button.theme-switch-button {
+  display: none !important;
+}
+
+.logo__title {
+  font-size: 1.1rem !important;
+  font-weight: bold !important;
+}

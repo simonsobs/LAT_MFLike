@@ -31,6 +31,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-cov", "camb"]
+notebook = ["jupyter", "camb", "seaborn", "latex2mathml"]
 
 [project.urls]
 Homepage = "https://github.com/simonsobs/LAT_MFLike"
