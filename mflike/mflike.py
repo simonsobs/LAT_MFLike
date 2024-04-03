@@ -1,4 +1,4 @@
-"""
+r"""
 .. module:: mflike
 
 :Synopsis: Definition of simplistic likelihood for Simons Observatory
@@ -190,7 +190,7 @@ class MFLike(InstallableLikelihood):
         return logp
 
     def prepare_data(self):
-        """
+        r"""
         Reads the sacc data, extracts the data tracers,
         trims the spectra and covariance according to the :math:`\ell` scales
         set in the input file, inverts the covariance, extracts bandpass info from
@@ -270,7 +270,7 @@ class MFLike(InstallableLikelihood):
             return exp_1, exp_2, pols, scls, symm
 
         def get_sacc_names(pol, exp_1, exp_2):
-            """
+            r"""
             Lower-level function of `prepare_data`.
             Translates the polarization combination and channel
             name of a given entry in the `spectra`
@@ -438,7 +438,7 @@ class MFLike(InstallableLikelihood):
         self.log.info(f"Number of bins used: {self.data_vec.size}")
 
     def _get_power_spectra(self, cl, **params_values_nocosmo):
-        """
+        r"""
         Gets the theory :math:`D_{\ell}`, adds foregrounds :math:`D_{\ell}`
         and applies possible systematic effects through the ``get_modified_theory``
         function from the ``TheoryForge`` class. The spectra get then binned
