@@ -78,10 +78,25 @@ top_hat_band:
 #  bandwidth: 0
 
 # uncomment the block to include a systematic template
-# to be read from external file at "rootname"
+# to be read from external file with name "rootname"
+# notice that, so far, the file has to be saved in the syslibrary/data directory!!
 # default is systematic_template to be a null dict
 systematics_template:
 #  rootname: "test_template"
+
+# specify if the beam profile has to be computed as a Gaussian beam
+# or be read from a file (either from external file with name "rootname" or from sacc)
+# if Gaussian = False and rootname = False, it will be read from the sacc file
+# if Gaussian = False and "rootname" is specified, it will be read from this file
+# the file has to be saved in the same path as the data
+# it has to be a yaml with keys = experiments and items = array((freqs, ells))
+# i.e. numpy arrays of beam profiles for each frequency in the passband of that array
+# default is the beam_profile to be a null dict and chromatic beam not 
+# taken into account
+beam_profile:
+# Gaussian has to be either True or False 
+#  Gaussian: 
+#  rootname: 
 
 foregrounds:
   normalisation:

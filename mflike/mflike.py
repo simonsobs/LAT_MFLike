@@ -44,6 +44,7 @@ class MFLike(InstallableLikelihood):
     foregrounds: dict
     top_hat_band: dict
     systematics_template: dict
+    beam_profile: dict 
 
     def initialize(self):
         # Set default values to data member not initialized via yaml file

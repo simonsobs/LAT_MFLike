@@ -164,7 +164,13 @@ class TheoryForge:
                     raise LoggedError(
                         self.log, "One band has width = 0, set a positive width and run again"
                     )
-
+            
+            self.use_beam_profile = bool(mflike.beam_profile)
+            if self.use_beam_profile:
+                self.gaussian_beam = mflike.beam_profile["Gaussian"]
+                if not self.gaussian_beam:
+                    self._init_beam_from_file()
+                    
     # Takes care of the bandpass construction. It returns a list of nu-transmittance
     # for each frequency or an array with the effective freqs.
     # bandpasses saved in the sacc file have to be divided by nu^2
@@ -634,3 +640,56 @@ class TheoryForge:
                     )
 
         return dls_dict
+
+    ###########################################################################
+    ## This part deals with beam functions, i.e. reading beam from file or
+    ## computing it as a Gaussian beam. We also have a function to compute
+    ## the correction expected for a Gaussian beam in case of bandpass shift
+    ## that should be applied to any beam profile
+    ###########################################################################
+
+
+    def _init_beam_from_file(self):
+        """
+        Reads the beam profile from an external file or the sacc file
+        """
+        
+        self.beam_file = mflike.beam_profile["rootname"]
+        if not self.beam_file:
+            # option to read beam from sacc. Is it actually possible?
+            # needs to be read in mflike.prepare_data
+            ....
+        else:
+            import yaml
+
+            data_path = self.data_folder
+            filename = os.path.join(data_path, '%s.yaml'%self.beam_file)
+            if not os.path.exists(filename):
+                raise ValueError('File '+filename+' does not exist!')
+            
+            with open(filename, 'r') as f:
+                self.beams = yaml.load(f, Loader=yaml.Loader)
+
+
+    def _init_gauss_beams(self):
+        """
+        Computes the dictionary of beams for each frequency of self.experiments
+        """
+        for iexp, exp in enumerate(self.experiments):
+            bands = self.bands[f"{exp}_s0"]
+            nu = np.asarray(bands["nu"])
+
+    def gauss_beams(self, nu):
+        """
+        Computes the gaussian beam for each frequency of a frequency array
+        according to eq. 54 of arXiv:astro-ph/0008228 
+        """
+        from astropy import constants, units
+        mirror_size = 6 * units.m
+        wavelenght = constants.c / (fband * 1e9 / units.s)
+        fwhm = 1.22 * wavelenght / mirror_size 
+        bls = np.empty((len(nu), self.l_bpws[-1]-1))
+        for ifw,fw in enumerate(fwhm):
+            #computing the beam from ell = 2 to ell max of l_bpws
+            bls[ifw,:] = hp.gauss_beam(fw,lmax=self.l_bpws[-1])[2:]
+        return bls
