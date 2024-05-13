@@ -31,13 +31,13 @@ nuis_params = {
     "a_psee": 0,
     "a_pste": 0,
     "xi": 0.10,
-    "beta_s": -2.5,    
-    "alpha_s": 1,      
-    "T_effd": 19.6,    
-    "beta_d": 1.5,     
-    "alpha_dT": -0.6,  
-    "alpha_dE": -0.4,  
-    "alpha_p": 1, 
+    "beta_s": -2.5,
+    "alpha_s": 1,
+    "T_effd": 19.6,
+    "beta_d": 1.5,
+    "alpha_dT": -0.6,
+    "alpha_dE": -0.4,
+    "alpha_p": 1,
     "bandint_shift_LAT_93": 0,
     "bandint_shift_LAT_145": 0,
     "bandint_shift_LAT_225": 0,
@@ -75,7 +75,7 @@ class MFLikeTest(unittest.TestCase):
         import camb
 
         camb_cosmo = cosmo_params.copy()
-        #using camb low accuracy parameters for the test
+        # using camb low accuracy parameters for the test
         camb_cosmo.update({"lmax": 9001, "lens_potential_accuracy": 1})
         pars = camb.set_params(**camb_cosmo)
         results = camb.get_results(pars)
@@ -88,7 +88,7 @@ class MFLikeTest(unittest.TestCase):
                 {
                     "packages_path": packages_path,
                     "input_file": pre + "00000.fits",
-                    "cov_Bbl_file":  "data_sacc_w_covar_and_Bbl.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                     "defaults": {
                         "polarizations": select.upper().split("-"),
                         "scales": {
@@ -102,7 +102,7 @@ class MFLikeTest(unittest.TestCase):
                 }
             )
 
-            loglike = my_mflike.loglike(cl_dict,  **nuis_params)
+            loglike = my_mflike.loglike(cl_dict, **nuis_params)
             self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 2)
 
     def test_cobaya(self):
@@ -111,7 +111,7 @@ class MFLikeTest(unittest.TestCase):
                 "mflike.MFLike": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
-                    },
+                },
             },
             "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
             "params": cosmo_params,
@@ -150,7 +150,7 @@ class MFLikeTest(unittest.TestCase):
                     }
                 },
                 "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
-                "params": {**cosmo_params,  **params},
+                "params": {**cosmo_params, **params},
                 "packages_path": packages_path,
             }
 

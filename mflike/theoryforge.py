@@ -119,10 +119,11 @@ class TheoryForge:
             }
             self.l_bpws = np.arange(2, 6002)
             self.requested_cls = ["tt", "te", "ee"]
-            self.bandint_freqs = np.array([93.0, 145.0, 225.0])
+            self.bandint_freqs_T = np.array([93.0, 145.0, 225.0])
+            self.bandint_freqs_P = np.array([93.0, 145.0, 225.0])
             self.use_top_hat_band = False
             self.bands = {
-                f"{exp}_s0": {"nu": [self.bandint_freqs[iexp]], "bandpass": [1.0]}
+                f"{exp}_s0": {"nu": [self.bandint_freqs_T[iexp]], "bandpass": [1.0]}
                 for iexp, exp in enumerate(self.experiments)
             }
         else:
@@ -164,7 +165,7 @@ class TheoryForge:
                     raise LoggedError(
                         self.log, "One band has width = 0, set a positive width and run again"
                     )
-            
+
             self.use_beam_profile = bool(mflike.beam_profile)
             if self.use_beam_profile:
                 self.beam_profile = mflike.beam_profile
@@ -173,7 +174,7 @@ class TheoryForge:
                     self._init_beam_from_file()
                 else:
                     self._init_gauss_beams()
-                    
+
     # Takes care of the bandpass construction. It returns a list of nu-transmittance
     # for each frequency or an array with the effective freqs.
     # bandpasses saved in the sacc file have to be divided by nu^2
@@ -181,7 +182,8 @@ class TheoryForge:
     # This factor is already included in the _cmb2bb function
     def _bandpass_construction(self, **params):
         r"""
-        Builds the bandpass transmission
+        Builds the bandpass transmission with or without beam.
+        When chromatic beam is not considered, we compute:
         :math:`\frac{\frac{\partial B_{\nu+\Delta \nu}}{\partial T}
         \tau(\nu+\Delta \nu)}{\int d\nu
         \frac{\partial B_{\nu+\Delta \nu}}{\partial T} \tau(\nu+\Delta \nu)}`
@@ -195,12 +197,31 @@ class TheoryForge:
         If ``nstep = 1`` and ``bandint_width = 0``, the passband is a Dirac delta
         centered at :math:`\nu+\Delta \nu`.
 
+        When the chromatic beam is considered, we compute
+        :math:`r_{\ell}^T(\nu+\Delta \nu) = \frac{\frac{\partial B_{\nu+\Delta \nu}}{\partial T}
+        \tau(\nu+\Delta \nu) b^T_{\ell}(\nu) b^{T, Gauss \, corr}_{\ell}(\nu, \Delta \nu)}
+        {\int d\nu
+        \frac{\partial B_{\nu+\Delta \nu}}{\partial T} \tau(\nu+\Delta \nu)
+        b^T_{\ell}(\nu) b^{T, Gauss \, corr}_{\ell}(\nu, \Delta \nu)}`
+        for the temperature field, and a corresponding expression for the polarization field,
+        replacing the temperature beam with the polarization one
+        :math:`b^P_{\ell}(\nu) b^{P, Gauss \, corr}_{\ell}(\nu, \Delta \nu)`.
+
+        In the presence of bandpass shift, we have to apply a correction to our beam
+        which is the correction expected for a Gaussian beam (this is an approximation
+        to compute this correction also when we don't have an analytical expression
+        for our beam).
+
+
         :param \**params: dictionary of nuisance parameters
         :return: the list of [nu, transmission] in the multifrequency case
-                 or just an array of frequencies in the single frequency one
+                 or just an array of frequencies in the single frequency one.
+                 We distinguish between T and pol transmission when a chromatic
+                 beam is included
         """
         data_are_monofreq = False
-        self.bandint_freqs = []
+        self.bandint_freqs_T = []
+        self.bandint_freqs_P = []
         for iexp, exp in enumerate(self.experiments):
             bandpar = f"bandint_shift_{exp}"
             # Only temperature bandpass for the time being
@@ -220,32 +241,69 @@ class TheoryForge:
                         self.bandint_nsteps,
                         dtype=float,
                     )
-                    tranb = _cmb2bb(nub)
-                    # normalization integral to be evaluated at the shifted freqs
-                    # in order to have cmb component calibrated to 1
-                    tranb_norm = np.trapz(_cmb2bb(nub), nub)
-                    self.bandint_freqs.append([nub, tranb / tranb_norm])
-                # in case we don't want to do band integration, e.g. when we have multifreq bandpass in sacc file
+
+                    if not self.use_beam_profile:
+                        # normalization integral to be evaluated at the shifted freqs
+                        # in order to have cmb component calibrated to 1
+                        tranb = _cmb2bb(nub)
+                        tranb_norm = np.trapz(_cmb2bb(nub), nub)
+                        self.bandint_freqs_T.append([nub, tranb / tranb_norm])
+                        self.bandint_freqs_P.append([nub, tranb / tranb_norm])
+                    else:
+                        blT, blP = self.return_beams(exp, nu_ghz, self.bandint_width[iexp])
+
+                        tranb_normT = np.trapz(_cmb2bb(nub)[..., np.newaxis] * blT, nub, axis=0)
+                        ratioT = _cmb2bb(nub)[..., np.newaxis] * blT / tranb_normT
+                        self.bandint_freqs_T.append([nub, ratioT])
+
+                        tranb_normP = np.trapz(_cmb2bb(nub)[..., np.newaxis] * blP, nub, axis=0)
+                        ratioP = _cmb2bb(nub)[..., np.newaxis] * blP / tranb_normP
+                        self.bandint_freqs_P.append([nub, ratioP])
+
+                # in case we don't want to do band integration
                 if self.bandint_nsteps == 1:
                     nub = fr + params[bandpar]
                     data_are_monofreq = True
-                    self.bandint_freqs.append(nub)
+                    self.bandint_freqs_T.append(nub)
+                    self.bandint_freqs_P.append(nub)
             # using the bandpass from sacc file
             else:
                 nub = nu_ghz + params[bandpar]
                 if len(bp) == 1:
                     # Monofrequency channel
                     data_are_monofreq = True
-                    self.bandint_freqs.append(nub[0])
+                    self.bandint_freqs_T.append(nub[0])
+                    self.bandint_freqs_P.append(nub[0])
                 else:
-                    trans_norm = np.trapz(bp * _cmb2bb(nub), nub)
-                    trans = bp / trans_norm * _cmb2bb(nub)
-                    self.bandint_freqs.append([nub, trans])
+                    if not self.use_beam_profile:
+                        trans_norm = np.trapz(bp * _cmb2bb(nub), nub)
+                        trans = bp / trans_norm * _cmb2bb(nub)
+                        self.bandint_freqs_T.append([nub, trans])
+                        self.bandint_freqs_P.append([nub, trans])
+                    else:
+                        blT, blP = self.return_beams(exp, nu_ghz, self.bandint_width[iexp])
+
+                        trans_normT = np.trapz(
+                            bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blT, nub, axis=0
+                        )
+                        ratioT = (
+                            bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blT / trans_normT
+                        )
+                        self.bandint_freqs_T.append([nub, ratioT])
+
+                        trans_normP = bp[..., np.newaxis] * np.trapz(
+                            _cmb2bb(nub)[..., np.newaxis] * blP, nub, axis=0
+                        )
+                        ratioP = (
+                            bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blP / trans_normP
+                        )
+                        self.bandint_freqs_P.append([nub, ratioP])
 
         # fgspectra can't mix monofrequency with [nu, bp]. If one channel is mono-frequency then we
         # assume all of them and pass to fgspectra an array (not list!!) of frequencies
         if data_are_monofreq:
-            self.bandint_freqs = np.asarray(self.bandint_freqs)
+            self.bandint_freqs_T = np.asarray(self.bandint_freqs_T)
+            self.bandint_freqs_P = np.asarray(self.bandint_freqs_P)
             self.log.info("bandpass is delta function, no band integration performed")
 
     def get_modified_theory(self, Dls, **params):
@@ -280,6 +338,7 @@ class TheoryForge:
 
         cmbfg_dict = {}
         # Sum CMB and FGs
+        # filling all exp x exp combinations
         for exp1, exp2 in product(self.experiments, self.experiments):
             for s in self.requested_cls:
                 cmbfg_dict[s, exp1, exp2] = Dls[s] + fg_dict[s, "all", exp1, exp2]
@@ -347,6 +406,10 @@ class TheoryForge:
         self.cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerSpectrumFromFile(cibc_file))
         self.dust = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
         self.tSZ_and_CIB = fgc.SZxCIB_Choi2020()
+        self.radioTE = fgc.FactorizedCrossSpectrumTE(fgf.PowerLaw(), fgf.PowerLaw, fgp.PowerLaw())
+        self.dustTE = fgc.FactorizedCrossSpectrumTE(
+            fgf.ModifiedBlackBody(), fgf.ModifiedBlackBody(), fgp.PowerLaw()
+        )
 
         components = self.foregrounds["components"]
         self.fg_component_list = {s: components[s] for s in self.requested_cls}
@@ -382,11 +445,11 @@ class TheoryForge:
 
         model = {}
         model["tt", "kSZ"] = fg_params["a_kSZ"] * self.ksz(
-            {"nu": self.bandint_freqs}, {"ell": ell, "ell_0": ell_0}
+            {"nu": self.bandint_freqs_T}, {"ell": ell, "ell_0": ell_0}
         )
         model["tt", "cibp"] = fg_params["a_p"] * self.cibp(
             {
-                "nu": self.bandint_freqs,
+                "nu": self.bandint_freqs_T,
                 "nu_0": nu_0,
                 "temp": fg_params["T_d"],
                 "beta": fg_params["beta_p"],
@@ -394,16 +457,16 @@ class TheoryForge:
             {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_p"]},
         )
         model["tt", "radio"] = fg_params["a_s"] * self.radio(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": fg_params["beta_s"]},
+            {"nu": self.bandint_freqs_T, "nu_0": nu_0, "beta": fg_params["beta_s"]},
             {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
         )
         model["tt", "tSZ"] = fg_params["a_tSZ"] * self.tsz(
-            {"nu": self.bandint_freqs, "nu_0": nu_0},
+            {"nu": self.bandint_freqs_T, "nu_0": nu_0},
             {"ell": ell, "ell_0": ell_0},
         )
         model["tt", "cibc"] = fg_params["a_c"] * self.cibc(
             {
-                "nu": self.bandint_freqs,
+                "nu": self.bandint_freqs_T,
                 "nu_0": nu_0,
                 "temp": fg_params["T_d"],
                 "beta": fg_params["beta_c"],
@@ -412,7 +475,7 @@ class TheoryForge:
         )
         model["tt", "dust"] = fg_params["a_gtt"] * self.dust(
             {
-                "nu": self.bandint_freqs,
+                "nu": self.bandint_freqs_T,
                 "nu_0": nu_0,
                 "temp": fg_params["T_effd"],
                 "beta": fg_params["beta_d"],
@@ -422,9 +485,9 @@ class TheoryForge:
         model["tt", "tSZ_and_CIB"] = self.tSZ_and_CIB(
             {
                 "kwseq": (
-                    {"nu": self.bandint_freqs, "nu_0": nu_0},
+                    {"nu": self.bandint_freqs_T, "nu_0": nu_0},
                     {
-                        "nu": self.bandint_freqs,
+                        "nu": self.bandint_freqs_T,
                         "nu_0": nu_0,
                         "temp": fg_params["T_d"],
                         "beta": fg_params["beta_c"],
@@ -445,12 +508,12 @@ class TheoryForge:
         )
 
         model["ee", "radio"] = fg_params["a_psee"] * self.radio(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": fg_params["beta_s"]},
+            {"nu": self.bandint_freqs_P, "nu_0": nu_0, "beta": fg_params["beta_s"]},
             {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
         )
         model["ee", "dust"] = fg_params["a_gee"] * self.dust(
             {
-                "nu": self.bandint_freqs,
+                "nu": self.bandint_freqs_P,
                 "nu_0": nu_0,
                 "temp": fg_params["T_effd"],
                 "beta": fg_params["beta_d"],
@@ -458,13 +521,20 @@ class TheoryForge:
             {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
         )
 
-        model["te", "radio"] = fg_params["a_pste"] * self.radio(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": fg_params["beta_s"]},
+        model["te", "radio"] = fg_params["a_pste"] * self.radioTE(
+            {"nu": self.bandint_freqs_T, "nu_0": nu_0, "beta": fg_params["beta_s"]},
+            {"nu": self.bandint_freqs_P, "nu_0": nu_0, "beta": fg_params["beta_s"]},
             {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
         )
-        model["te", "dust"] = fg_params["a_gte"] * self.dust(
+        model["te", "dust"] = fg_params["a_gte"] * self.dustTE(
             {
-                "nu": self.bandint_freqs,
+                "nu": self.bandint_freqs_T,
+                "nu_0": nu_0,
+                "temp": fg_params["T_effd"],
+                "beta": fg_params["beta_d"],
+            },
+            {
+                "nu": self.bandint_freqs_P,
                 "nu_0": nu_0,
                 "temp": fg_params["T_effd"],
                 "beta": fg_params["beta_d"],
@@ -651,35 +721,32 @@ class TheoryForge:
     ## that should be applied to any beam profile
     ###########################################################################
 
-
     def _init_beam_from_file(self):
         """
         Reads the beam profile from an external file or the sacc file.
-        It has to be a dictionary 
-        ``{"{exp}_s0": {"nu": nu, "beams": array(freqs, ells+2)},
-           "{exp}_s2": {"nu": nu, "beams": array(freqs, ells+2)},...}``
+        It has to be a dictionary ``{"{exp}_s0": {"nu": nu, "beams": array(freqs, ells+2)},
+        "{exp}_s2": {"nu": nu, "beams": array(freqs, ells+2)},...}``
         including temperature and polarization beams.
         """
-        
+
         if not self.beam_file:
             # option to read beam from sacc.
             try:
                 mflike.beams
             except:
-                raise ValueError('Beams not stored in sacc files!')
+                raise ValueError("Beams not stored in sacc files!")
             else:
                 self.beams = mflike.beams
         else:
             import yaml
 
             data_path = self.data_folder
-            filename = os.path.join(data_path, '%s.yaml'%self.beam_file)
+            filename = os.path.join(data_path, "%s.yaml" % self.beam_file)
             if not os.path.exists(filename):
-                raise ValueError('File '+filename+' does not exist!')
-            
-            with open(filename, 'r') as f:
-                self.beams = yaml.load(f, Loader=yaml.Loader)
+                raise ValueError("File " + filename + " does not exist!")
 
+            with open(filename, "r") as f:
+                self.beams = yaml.load(f, Loader=yaml.Loader)
 
     def _init_gauss_beams(self):
         """
@@ -690,79 +757,118 @@ class TheoryForge:
             bands = self.bands[f"{exp}_s0"]
             nu = np.asarray(bands["nu"])
             # computing temperature beam for exp
-            self.beams[f"{exp}_s0"] = {
-                "nu": nu, "beams": self.gauss_beams(nu, False)
-            }
+            self.beams[f"{exp}_s0"] = {"nu": nu, "beams": self.gauss_beams(nu, False)}
             # computing polarization beam for exp
-            self.beams[f"{exp}_s2"] = {
-                "nu": nu, "beams": self.gauss_beams(nu, True)
-            }
-
+            self.beams[f"{exp}_s2"] = {"nu": nu, "beams": self.gauss_beams(nu, True)}
 
     def gauss_beams(self, nu, pol):
         r"""
-        Computes the Gaussian beam (either for T or pol) for each frequency of a 
-        frequency array according to eqs. 54/55 of arXiv:astro-ph/0008228 
+        Computes the Gaussian beam (either for T or pol) for each frequency of a
+        frequency array according to eqs. 54/55 of arXiv:astro-ph/0008228
 
         :param nu: the frequency array in GHz
-        :param pol: (Bool) False to compute temperature Gaussian beam, 
+        :param pol: (Bool) False to compute temperature Gaussian beam,
                     True for the polarization one
 
-        :return: a :math:`B^{Gauss.}_{\ell}(\nu)`=``array(freqs, ells+2)`` with Gaussian beam 
+        :return: a :math:`b^{Gauss.}_{\ell}(\nu)` = ``array(freqs, lmax +2)`` with Gaussian beam
                  profiles for each frequency in :math:`\nu` (from :math:`\ell = 0`)
         """
         from astropy import constants, units
+
         mirror_size = 6 * units.m
         wavelenght = constants.c / (nu * 1e9 / units.s)
-        fwhm = 1.22 * wavelenght / mirror_size 
-        bls = np.empty((len(nu), self.l_bpws[-1]+1))
-        for ifw,fw in enumerate(fwhm):
-            #saving the beam from ell = 2 to ell max of l_bpws
+        fwhm = 1.22 * wavelenght / mirror_size
+        bls = np.empty((len(nu), self.l_bpws[-1] + 1))
+        for ifw, fw in enumerate(fwhm):
+            # saving the beam from ell = 2 to ell max of l_bpws
             if not pol:
-                bls[ifw,:] = hp.gauss_beam(fw,lmax=self.l_bpws[-1])
+                bls[ifw, :] = hp.gauss_beam(fw, lmax=self.l_bpws[-1])
             else:
                 # selecting the polarized gaussian beam
-                bls[ifw,:] = hp.gauss_beam(fw,lmax=self.l_bpws[-1], pol = True)[:,1]
-        
+                bls[ifw, :] = hp.gauss_beam(fw, lmax=self.l_bpws[-1], pol=True)[:, 1]
+
         return bls
 
     def gauss_correction(self, Nu, DNu, pol):
         r"""
-        Computes the correction to a Gaussian beam given by a bandpass shift, both 
+        Computes the correction to a Gaussian beam given by a bandpass shift, both
         for temperature and polarization beams. This is applied to every kind of beams,
         assuming the Gaussian correction is good enough also for a non-Gaussian beam.
-        
+
         :param Nu: the frequency array in GHz
         :param DNu: the bandpass shift :math:`\Delta \nu`
         :param pol: (Bool) False to compute the correction to a temperature Gaussian beam,
                     True for the polarization one
 
-        :return: a :math:`B^{Gauss. \, corr.}_{\ell}(\nu, \Delta \nu)`=``array(freqs, ells+2)`` 
-                 with correction to a Gaussian beam profiles for each frequency in :math:`\nu`
+        :return: a :math:`b^{T/P, Gauss. \, corr.}_{\ell}(\nu, \Delta \nu)` = ``np.array(freqs, lmax +2)``
+                 with correction to a temperature/polarization Gaussian beam profile
+                 for each frequency in :math:`\nu`
                  and bandpass shift :math:`\Delta \nu` (from :math:`\ell = 0`)
         """
         from astropy import constants, units
+
         mirror_size = 6 * units.m
         # useful numerical factor coming from the conversion from sigma to nu
-        fac = 1.22 * constants.c / mirror_size /(2*np.sqrt(2*np.log(2)))
+        fac = 1.22 * constants.c / mirror_size / (2 * np.sqrt(2 * np.log(2)))
         nu = Nu * 1e9 / units.s
         dnu = DNu * 1e9 / units.s
         # other repeating factor
-        dnuf = 1./(1. + 2.*dnu/nu + dnu**2/nu**2)
+        dnuf = 1.0 / (1.0 + 2.0 * dnu / nu + dnu**2 / nu**2)
         # let's compute it from ell = 0, as done in hp.gauss_beam
-        ell = np.arange(self.l_bpws[-1]+1)
+        ell = np.arange(self.l_bpws[-1] + 1)
         if not pol:
-            bcorr = dnuf[..., np.newaxis] \
-                    *np.exp(-ell*(ell+1)*fac*fac*(dnuf[..., np.newaxis]-1) \ 
-                    /2./nu[..., np.newaxis]/nu[..., np.newaxis])
+            bcorr = dnuf[..., np.newaxis] * np.exp(
+                -ell
+                * (ell + 1)
+                * fac
+                * fac
+                * (dnuf[..., np.newaxis] - 1)
+                / 2.0
+                / nu[..., np.newaxis]
+                / nu[..., np.newaxis]
+            )
         else:
-            bcorr = dnuf[..., np.newaxis] \
-                    *np.exp(-(ell*(ell+1)-4.)*fac*fac*(dnuf[..., np.newaxis]-1) \
-                    /2./nu[..., np.newaxis]/nu[..., np.newaxis])
+            bcorr = dnuf[..., np.newaxis] * np.exp(
+                -(ell * (ell + 1) - 4.0)
+                * fac
+                * fac
+                * (dnuf[..., np.newaxis] - 1)
+                / 2.0
+                / nu[..., np.newaxis]
+                / nu[..., np.newaxis]
+            )
 
         # normalizing the beam correction for each freq
-        bcorr /= bcorr.max(axis = 1)[...,np.newaxis]
-        
+        bcorr /= bcorr.max(axis=1)[..., np.newaxis]
+
         return bcorr
 
+    def return_beams(self, exp, nu, dnu):
+        r"""
+        Returns the temperature and polarization beams, properly normalized and from
+        :math:`\ell = 2` (like ``self.l_bpws``). We compute them from :math:`\ell = 0`
+        to normalize them in the correct way (temperature beam = 1 for :math:`\ell = 0`).
+        The polarization beam is normalized by the temperature one (as in ``hp.gauss_beam``).
 
+        :param nu: the frequency array in GHz (for now, the math:`\nu` array is the same
+                   between bandpass file and beam file for the same experiment/array.
+                   It is passed from the ``_bandpass_construction`` function
+                   for consistency.)
+        :param dnu: the bandpass shift :math:`\Delta \nu`
+
+        :return: The temperature and polarization beams
+        """
+        if dnu != 0:
+            blT = self.beams[f"{exp}_s0"]["beams"] * self.gauss_correction(nu, dnu, False)
+            blP = self.beams[f"{exp}_s2"]["beams"] * self.gauss_correction(nu, dnu, True)
+        else:
+            blT = self.beams[f"{exp}_s0"]["beams"]
+            blP = self.beams[f"{exp}_s2"]["beams"]
+
+        # normalizing the pol beam by the T one for each freq
+        # if already normalized, this operation has no effect
+        blP /= blT[:, 0][..., np.newaxis]
+        # normalizing the beam profile such that it has a max at 1 at ell = 0
+        blT /= blT[:, 0][..., np.newaxis]
+
+        return blT, blP
