@@ -17,10 +17,12 @@ foreground spectra computation.
 If one wants to use this class as standalone, the ``bands`` dictionary is filled when initializing
 ``TheoryForge``.
 
-This class applies three kinds of systematic effects to the CMB + foreground power spectrum:
+This class applies four kinds of systematic effects to the CMB + foreground power spectrum:
     * calibrations (global ``calG_all``, per channel ``cal_exp``, per field
       ``calT_exp``, ``calE_exp``)
     * polarization angles effect (``alpha_exp``)
+    * beam chromaticity (i.e. integrating the foreground SEDs with frequency dependent
+      beams)
     * systematic templates (e.g. T --> P leakage). In this case the dictionary
       ``systematics_template`` has to be filled with the correct path
       ``rootname``:
@@ -41,7 +43,7 @@ The bandpass shifts are applied within the ``_bandpass_construction`` function. 
       (which is the default now)
     * building the passbands :math:`\tau(\nu)`, either as Dirac delta or as top-hat
 
-For the first option, it is necessary to leave the `top_hat_band` key empty in ``MFLike.yaml``:
+For the first option, it is necessary to leave the ``top_hat_band`` key empty in ``MFLike.yaml``:
 
 .. code-block:: yaml
 
@@ -66,6 +68,41 @@ The effective frequencies, used as central frequencies to build the bandpasses, 
     nsteps: 1
     bandwidth: 0
 
+If we want to neglect the beam chromaticity effect, we should leave the ``beam_profile`` key empty
+in ``MFLike.yaml``:
+
+.. code-block:: yaml
+
+  beam_profile: null
+
+If we want to consider it, we have several options on how to compute/read the beam profiles. Notice that we need arrays(freqs, ells+2) (computed from :math:`\ell = 0`), since we want a beam window function for each freq in the bandpasses. We should use this block in ``MFLike.yaml``:
+
+.. code-block:: yaml
+
+  beam_profile:
+    Gaussian: True/False
+    rootname: "filename"/null
+
+There are several options: 
+    * reading the beams from the sacc file (``Gaussian: False``, ``rootname: null/False``). The beams      have to be stored in the ``sacc.tracers[exp].beam`` tracer (this is not working so far, since 
+      the sacc beam tracer doesn't like an array(freq, ell)
+    * reading the beams from an external yaml file (``Gaussian: False``, ``rootname: "filename"``). 
+      Do not use the ".yaml" extension nor the path to the file, which has to be the same as the 
+      data path. The yaml file has to be a dictionary ``{"{exp}_s0": {"nu": nu, 
+      "beams": array(freqs, ells+2)}, "{exp}_s2": {"nu": nu, "beams": array(freqs, ells+2)},...}``
+    * computing the beams as Gaussian beams (``Gaussian: True``, ``rootname: ...``). When 
+      ``Gaussian = True``, the beam is automatically computed within the code. Both T and 
+      polarization Gaussian beams are computed through ``healpy.gauss_beam``.
+
+Once computed/read, the beam profiles are saved in 
+
+.. code-block:: python
+
+   self.beams = {"{exp}_s0": {"nu": nu, "beams": array(freqs, ells+2)}, "{exp}_s2": {"nu": nu, "beams": array(freqs, ells+2)},...}. 
+
+The beams are appropriately normalized, then we select the bandpowers used in the rest of the code.
+
+In case of bandpass shift, we apply a correction to our beam profiles which is the one expected for Gaussian beams: :math:`b^{T/P}_{\ell}(\nu + \Delta \nu) =  b^{T/P}_{\ell}(\nu) b^{T/P, Gauss. \, corr.}_{\ell}(\nu, \Delta \nu)`.
 """
 
 import os
