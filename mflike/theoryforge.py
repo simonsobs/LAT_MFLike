@@ -250,7 +250,7 @@ class TheoryForge:
                         self.bandint_freqs_T.append([nub, tranb / tranb_norm])
                         self.bandint_freqs_P.append([nub, tranb / tranb_norm])
                     else:
-                        blT, blP = self.return_beams(exp, nu_ghz, self.bandint_width[iexp])
+                        blT, blP = self.return_beams(exp, nu_ghz, params[bandpar])
 
                         tranb_normT = np.trapz(_cmb2bb(nub)[..., np.newaxis] * blT, nub, axis=0)
                         ratioT = _cmb2bb(nub)[..., np.newaxis] * blT / tranb_normT
@@ -281,7 +281,7 @@ class TheoryForge:
                         self.bandint_freqs_T.append([nub, trans])
                         self.bandint_freqs_P.append([nub, trans])
                     else:
-                        blT, blP = self.return_beams(exp, nu_ghz, self.bandint_width[iexp])
+                        blT, blP = self.return_beams(exp, nu_ghz, params[bandpar])
 
                         trans_normT = np.trapz(
                             bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blT, nub, axis=0
@@ -406,7 +406,7 @@ class TheoryForge:
         self.cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerSpectrumFromFile(cibc_file))
         self.dust = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
         self.tSZ_and_CIB = fgc.SZxCIB_Choi2020()
-        self.radioTE = fgc.FactorizedCrossSpectrumTE(fgf.PowerLaw(), fgf.PowerLaw, fgp.PowerLaw())
+        self.radioTE = fgc.FactorizedCrossSpectrumTE(fgf.PowerLaw(), fgf.PowerLaw(), fgp.PowerLaw())
         self.dustTE = fgc.FactorizedCrossSpectrumTE(
             fgf.ModifiedBlackBody(), fgf.ModifiedBlackBody(), fgp.PowerLaw()
         )
@@ -732,7 +732,7 @@ class TheoryForge:
         if not self.beam_file:
             # option to read beam from sacc.
             try:
-                mflike.beams
+                bool(mflike.beams)
             except:
                 raise ValueError("Beams not stored in sacc files!")
             else:
@@ -744,7 +744,8 @@ class TheoryForge:
             filename = os.path.join(data_path, "%s.yaml" % self.beam_file)
             if not os.path.exists(filename):
                 raise ValueError("File " + filename + " does not exist!")
-
+            
+            
             with open(filename, "r") as f:
                 self.beams = yaml.load(f, Loader=yaml.Loader)
 
@@ -871,4 +872,4 @@ class TheoryForge:
         # normalizing the beam profile such that it has a max at 1 at ell = 0
         blT /= blT[:, 0][..., np.newaxis]
 
-        return blT, blP
+        return blT[:,2:self.l_bpws[-1] + 1], blP[:,2:self.l_bpws[-1] + 1]

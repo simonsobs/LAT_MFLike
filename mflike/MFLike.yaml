@@ -90,6 +90,7 @@ systematics_template:
 # if Gaussian = False and "rootname" is specified, it will be read from this file
 # the file has to be saved in the same path as the data
 # it has to be a yaml with keys = experiments and items = array((freqs, ells))
+# indicate only the name, without the yaml extension and the rest of the path
 # i.e. numpy arrays of beam profiles for each frequency in the passband of that array
 # default is the beam_profile to be a null dict and chromatic beam not 
 # taken into account

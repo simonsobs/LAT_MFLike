@@ -426,15 +426,17 @@ class MFLike(InstallableLikelihood):
         self.logp_const -= 0.5 * np.linalg.slogdet(self.cov)[1]
 
         self.experiments = data["experiments"]
+        self.bands = {}
+        self.beams = {}
         for name, tracer in s.tracers.items():
-            self.bands = {name: {"nu": tracer.nu, "bandpass": tracer.bandpass}}
+            self.bands[name] = {"nu": tracer.nu, "bandpass": tracer.bandpass}
             # trying to read beams, if present
             try:
                 tracer.beams
             except:
                 pass
             else:
-                self.beams = {name: {"nu": tracer.nu, "beams": tracer.beams}}
+                self.beams[name] = {"nu": tracer.nu, "beams": tracer.beam}
 
         # Put lcuts in a format that is recognisable by CAMB.
         self.lcuts = {k.lower(): c for k, c in self.lcuts.items()}
