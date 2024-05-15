@@ -812,6 +812,7 @@ class TheoryForge:
                  profiles for each frequency in :math:`\nu` (from :math:`\ell = 0`)
         """
         from astropy import constants, units
+        import healpy as hp
 
         mirror_size = 6 * units.m
         wavelenght = constants.c / (nu * 1e9 / units.s)
