@@ -30,7 +30,6 @@ from cobaya.tools import are_different_params_lists
 
 from .theoryforge import TheoryForge
 
-
 class MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
     _release = "v0.8"

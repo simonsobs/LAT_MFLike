@@ -876,9 +876,6 @@ class TheoryForge:
                 / nu[..., np.newaxis]
             )
 
-        # normalizing the beam correction for each freq
-        bcorr /= bcorr.max(axis=1)[..., np.newaxis]
-
         return bcorr
 
     def return_beams(self, exp, nu, dnu):
@@ -897,8 +894,8 @@ class TheoryForge:
         :return: The temperature and polarization beams
         """
         if dnu != 0:
-            blT = self.beams[f"{exp}_s0"]["beams"] * self.gauss_correction(nu, dnu, False)
-            blP = self.beams[f"{exp}_s2"]["beams"] * self.gauss_correction(nu, dnu, True)
+            blT = self.beams[f"{exp}_s0"]["beams"][:,:self.l_bpws[-1] + 1] * self.gauss_correction(nu, dnu, False)
+            blP = self.beams[f"{exp}_s2"]["beams"][:,:self.l_bpws[-1] + 1] * self.gauss_correction(nu, dnu, True)
         else:
             blT = self.beams[f"{exp}_s0"]["beams"]
             blP = self.beams[f"{exp}_s2"]["beams"]
