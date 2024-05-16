@@ -28,7 +28,6 @@ dependencies = [
   "cobaya>=3.4.1",
   "sacc>=0.9.0",
   "healpy",
-  "PyYAML",
 ]
 
 [project.optional-dependencies]
