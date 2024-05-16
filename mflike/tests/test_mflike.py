@@ -179,3 +179,25 @@ class MFLikeTest(unittest.TestCase):
                 }
                 chi2_mflike = -2 * (getattr(self, model).loglikes(new_params)[0] - logp_const)
                 self.assertAlmostEqual(chi2_mflike[0], chi2[i], 2)
+
+    def test_Gaussian_chromatic_beams(self):
+        info = {
+            "likelihood": {
+                "mflike.MFLike": {
+                    "input_file": pre + "00000.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                    "beam_profile": {"Gaussian": True},
+                },
+            },
+            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
+            "params": cosmo_params,
+            "packages_path": packages_path,
+        }
+        from cobaya.model import get_model
+
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.MFLike"]
+        chi2 = -2 * (model.loglikes(nuis_params)[0] - my_mflike.logp_const)
+        chi2s_beam = {"tt-te-et-ee": 4272.842504438564}
+        self.assertAlmostEqual(chi2[0], chi2s_beam["tt-te-et-ee"], 2)
+
