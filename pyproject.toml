@@ -27,6 +27,7 @@ dependencies = [
   "syslibrary>=0.2.0",
   "cobaya>=3.4.1",
   "sacc>=0.9.0",
+  "healpy",
 ]
 
 [project.optional-dependencies]
