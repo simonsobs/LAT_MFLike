@@ -23,10 +23,12 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Set gfortran link on macos-latest
-      if: matrix.os == 'macos-13'
+      if: matrix.os == 'macos-latest'
       run: |
         set -x
         sudo ln -s /usr/local/bin/gfortran-11 /usr/local/bin/gfortran
+        sudo mkdir /usr/local/gfortran
+        sudo ln -s /opt/homebrew/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
         gfortran --version
 
     - name: Install dependencies via pip
