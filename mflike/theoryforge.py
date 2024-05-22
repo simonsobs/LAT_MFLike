@@ -328,8 +328,8 @@ class TheoryForge:
                         )
                         self.bandint_freqs_T.append([nub, ratioT])
 
-                        trans_normP = bp[..., np.newaxis] * np.trapz(
-                            _cmb2bb(nub)[..., np.newaxis] * blP, nub, axis=0
+                        trans_normP = np.trapz(
+                           bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blP, nub, axis=0
                         )
                         ratioP = (
                             bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blP / trans_normP
