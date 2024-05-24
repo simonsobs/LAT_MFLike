@@ -80,19 +80,41 @@ If we want to consider it, we have several options on how to compute/read the be
 .. code-block:: yaml
 
   beam_profile:
-    Gaussian: True/False
-    rootname: "filename"/null
-
+    Gaussian_beam: dict/False/null
+    beam_from_file: "filename"/False/null
+    
 There are several options: 
-    * reading the beams from the sacc file (``Gaussian: False``, ``rootname: null/False``). The beams      have to be stored in the ``sacc.tracers[exp].beam`` tracer (this is not working so far, since 
-      the sacc beam tracer doesn't like an array(freq, ell)
-    * reading the beams from an external yaml file (``Gaussian: False``, ``rootname: "filename"``). 
+    * reading the beams from the sacc file (``Gaussian_beam: False/null``, ``beam_from_file: False/null``). 
+      The beams have to be stored in the ``sacc.tracers[exp].beam`` tracer 
+      (this is not working so far, since the sacc beam tracer doesn't like an array(freq, ell))
+    * reading the beams from an external yaml file (``Gaussian_beam: False/null``, ``beam_from_file: "filename"``). 
       Do not use the ".yaml" extension nor the path to the file, which has to be the same as the 
       data path. The yaml file has to be a dictionary ``{"{exp}_s0": {"nu": nu, 
       "beams": array(freqs, ells+2)}, "{exp}_s2": {"nu": nu, "beams": array(freqs, ells+2)},...}``
-    * computing the beams as Gaussian beams (``Gaussian: True``, ``rootname: ...``). When 
-      ``Gaussian = True``, the beam is automatically computed within the code. Both T and 
-      polarization Gaussian beams are computed through ``healpy.gauss_beam``.
+    * computing the beams as Gaussian beams (``Gaussian_beam: dict``, ``beam_from_file: ...``). When 
+      ``Gaussian_beam`` is not empty, the beam is automatically computed within the code. Both T and 
+      polarization Gaussian beams are computed through ``healpy.gauss_beam``. We need to pass a
+      dictionary with the ``FWHM_0``, ``nu_0``, ``alpha`` parameters for each array/experiment (both in T and pol),
+      in order to parametrize the Gaussian FWHM as :math:`FWHM(\nu) = FWHM(\nu_0) \left( \frac{\nu}{\nu_0} \right)^{-\alpha/2}`:
+
+.. code-block:: yaml
+
+  beam_profile:
+    Gaussian_beam: 
+      LAT_93_s0:
+        FWHM_0: ...
+        nu_0: ...
+        alpha: ...
+      LAT_93_s2:
+        FWHM_0: ...
+        nu_0: ...
+        alpha: ...
+      LAT_145_s0:
+        FWHM_0: ...
+        nu_0: ...
+        alpha: ...
+      ...
+    beam_from_file: null
 
 Once computed/read, the beam profiles are saved in 
 
@@ -103,6 +125,30 @@ Once computed/read, the beam profiles are saved in
 The beams are appropriately normalized, then we select the bandpowers used in the rest of the code.
 
 In case of bandpass shift, we apply a correction to our beam profiles which is the one expected for Gaussian beams: :math:`b^{T/P}_{\ell}(\nu + \Delta \nu) =  b^{T/P}_{\ell}(\nu) b^{T/P, Gauss. \, corr.}_{\ell}(\nu, \Delta \nu)`.
+
+To compute :math:`b^{T/P, Gauss. \, corr.}_{\ell}(\nu, \Delta \nu)` we need a dictionary with the FWHM(\nu_0), nu_0 and alpha information for all the arrays/experiments, because of the parametrization of the FWHM for Gaussian beams. We need to provide this dictionary under ``Gaussian_beam_correction``:
+
+.. code-block:: yaml
+
+  beam_profile:
+    Gaussian_beam_correction: 
+      LAT_93_s0:
+        FWHM_0: ...
+        nu_0: ...
+        alpha: ...
+      LAT_93_s2:
+        FWHM_0: ...
+        nu_0: ...
+        alpha: ...
+      LAT_145_s0:
+        FWHM_0: ...
+        nu_0: ...
+        alpha: ...
+      ...
+    Gaussian_beam: dict/False/null
+    beam_from_file: "filename"/False/null
+
+The beam profile itself is not forced to be Gaussian, it can also be read from file and the Gaussian correction will still be applied to it.
 """
 
 import os
@@ -206,11 +252,15 @@ class TheoryForge:
             self.use_beam_profile = bool(mflike.beam_profile)
             if self.use_beam_profile:
                 self.beam_profile = mflike.beam_profile
-                if not self.beam_profile.get("Gaussian"):
-                    self.beam_file = self.beam_profile.get("rootname")
+                if not self.beam_profile.get("Gaussian_beam"):
+                    self.beam_file = self.beam_profile.get("beam_from_file")
                     self._init_beam_from_file()
                 else:
+                    self.gaussian_params = self.beam_profile.get("Gaussian_beam")
                     self._init_gauss_beams()
+                # filling the possible dictionary for the parametrization of gaussian correction
+                # this has to be present in case bandpass shifts != 0
+                self.gaussian_correction_params = self.beam_profile.get("Gaussian_beam_correction")
 
     # Takes care of the bandpass construction. It returns a list of nu-transmittance
     # for each frequency or an array with the effective freqs.
@@ -328,8 +378,8 @@ class TheoryForge:
                         )
                         self.bandint_freqs_T.append([nub, ratioT])
 
-                        trans_normP = bp[..., np.newaxis] * np.trapz(
-                            _cmb2bb(nub)[..., np.newaxis] * blP, nub, axis=0
+                        trans_normP = np.trapz(
+                            bp[..., np.newaxis] *  _cmb2bb(nub)[..., np.newaxis] * blP, nub, axis=0
                         )
                         ratioP = (
                             bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blP / trans_normP
@@ -786,25 +836,51 @@ class TheoryForge:
             with open(filename, "r") as f:
                 self.beams = yaml.load(f, Loader=yaml.Loader)
 
+        #checking that the freq array is compatible with the bandpass one
+        for exp in self.experiments:
+            # checking nu is the same as the bandpass one
+            if not np.allclose(self.beams[f"{exp}_s0"]['nu'], self.bands[f"{exp}_s0"]['nu'], atol = 1e-5):
+                raise LoggedError(self.log, f"Frequency array for beam {exp}_s0 is not the same as the bandpass one!")
+            if not np.allclose(self.beams[f"{exp}_s2"]['nu'], self.bands[f"{exp}_s2"]['nu'], atol = 1e-5):
+                raise LoggedError(self.log, f"Frequency array for beam {exp}_s2 is not the same as the bandpass one!")
+
+
     def _init_gauss_beams(self):
         """
         Computes the dictionary of beams for each frequency of self.experiments
         """
         self.beams = {}
         for iexp, exp in enumerate(self.experiments):
-            bands = self.bands[f"{exp}_s0"]
-            nu = np.asarray(bands["nu"])
+            gauss_pars = self.gaussian_params[f"{exp}_s0"]
+            FWHM0 = np.asarray(gauss_pars["FWHM_0"])
+            #using the same freq array as the bandpass one
+            nu = np.asarray(self.bands[f"{exp}_s0"]['nu'])
+            nu0 = np.asarray(gauss_pars["nu_0"])
+            alpha = np.asarray(gauss_pars["alpha"])
             # computing temperature beam for exp
-            self.beams[f"{exp}_s0"] = {"nu": nu, "beams": self.gauss_beams(nu, False)}
-            # computing polarization beam for exp
-            self.beams[f"{exp}_s2"] = {"nu": nu, "beams": self.gauss_beams(nu, True)}
+            self.beams[f"{exp}_s0"] = {"nu": nu, "beams": self.gauss_beams(FWHM0, nu, nu0, alpha, False)}
+            # doing the same for polarization
+            gauss_pars = self.gaussian_params[f"{exp}_s2"]
+            FWHM0 = np.asarray(gauss_pars["FWHM_0"])
+            # nu pol should be the same as the T one, I'll comment it for now
+            #nu = np.asarray(self.bands[f"{exp}_s2"]['nu'])
+            nu0 = np.asarray(gauss_pars["nu_0"])
+            alpha = np.asarray(gauss_pars["alpha"])
+            # checking nu is the same as the bandpass one
+            self.beams[f"{exp}_s2"] = {"nu": nu, "beams": self.gauss_beams(FWHM0, nu, nu0, alpha, True)}
 
-    def gauss_beams(self, nu, pol):
+
+    def gauss_beams(self, fwhm0, nu, nu0, alpha, pol):
         r"""
         Computes the Gaussian beam (either for T or pol) for each frequency of a
-        frequency array according to eqs. 54/55 of arXiv:astro-ph/0008228
+        frequency array according to eqs. 54/55 of arXiv:astro-ph/0008228. We assume a more general
+        scaling for the FWHM: :math:`FWHM(\nu) = FWHM(\nu_0) \left( \frac{\nu}{\nu_0} \right)^{-\alpha}`.
 
+        :param fwhm0: the FWHM for the pivot frequency
         :param nu: the frequency array in GHz
+        :param nu0: the pivot frequency in GHz
+        :param alpha: the exponent of the frequency scaling 
+                      :math:`\left( \frac{\nu}{\nu_0} \right)^{-\alpha/2}`
         :param pol: (Bool) False to compute temperature Gaussian beam,
                     True for the polarization one
 
@@ -814,9 +890,7 @@ class TheoryForge:
         from astropy import constants, units
         import healpy as hp
 
-        mirror_size = 6 * units.m
-        wavelenght = constants.c / (nu * 1e9 / units.s)
-        fwhm = 1.22 * wavelenght / mirror_size
+        fwhm = fwhm0 * (nu / nu0)**(-alpha/2.)
         bls = np.empty((len(nu), self.l_bpws[-1] + 1))
         for ifw, fw in enumerate(fwhm):
             # saving the beam from ell = 2 to ell max of l_bpws
@@ -828,31 +902,33 @@ class TheoryForge:
 
         return bls
 
-    def gauss_correction(self, Nu, DNu, pol):
+    def gauss_correction(self, fwhm0, nu, nu0, alpha, dnu, pol):
         r"""
         Computes the correction to a Gaussian beam given by a bandpass shift, both
         for temperature and polarization beams. This is applied to every kind of beams,
         assuming the Gaussian correction is good enough also for a non-Gaussian beam.
 
-        :param Nu: the frequency array in GHz
-        :param DNu: the bandpass shift :math:`\Delta \nu`
+        :param fwhm0: the FWHM for the pivot frequency
+        :param nu: the frequency array in GHz
+        :param nu0: the pivot frequency in GHz
+        :param alpha: the exponent of the frequency scaling
+                      :math:`\left( \frac{\nu}{\nu_0} \right)^{-\alpha/2}`
+        :param dnu: the bandpass shift :math:`\Delta \nu` in GHz
         :param pol: (Bool) False to compute the correction to a temperature Gaussian beam,
                     True for the polarization one
 
         :return: a :math:`b^{T/P, Gauss. \, corr.}_{\ell}(\nu, \Delta \nu)` = ``np.array(freqs, lmax +2)``
                  with correction to a temperature/polarization Gaussian beam profile
                  for each frequency in :math:`\nu`
-                 and bandpass shift :math:`\Delta \nu` (from :math:`\ell = 0`)
+                 and bandpass shift :math:`\Delta \nu` (from :math:`\ell = 0`).
+                 We assume the Gaussian beam FWHM to scale like: :math:`FWHM(\nu) = FWHM(\nu_0) \left( \frac{\nu}{\nu_0} \right)^{-\alpha}`.
         """
         from astropy import constants, units
 
-        mirror_size = 6 * units.m
         # useful numerical factor coming from the conversion from sigma to nu
-        fac = 1.22 * constants.c / mirror_size / (2 * np.sqrt(2 * np.log(2)))
-        nu = Nu * 1e9 / units.s
-        dnu = DNu * 1e9 / units.s
+        fac = fwhm0 / (2 * np.sqrt(2 * np.log(2)))
         # other repeating factor
-        dnuf = 1.0 / (1.0 + 2.0 * dnu / nu + dnu**2 / nu**2)
+        dnuf = (1 + dnu/nu)**(-alpha)
         # let's compute it from ell = 0, as done in hp.gauss_beam
         ell = np.arange(self.l_bpws[-1] + 1)
         if not pol:
@@ -861,20 +937,18 @@ class TheoryForge:
                 * (ell + 1)
                 * fac
                 * fac
+                * (nu[..., np.newaxis] / nu0)**(-alpha)
                 * (dnuf[..., np.newaxis] - 1)
                 / 2.0
-                / nu[..., np.newaxis]
-                / nu[..., np.newaxis]
             )
         else:
             bcorr = dnuf[..., np.newaxis] * np.exp(
                 -(ell * (ell + 1) - 4.0)
                 * fac
                 * fac
+                * (nu[..., np.newaxis] / nu0)**(-alpha)
                 * (dnuf[..., np.newaxis] - 1)
                 / 2.0
-                / nu[..., np.newaxis]
-                / nu[..., np.newaxis]
             )
 
         return bcorr
@@ -895,8 +969,22 @@ class TheoryForge:
         :return: The temperature and polarization beams
         """
         if dnu != 0:
-            blT = self.beams[f"{exp}_s0"]["beams"][:,:self.l_bpws[-1] + 1] * self.gauss_correction(nu, dnu, False)
-            blP = self.beams[f"{exp}_s2"]["beams"][:,:self.l_bpws[-1] + 1] * self.gauss_correction(nu, dnu, True)
+            gauss_pars = self.gaussian_correction_params[f"{exp}_s0"]
+            FWHM0 = np.asarray(gauss_pars["FWHM_0"])
+            #using the same freq array as the bandpass one
+            nu = np.asarray(self.bands[f"{exp}_s0"]['nu'])
+            nu0 = np.asarray(gauss_pars["nu_0"])
+            alpha = np.asarray(gauss_pars["alpha"])
+            blT = self.beams[f"{exp}_s0"]["beams"][:,:self.l_bpws[-1] + 1] * self.gauss_correction(FWHM0, nu, nu0, alpha, dnu, False)
+
+            gauss_pars = self.gaussian_correction_params[f"{exp}_s2"]
+            FWHM0 = np.asarray(gauss_pars["FWHM_0"])
+            #using the same freq array as the bandpass one
+            # nu pol should be the same as the T one, I'll comment it for now
+            #nu = np.asarray(self.bands[f"{exp}_s2"]['nu'])
+            nu0 = np.asarray(gauss_pars["nu_0"])
+            alpha = np.asarray(gauss_pars["alpha"])
+            blP = self.beams[f"{exp}_s2"]["beams"][:,:self.l_bpws[-1] + 1] * self.gauss_correction(FWHM0, nu, nu0, alpha, dnu, True)
         else:
             blT = self.beams[f"{exp}_s0"]["beams"]
             blP = self.beams[f"{exp}_s2"]["beams"]

@@ -164,7 +164,7 @@ class MFLike(InstallableLikelihood):
         return self.loglike(cl, **params_values_nocosmo)
 
     def loglike(self, cl, **params_values_nocosmo):
-        """
+        r"""
         Computes the gaussian log-likelihood
 
         :param cl: the dictionary of theory + foregrounds :math:`D_{\ell}`

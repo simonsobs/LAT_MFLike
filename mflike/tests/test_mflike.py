@@ -181,12 +181,30 @@ class MFLikeTest(unittest.TestCase):
                 self.assertAlmostEqual(chi2_mflike[0], chi2[i], 2)
 
     def test_Gaussian_chromatic_beams(self):
+
+        def compute_FWHM(nu):
+            from astropy import constants, units
+
+            mirror_size = 6 * units.m
+            wavelenght = constants.c / (nu * 1e9 / units.s)
+            fwhm = 1.22 * wavelenght / mirror_size
+            return fwhm
+
+        beam_params = {}
+        for f in [93, 145, 225]:
+            beam_params[f"LAT_{f}_s0"] = {
+                    "FWHM_0": compute_FWHM(f),
+                    "nu_0": f,
+                    "alpha": 2
+                    }
+            beam_params[f"LAT_{f}_s2"] = beam_params[f"LAT_{f}_s0"]
+
         info = {
             "likelihood": {
                 "mflike.MFLike": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
-                    "beam_profile": {"Gaussian": True},
+                    "beam_profile": {"Gaussian_beam": beam_params},
                 },
             },
             "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},

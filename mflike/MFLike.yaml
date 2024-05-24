@@ -86,18 +86,43 @@ systematics_template:
 
 # specify if the beam profile has to be computed as a Gaussian beam
 # or be read from a file (either from external file with name "rootname" or from sacc)
-# if Gaussian = False and rootname = False, it will be read from the sacc file
-# if Gaussian = False and "rootname" is specified, it will be read from this file
-# the file has to be saved in the same path as the data
-# it has to be a yaml with keys = experiments and items = array((freqs, ells))
-# indicate only the name, without the yaml extension and the rest of the path
-# i.e. numpy arrays of beam profiles for each frequency in the passband of that array
+# - if Gaussian_beam = False/empty and beam_from_file = False/empty, it will be read from the sacc file
+# - if Gaussian_beam = False/empty and beam_from_file is specified, it will be read from this file
+#   the file has to be saved in the same path as the data
+#   indicate only the name, without the yaml extension and the rest of the path
+#   it has to be a yaml with keys = experiments and items = array((freqs, ells))
+#   i.e. numpy arrays of beam profiles for each frequency in the passband of that array
+# - If we want to compute Gaussian beams, fill the Gaussian_beam entry with dictionaries
+#   containing the parametrization for FWHM for each experiment/array in T and pol
+# - If bandpass shifts are != 0, you have to fill the Gaussian_beam_correction dict
+#   in the same way you would fill the Gaussian_beam one, since this correction is computed assuming 
+#   a Gaussian beam. The beam profile in this case does not have to be Gaussian, we can read it from 
+#   file and still apply this Gaussian correction due to bandpass shifts != 0.
 # default is the beam_profile to be a null dict and chromatic beam not 
 # taken into account
 beam_profile:
-# Gaussian has to be either True or False 
-#  Gaussian: 
-#  rootname: 
+# Gaussian has to be either empty or filled with params needed for each experiment 
+#  Gaussian_beam: 
+#    LAT_93_s0:
+#      FWHM_0: ...
+#      nu_0: ...
+#      alpha: ...
+#    LAT_93_s2:
+#      FWHM_0: ...
+#      nu_0: ...
+#      alpha: ...
+#    LAT_145_s0:
+#      ...
+#    ...
+#  Gaussian_beam_correction:
+#    LAT_93_s0:
+#      FWHM_0: ...
+#      nu_0: ...
+#      alpha: ...
+#    LAT_93_s2:
+#      FWHM_0: ...
+#    ...
+#  beam_from_file: "filename"/null
 
 foregrounds:
   normalisation:
