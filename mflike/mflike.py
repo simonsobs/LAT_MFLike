@@ -430,11 +430,7 @@ class MFLike(InstallableLikelihood):
         for name, tracer in s.tracers.items():
             self.bands[name] = {"nu": tracer.nu, "bandpass": tracer.bandpass}
             # trying to read beams, if present
-            try:
-                tracer.beams
-            except:
-                pass
-            else:
+            if hasattr(tracer, "beam"):
                 self.beams[name] = {"nu": tracer.nu, "beams": tracer.beam}
 
         # Put lcuts in a format that is recognisable by CAMB.
