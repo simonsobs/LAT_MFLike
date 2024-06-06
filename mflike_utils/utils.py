@@ -21,7 +21,7 @@ install({"likelihood": {"mflike.MFLike": None}}, path=packages_path)
 
 def compute_FWHM(nu):
     """
-    Simple function to compute FWHMi for the LAT assuming a diffraction limited experiment.
+    Simple function to compute FWHM for the LAT assuming a diffraction limited experiment.
 
     :param nu: the frequency array in GHz
 
