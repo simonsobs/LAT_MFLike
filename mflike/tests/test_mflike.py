@@ -219,3 +219,52 @@ class MFLikeTest(unittest.TestCase):
         chi2s_beam = {"tt-te-et-ee": 4272.842504438564}
         self.assertAlmostEqual(chi2[0], chi2s_beam["tt-te-et-ee"], 2)
 
+
+        # testing the bandpass shift case
+        # generating the dictionary needed for the bandpass shift case
+        test_path = os.path.dirname(__file__)
+        import subprocess
+        subprocess.run("python "+os.path.join(test_path, "../../mflike_utils/utils.py"), shell=True, check=True) 
+
+        model.close()
+        
+        from copy import deepcopy
+
+        # Let's vary values of bandint_shift parameters
+        params = deepcopy(nuis_params)
+        params.update(
+            {
+                k: {"prior": dict(min=0.9 * v, max=1.1 * v)}
+                for k, v in params.items()
+                if k.startswith("bandint_shift")
+            }
+        )
+
+        info = {
+                "likelihood": {
+                    "mflike.MFLike": {
+                        "input_file": pre + "00000.fits",
+                        "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                        "beam_profile": {"Gaussian_beam": beam_params,
+                            "Bandpass_shifted_beams": "LAT_beam_bandshift"},
+                    },
+                },
+                "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
+                "params": {**cosmo_params, **params},
+                "packages_path": packages_path,
+            }
+        from cobaya.model import get_model
+
+        model = get_model(info)
+        logp_const = model.likelihood["mflike.MFLike"].logp_const
+
+        chi2 = [4272.84250444, 10987.36734122, 127166.75296958]
+
+        for i, bandshift in enumerate([0.0, 1.0, 5.0]):
+            new_params = {
+                    **params,
+                    **{par: bandshift for par in params.keys() if par.startswith("bandint_shift")},
+                }
+
+            chi2_mflike = -2 * (model.loglikes(new_params)[0] - logp_const)
+            self.assertAlmostEqual(chi2_mflike[0], chi2[i], 2)

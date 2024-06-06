@@ -86,7 +86,7 @@ systematics_template:
 
 # specify if the beam profile has to be computed as a Gaussian beam
 # or be read from a file (either from external file with name "rootname" or from sacc)
-# - if Gaussian_beam = False/empty and beam_from_file = False/empty, it will be read from the sacc file
+# - if Gaussian_beam = False/empty and beam_from_file = False/empty, it will be read from the sacc file (currently not working)
 # - if Gaussian_beam = False/empty and beam_from_file is specified, it will be read from this file
 #   the file has to be saved in the same path as the data
 #   indicate only the name, without the yaml extension and the rest of the path
@@ -94,10 +94,12 @@ systematics_template:
 #   i.e. numpy arrays of beam profiles for each frequency in the passband of that array
 # - If we want to compute Gaussian beams, fill the Gaussian_beam entry with dictionaries
 #   containing the parametrization for FWHM for each experiment/array in T and pol
-# - If bandpass shifts are != 0, you have to fill the Gaussian_beam_correction dict
-#   in the same way you would fill the Gaussian_beam one, since this correction is computed assuming 
-#   a Gaussian beam. The beam profile in this case does not have to be Gaussian, we can read it from 
-#   file and still apply this Gaussian correction due to bandpass shifts != 0.
+# - If bandpass shifts are != 0, you have to fill the Bandpass_shifted_beams key
+#   with the name of the file containing the dictionary with beam profiles for different values
+#   of Delta nu. As before, the file should be a yaml, the filename should not contain the ".yaml" 
+#   extension and should be in the same path as the data. The dictionary should contain a key for
+#   each experiment/array, and for each of these keys there should be a "nu_0", "alpha" and "beams"
+#   keys. The "beams" item would be a dictionary {"nu_0 + Delta nu": b_ell, "nu_0 + 2Delta nu": b'_ell,...}   
 # default is the beam_profile to be a null dict and chromatic beam not 
 # taken into account
 beam_profile:
@@ -114,14 +116,7 @@ beam_profile:
 #    LAT_145_s0:
 #      ...
 #    ...
-#  Gaussian_beam_correction:
-#    LAT_93_s0:
-#      FWHM_0: ...
-#      nu_0: ...
-#      alpha: ...
-#    LAT_93_s2:
-#      FWHM_0: ...
-#    ...
+#  Bandpass_shifted_beams: "filename"/null
 #  beam_from_file: "filename"/null
 
 foregrounds:
