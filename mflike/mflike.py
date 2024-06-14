@@ -99,7 +99,7 @@ class MFLike(InstallableLikelihood):
             "beta_d",
             "alpha_dT",
             "alpha_dE",
-            "alpha_SZ",
+            "alpha_tSZ",
             "alpha_p",
         ]
 

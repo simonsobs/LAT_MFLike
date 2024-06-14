@@ -401,7 +401,7 @@ class TheoryForge:
         )
         model["tt", "tSZ"] = fg_params["a_tSZ"] * self.tsz(
             {"nu": self.bandint_freqs, "nu_0": nu_0},
-            {"ell": ell, "ell_0": ell_0, "alpha": fg_params["alpha_SZ"]},
+            {"ell": ell, "ell_0": ell_0, "alpha": fg_params["alpha_tSZ"]},
         )
         model["tt", "cibc"] = fg_params["a_c"] * self.cibc(
             {
@@ -439,7 +439,7 @@ class TheoryForge:
                         "ell": ell,
                         "ell_0": ell_0,
                         "amp": fg_params["a_tSZ"],
-                        "alpha": fg_params["alpha_SZ"]
+                        "alpha": fg_params["alpha_tSZ"]
                     },
                     {"ell": ell, "ell_0": ell_0, "amp": fg_params["a_c"]},
                     {
