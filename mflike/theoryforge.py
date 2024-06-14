@@ -323,7 +323,9 @@ class TheoryForge:
         from fgspectra import power as fgp
 
         template_path = os.path.join(os.path.dirname(os.path.abspath(fgp.__file__)), "data")
+        tsz_file = os.path.join(template_path, "cl_tsz_150_bat.dat")
         cibc_file = os.path.join(template_path, "cl_cib_Choi2020.dat")
+        cibxtsz_file = os.path.join(template_path, "cl_sz_x_cib.dat")
 
         # set pivot freq and multipole
         self.fg_nu_0 = self.foregrounds["normalisation"]["nu_0"]
@@ -334,10 +336,19 @@ class TheoryForge:
         self.ksz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.kSZ_bat())
         self.cibp = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
         self.radio = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
-        self.tsz = fgc.FactorizedCrossSpectrum(fgf.ThermalSZ(), fgp.tSZ_150_bat())
+        self.tsz = fgc.FactorizedCrossSpectrum(fgf.ThermalSZ(), fgp.PowerLawRescaledTemplate(tsz_file))
         self.cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerSpectrumFromFile(cibc_file))
         self.dust = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
-        self.tSZ_and_CIB = fgc.SZxCIB_Choi2020()
+
+        tsz_cib_sed = fgf.Join(fgf.ThermalSZ(), fgf.CIB())
+        tsz_cib_power_spectra = [
+            fgp.PowerLawRescaledTemplate(tsz_file),
+            fgp.PowerSpectrumFromFile(cibc_file),
+            fgp.PowerSpectrumFromFile(cibxtsz_file)
+        ]
+        tsz_cib_cl = fgp.PowerSpectraAndCovariance(*tsz_cib_power_spectra)
+
+        self.tSZ_and_CIB = fgc.CorrelatedFactorizedCrossSpectrum(tsz_cib_sed, tsz_cib_cl)
 
         components = self.foregrounds["components"]
         self.fg_component_list = {s: components[s] for s in self.requested_cls}
@@ -390,7 +401,7 @@ class TheoryForge:
         )
         model["tt", "tSZ"] = fg_params["a_tSZ"] * self.tsz(
             {"nu": self.bandint_freqs, "nu_0": nu_0},
-            {"ell": ell, "ell_0": ell_0},
+            {"ell": ell, "ell_0": ell_0, "alpha": fg_params["alpha_SZ"]},
         )
         model["tt", "cibc"] = fg_params["a_c"] * self.cibc(
             {
@@ -424,7 +435,12 @@ class TheoryForge:
             },
             {
                 "kwseq": (
-                    {"ell": ell, "ell_0": ell_0, "amp": fg_params["a_tSZ"]},
+                    {
+                        "ell": ell,
+                        "ell_0": ell_0,
+                        "amp": fg_params["a_tSZ"],
+                        "alpha": fg_params["alpha_SZ"]
+                    },
                     {"ell": ell, "ell_0": ell_0, "amp": fg_params["a_c"]},
                     {
                         "ell": ell,

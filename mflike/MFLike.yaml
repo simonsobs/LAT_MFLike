@@ -213,6 +213,9 @@ params:
   alpha_p:              #CIB poisson ell slope
     value: 1.0
     latex: \alpha_p
+  alpha_SZ:             #tSZ ell slope
+    value: 0.0
+    latex: \alpha_{\rm SZ}
 
   # Systematics
   bandint_shift_LAT_93:
