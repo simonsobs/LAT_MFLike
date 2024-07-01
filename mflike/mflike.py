@@ -30,7 +30,6 @@ from cobaya.tools import are_different_params_lists
 
 from .theoryforge import TheoryForge
 
-
 class MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
     _release = "v0.8"
@@ -44,6 +43,7 @@ class MFLike(InstallableLikelihood):
     foregrounds: dict
     top_hat_band: dict
     systematics_template: dict
+    beam_profile: dict
 
     def initialize(self):
         # Set default values to data member not initialized via yaml file
@@ -165,7 +165,7 @@ class MFLike(InstallableLikelihood):
         return self.loglike(cl, **params_values_nocosmo)
 
     def loglike(self, cl, **params_values_nocosmo):
-        """
+        r"""
         Computes the gaussian log-likelihood
 
         :param cl: the dictionary of theory + foregrounds :math:`D_{\ell}`
@@ -426,10 +426,13 @@ class MFLike(InstallableLikelihood):
         self.logp_const -= 0.5 * np.linalg.slogdet(self.cov)[1]
 
         self.experiments = data["experiments"]
-        self.bands = {
-            name: {"nu": tracer.nu, "bandpass": tracer.bandpass}
-            for name, tracer in s.tracers.items()
-        }
+        self.bands = {}
+        self.beams = {}
+        for name, tracer in s.tracers.items():
+            self.bands[name] = {"nu": tracer.nu, "bandpass": tracer.bandpass}
+            # trying to read beams, if present
+            if hasattr(tracer, "beam"):
+                self.beams[name] = {"nu": tracer.nu, "beams": tracer.beam}
 
         # Put lcuts in a format that is recognisable by CAMB.
         self.lcuts = {k.lower(): c for k, c in self.lcuts.items()}

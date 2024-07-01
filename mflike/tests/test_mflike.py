@@ -76,7 +76,7 @@ class MFLikeTest(unittest.TestCase):
         import camb
 
         camb_cosmo = cosmo_params.copy()
-        #using camb low accuracy parameters for the test
+        # using camb low accuracy parameters for the test
         camb_cosmo.update({"lmax": 9001, "lens_potential_accuracy": 1})
         pars = camb.set_params(**camb_cosmo)
         results = camb.get_results(pars)
@@ -89,7 +89,7 @@ class MFLikeTest(unittest.TestCase):
                 {
                     "packages_path": packages_path,
                     "input_file": pre + "00000.fits",
-                    "cov_Bbl_file":  "data_sacc_w_covar_and_Bbl.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                     "defaults": {
                         "polarizations": select.upper().split("-"),
                         "scales": {
@@ -103,7 +103,7 @@ class MFLikeTest(unittest.TestCase):
                 }
             )
 
-            loglike = my_mflike.loglike(cl_dict,  **nuis_params)
+            loglike = my_mflike.loglike(cl_dict, **nuis_params)
             self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 2)
 
     def test_cobaya(self):
@@ -112,7 +112,7 @@ class MFLikeTest(unittest.TestCase):
                 "mflike.MFLike": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
-                    },
+                },
             },
             "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
             "params": cosmo_params,
@@ -151,7 +151,7 @@ class MFLikeTest(unittest.TestCase):
                     }
                 },
                 "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
-                "params": {**cosmo_params,  **params},
+                "params": {**cosmo_params, **params},
                 "packages_path": packages_path,
             }
 
@@ -180,3 +180,92 @@ class MFLikeTest(unittest.TestCase):
                 }
                 chi2_mflike = -2 * (getattr(self, model).loglikes(new_params)[0] - logp_const)
                 self.assertAlmostEqual(chi2_mflike[0], chi2[i], 2)
+
+    def test_Gaussian_chromatic_beams(self):
+
+        def compute_FWHM(nu):
+            from astropy import constants, units
+
+            mirror_size = 6 * units.m
+            wavelenght = constants.c / (nu * 1e9 / units.s)
+            fwhm = 1.22 * wavelenght / mirror_size
+            return fwhm
+
+        beam_params = {}
+        for f in [93, 145, 225]:
+            beam_params[f"LAT_{f}_s0"] = {
+                    "FWHM_0": compute_FWHM(f),
+                    "nu_0": f,
+                    "alpha": 2
+                    }
+            beam_params[f"LAT_{f}_s2"] = beam_params[f"LAT_{f}_s0"]
+
+        info = {
+            "likelihood": {
+                "mflike.MFLike": {
+                    "input_file": pre + "00000.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                    "beam_profile": {"Gaussian_beam": beam_params},
+                },
+            },
+            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
+            "params": cosmo_params,
+            "packages_path": packages_path,
+        }
+        from cobaya.model import get_model
+
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.MFLike"]
+        chi2 = -2 * (model.loglikes(nuis_params)[0] - my_mflike.logp_const)
+        chi2s_beam = {"tt-te-et-ee": 4272.842504438564}
+        self.assertAlmostEqual(chi2[0], chi2s_beam["tt-te-et-ee"], 2)
+
+
+        # testing the bandpass shift case
+        # generating the dictionary needed for the bandpass shift case
+        test_path = os.path.dirname(__file__)
+        import subprocess
+        subprocess.run("python "+os.path.join(test_path, "../../mflike_utils/utils.py"), shell=True, check=True) 
+
+        model.close()
+        
+        from copy import deepcopy
+
+        # Let's vary values of bandint_shift parameters
+        params = deepcopy(nuis_params)
+        params.update(
+            {
+                k: {"prior": dict(min=0.9 * v, max=1.1 * v)}
+                for k, v in params.items()
+                if k.startswith("bandint_shift")
+            }
+        )
+
+        info = {
+                "likelihood": {
+                    "mflike.MFLike": {
+                        "input_file": pre + "00000.fits",
+                        "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                        "beam_profile": {"Gaussian_beam": beam_params,
+                            "Bandpass_shifted_beams": "LAT_beam_bandshift"},
+                    },
+                },
+                "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
+                "params": {**cosmo_params, **params},
+                "packages_path": packages_path,
+            }
+        from cobaya.model import get_model
+
+        model = get_model(info)
+        logp_const = model.likelihood["mflike.MFLike"].logp_const
+
+        chi2 = [4272.84250444, 10987.36734122, 127166.75296958]
+
+        for i, bandshift in enumerate([0.0, 1.0, 5.0]):
+            new_params = {
+                    **params,
+                    **{par: bandshift for par in params.keys() if par.startswith("bandint_shift")},
+                }
+
+            chi2_mflike = -2 * (model.loglikes(new_params)[0] - logp_const)
+            self.assertAlmostEqual(chi2_mflike[0], chi2[i], 2)
