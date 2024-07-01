@@ -111,6 +111,10 @@ class MFLike(InstallableLikelihood):
                 f"cal_{f}",
                 f"calE_{f}",
                 f"alpha_{f}",
+                # amplitudes of systematic templates
+                f"a_deltaT_{f}",
+                f"a_deltaE_{f}",
+                f"a_gamma_{f}"
             ]
 
         self.ThFo = TheoryForge(self)
@@ -123,7 +127,8 @@ class MFLike(InstallableLikelihood):
         """
         self.non_sampled_params = {}
         for exp in self.experiments:
-            self.non_sampled_params.update({f"calT_{exp}": 1.0, f"alpha_{exp}": 0.0})
+            self.non_sampled_params.update({f"calT_{exp}": 1.0, f"alpha_{exp}": 0.0,
+                f"a_deltaT_{exp}": 0.0, f"a_deltaE_{exp}": 0.0, f"a_gamma_{exp}": 0.0})
 
     def initialize_with_params(self):
         # Check that the parameters are the right ones

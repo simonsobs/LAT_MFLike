@@ -616,12 +616,17 @@ class TheoryForge:
         if not self.systematics_template.get("rootname"):
             raise LoggedError(self.log, "Missing 'rootname' for systematics template!")
 
-        from syslibrary import syslib_mflike as syl
+        from syslibrary import syslib as sys
 
         # decide where to store systematics template.
         # Currently stored inside syslibrary package
-        templ_from_file = syl.ReadTemplateFromFile(rootname=self.systematics_template["rootname"])
-        self.dltempl_from_file = templ_from_file(ell=self.l_bpws)
+        self.filename = sys._get_power_file_yaml(self.systematics_template["rootname"])
+
+        import yaml
+
+        # reading the template as it is
+        with open(self.filename) as file:
+            self.templ_from_file  = yaml.load(file, Loader=yaml.Loader)
 
     def _get_template_from_file(self, dls_dict, **nuis_params):
         r"""
@@ -634,19 +639,19 @@ class TheoryForge:
         :return: dictionary of CMB+foregrounds :math:`D_{\ell}`
                  with systematics templates
         """
-        # templ_pars=[nuis_params['templ_'+str(exp)] for exp in self.experiments]
-        # templ_pars currently hard-coded
-        # but ideally should be passed as input nuisance
-        templ_pars = {
-            cls: np.zeros((len(self.experiments), len(self.experiments)))
-            for cls in self.requested_cls
-        }
 
-        for cls in self.requested_cls:
-            for i1, exp1 in enumerate(self.experiments):
-                for i2, exp2 in enumerate(self.experiments):
-                    dls_dict[cls, exp1, exp2] += (
-                        templ_pars[cls][i1][i2] * self.dltempl_from_file[cls, exp1, exp2]
-                    )
+        from syslibrary import syslib_mflike as syl
 
-        return dls_dict
+        deltaT = {}
+        deltaE = {}
+        gamma = {}
+        for exp in self.experiments:
+            deltaT[exp] = nuis_params[f"a_deltaT_{exp}"] * self.templ_from_file[f"deltaT_{exp}"][self.l_bpws]
+            deltaE[exp] = nuis_params[f"a_deltaE_{exp}"] * self.templ_from_file[f"deltaE_{exp}"][self.l_bpws]
+            gamma[exp] = nuis_params[f"a_gamma_{exp}"] * self.templ_from_file[f"gamma_{exp}"][self.l_bpws]
+
+
+        systempl = syl.SystematicTemplate(ell=self.l_bpws, spectra=dls_dict)
+        
+        # returns the spectra to which amplitude * template has been applied
+        return systempl(deltaT = deltaT, deltaE = deltaE, gamma = gamma, nu = self.experiments)
