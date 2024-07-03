@@ -616,17 +616,15 @@ class TheoryForge:
         if not self.systematics_template.get("rootname"):
             raise LoggedError(self.log, "Missing 'rootname' for systematics template!")
 
-        from syslibrary import syslib as sys
-
-        # decide where to store systematics template.
-        # Currently stored inside syslibrary package
-        self.filename = sys._get_power_file_yaml(self.systematics_template["rootname"])
-
         import yaml
 
-        # reading the template as it is
-        with open(self.filename) as file:
-            self.templ_from_file  = yaml.load(file, Loader=yaml.Loader)
+        data_path = self.data_folder
+        filename = os.path.join(data_path, "%s.yaml" % self.systematics_template.get("rootname"))
+        if not os.path.exists(filename):
+            raise ValueError("File " + filename + " does not exist!")
+
+        with open(filename, "r") as f:
+            self.templ_from_file = yaml.load(f, Loader=yaml.Loader)
 
     def _get_template_from_file(self, dls_dict, **nuis_params):
         r"""
