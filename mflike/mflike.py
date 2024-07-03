@@ -24,7 +24,7 @@ from typing import Optional
 
 import numpy as np
 from cobaya.conventions import data_path, packages_path_input
-from cobaya.likelihoods.base_classes import InstallableLikelihood
+from cobaya.likelihoods.base_classes import InstallableLikelihood, _fast_chi_square
 from cobaya.log import LoggedError
 from cobaya.tools import are_different_params_lists
 
@@ -44,6 +44,8 @@ class MFLike(InstallableLikelihood):
     foregrounds: dict
     top_hat_band: dict
     systematics_template: dict
+
+    _fast_chi_squared = _fast_chi_square()
 
     def initialize(self):
         # Set default values to data member not initialized via yaml file
@@ -183,7 +185,8 @@ class MFLike(InstallableLikelihood):
 
         ps_vec = self._get_power_spectra(cl, **params_values_nocosmo)
         delta = self.data_vec - ps_vec
-        logp = -0.5 * (delta @ self.inv_cov @ delta)
+        # logp = -0.5 * (delta @ self.inv_cov @ delta)
+        logp = -0.5 * self._fast_chi_squared(self.inv_cov, delta)
         logp += self.logp_const
         self.log.debug(
             f"Log-likelihood value computed = {logp} (Χ² = {-2 * (logp - self.logp_const)})"
@@ -222,7 +225,7 @@ class MFLike(InstallableLikelihood):
         except AttributeError:
             raise KeyError("You must provide a list of default cuts")
 
-        # Translation betwen TEB and sacc C_ell types
+        # Translation between TEB and sacc C_ell types
         pol_dict = {"T": "0", "E": "e", "B": "b"}
         ppol_dict = {
             "TT": "tt",
@@ -234,7 +237,6 @@ class MFLike(InstallableLikelihood):
             "BE": "eb",
             "TB": "tb",
             "BT": "tb",
-            "BB": "bb",
         }
 
         def get_cl_meta(spec):
@@ -369,6 +371,11 @@ class MFLike(InstallableLikelihood):
                     ws = s_b.get_bandpower_windows(ind_b)
                 else:
                     ws = s.get_bandpower_windows(ind)
+                # pre-compute the actual slices of the weights that are needed
+                nonzeros = np.array([np.nonzero(ws.weight[:, i])[0][[0, -1]] for i in range(ws.weight.shape[1])])
+                ws.nonzeros = [slice(i[0], i[1] + 1) for i in nonzeros]
+                ws.sliced_weights = [np.ascontiguousarray(ws.weight[ws.nonzeros[i], i])
+                                     for i in range(len(nonzeros))]
 
                 if self.l_bpws is None:
                     # The assumption here is that bandpower windows
@@ -454,18 +461,22 @@ class MFLike(InstallableLikelihood):
         Dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
         DlsObs = self.ThFo.get_modified_theory(Dls, **params_values_nocosmo)
 
+        return self._get_ps_vec(DlsObs)
+
+    def _get_ps_vec(self, DlsObs):
         ps_vec = np.zeros_like(self.data_vec)
         for m in self.spec_meta:
             p = m["pol"]
-            i = m["ids"]
-            w = m["bpw"].weight.T
+            w = m["bpw"]
             # If symmetrize = False, the (ET, exp1, exp2) spectrum
             # will have the flag m["hasYX_xsp"] = True.
             # In this case, the power spectrum
             # is computed as DlsObs["te", m["t2"], m["t1"]], to associate
             # T --> exp2, E --> exp1
             dls_obs = DlsObs[p, m["t2"], m["t1"]] if m["hasYX_xsp"] else DlsObs[p, m["t1"], m["t2"]]
-            clt = w @ dls_obs
-            ps_vec[i] = clt
 
+            for i, nonzero, weights in zip(m["ids"], w.nonzeros, w.sliced_weights):
+                ps_vec[i] = weights @ dls_obs[nonzero]
+            # can check against unoptimized version
+            # assert np.allclose(ps_vec[m["ids"]], np.dot(w.weight.T, dls_obs))
         return ps_vec
