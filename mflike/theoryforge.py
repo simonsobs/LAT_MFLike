@@ -266,12 +266,15 @@ class TheoryForge:
         else:
             self._bandpass_construction(**nuis_params)
 
-        fg_dict = self._get_foreground_model(**fg_params)
+        model = self._get_foreground_model_arrays(fg_params)
+        # get total foregrounds; model is dictionary of n x n arrays for each frequency combo
+        totals = [np.sum([model[s, comp] for comp in self.fg_component_list[s]], axis=0)
+                  for s in self.requested_cls]
 
-        cmbfg_dict = {(s, exp1, exp2): Dls[s] + fg_dict[s, "all", exp1, exp2]
-                      # Sum CMB and FGs
-                      for exp1, exp2 in product(self.experiments, self.experiments)
-                      for s in self.requested_cls}
+        cmbfg_dict = {(s, exp1, exp2): Dls[s] + total_fg[i, j]  # Sum CMB and FGs
+                      for i, exp1 in enumerate(self.experiments)
+                      for j, exp2 in enumerate(self.experiments)
+                      for s, total_fg in zip(self.requested_cls, totals)}
 
         # Apply alm based calibration factors
         self._calibrate_spectra(cmbfg_dict, **nuis_params)
@@ -352,26 +355,22 @@ class TheoryForge:
         self.fg_component_list = {s: components[s] for s in self.requested_cls}
 
     # Gets the actual power spectrum of foregrounds given the passed parameters
-    def _get_foreground_model(self, ell=None, freqs_order=None, **fg_params):
+    def _get_foreground_model_arrays(self, fg_params, ell=None):
         r"""
         Gets the foreground power spectra for each component computed by ``fgspectra``.
         The computation assumes the bandpass transmissions computed in ``_bandpass_construction``
         and integration in frequency is performed if the passbands are not Dirac delta.
 
+        :param g_params: parameters of the foreground components
         :param ell: ell range. If ``None`` the default range
-                    set in ``mflike.l_bpws`` is used
-        :param freqs_order: list of the effective frequencies for each channel
-                          used to compute the foreground components. Useful when
-                          this function is called outside of mflike, used in place of
-                          ``self.experiments``
-        :param \**fg_params: parameters of the foreground components
+            set in ``mflike.l_bpws`` is used
 
-        :return: the foreground dictionary
+        :return: the foreground dictionary of arrays
         """
 
         # if ell = None, it uses the l_bpws, otherwise the ell array provided
         # useful to make tests at different l_max than the data
-        if not hasattr(ell, "__len__"):
+        if ell is None:
             ell = self.l_bpws
         ell_0 = self.fg_ell_0
         nu_0 = self.fg_nu_0
@@ -477,31 +476,44 @@ class TheoryForge:
             {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
         )
 
-        if not hasattr(freqs_order, "__len__"):
-            experiments = self.experiments
-        else:
-            experiments = freqs_order
-        return self._get_fg_dict(ell, experiments, model)
+        return model
 
-    def _get_fg_dict(self, ell, experiments, model):
+    def _get_foreground_model(self, ell=None, freqs_order=None, **fg_params):
+        r"""
+        Gets the foreground power spectra for each component computed by ``fgspectra``.
+        The computation assumes the bandpass transmissions computed in ``_bandpass_construction``
+        and integration in frequency is performed if the passbands are not Dirac delta.
+
+        :param ell: ell range. If ``None`` the default range
+                    set in ``mflike.l_bpws`` is used
+        :param freqs_order: list of the effective frequencies for each channel
+                          used to compute the foreground components. Useful when
+                          this function is called outside of mflike, used in place of
+                          ``self.experiments``
+        :param \**fg_params: parameters of the foreground components
+
+        :return: the foreground dictionary
+        """
+        model = self._get_foreground_model_arrays(fg_params, ell=ell)
+        experiments = self.experiments if freqs_order is None else freqs_order
         fg_dict = {}
         for c1, exp1 in enumerate(experiments):
             for c2, exp2 in enumerate(experiments):
                 for s in self.requested_cls:
-                    fg_dict[s, "all", exp1, exp2] = np.zeros(len(ell))
+                    sum_all = np.zeros(len(ell))
                     for comp in self.fg_component_list[s]:
+                        term = model[s, comp][c1, c2]
                         if comp == "tSZ_and_CIB":
                             fg_dict[s, "tSZ", exp1, exp2] = model[s, "tSZ"][c1, c2]
                             fg_dict[s, "cibc", exp1, exp2] = model[s, "cibc"][c1, c2]
                             fg_dict[s, "tSZxCIB", exp1, exp2] = (
-                                    model[s, comp][c1, c2]
-                                    - model[s, "tSZ"][c1, c2]
-                                    - model[s, "cibc"][c1, c2]
+                                    term - model[s, "tSZ"][c1, c2] - model[s, "cibc"][c1, c2]
                             )
-                            fg_dict[s, "all", exp1, exp2] += model[s, comp][c1, c2]
                         else:
-                            fg_dict[s, comp, exp1, exp2] = model[s, comp][c1, c2]
-                            fg_dict[s, "all", exp1, exp2] += fg_dict[s, comp, exp1, exp2]
+                            fg_dict[s, comp, exp1, exp2] = term
+                        sum_all += term
+                    fg_dict[s, "all", exp1, exp2] = sum_all
+
         return fg_dict
 
     ###########################################################################
