@@ -73,6 +73,7 @@ from itertools import product
 
 import numpy as np
 from cobaya.log import LoggedError
+from scipy import constants
 
 
 # Converts from cmb temperature to differential source intensity
@@ -94,8 +95,6 @@ def _cmb2bb(nu):
 
     :return: the array :math:`\frac{\partial B_{\nu}}{\partial T}`. See note above.
     """
-    from scipy import constants
-
     T_CMB = 2.72548
     x = nu * constants.h * 1e9 / constants.k / T_CMB
     return np.exp(x) * (nu * x / np.expm1(x)) ** 2
@@ -108,7 +107,7 @@ class TheoryForge:
 
             self.log = logging.getLogger(self.__class__.__name__.lower())
             self.data_folder = None
-            self.experiments = np.array(["LAT_93", "LAT_145", "LAT_225"])
+            self.experiments = ["LAT_93", "LAT_145", "LAT_225"]
             self.foregrounds = {
                 "normalisation": {"nu_0": 150.0, "ell_0": 3000, "T_CMB": 2.725},
                 "components": {
@@ -248,7 +247,7 @@ class TheoryForge:
         polarization angles rotation and systematic templates.
 
         :param Dls: CMB theory spectra
-        :param \**params: dictionary of nuisance and foregrounds parameters
+        :param params: dictionary of nuisance and foregrounds parameters
 
         :return: the CMB+foregrounds :math:`D_{\ell}` dictionary,
                  modulated by systematics
@@ -259,7 +258,7 @@ class TheoryForge:
         # compute bandpasses at each step only if bandint_shift params are not null
         # and bandint_freqs has been computed at least once
         if np.all(
-            np.array([nuis_params[k] for k in nuis_params.keys() if "bandint_shift_" in k]) == 0.0
+                np.array([nuis_params[k] for k in nuis_params.keys() if "bandint_shift_" in k]) == 0.0
         ):
             if not hasattr(self, "bandint_freqs"):
                 self.log.info("Computing bandpass at first step, no shifts")
@@ -269,14 +268,13 @@ class TheoryForge:
 
         fg_dict = self._get_foreground_model(**fg_params)
 
-        cmbfg_dict = {}
-        # Sum CMB and FGs
-        for exp1, exp2 in product(self.experiments, self.experiments):
-            for s in self.requested_cls:
-                cmbfg_dict[s, exp1, exp2] = Dls[s] + fg_dict[s, "all", exp1, exp2]
+        cmbfg_dict = {(s, exp1, exp2): Dls[s] + fg_dict[s, "all", exp1, exp2]
+                      # Sum CMB and FGs
+                      for exp1, exp2 in product(self.experiments, self.experiments)
+                      for s in self.requested_cls}
 
         # Apply alm based calibration factors
-        cmbfg_dict = self._get_calibrated_spectra(cmbfg_dict, **nuis_params)
+        self._calibrate_spectra(cmbfg_dict, **nuis_params)
 
         # Introduce spectra rotations
         cmbfg_dict = self._get_rotated_spectra(cmbfg_dict, **nuis_params)
@@ -479,11 +477,14 @@ class TheoryForge:
             {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
         )
 
-        fg_dict = {}
         if not hasattr(freqs_order, "__len__"):
             experiments = self.experiments
         else:
             experiments = freqs_order
+        return self._get_fg_dict(ell, experiments, model)
+
+    def _get_fg_dict(self, ell, experiments, model):
+        fg_dict = {}
         for c1, exp1 in enumerate(experiments):
             for c2, exp2 in enumerate(experiments):
                 for s in self.requested_cls:
@@ -493,15 +494,14 @@ class TheoryForge:
                             fg_dict[s, "tSZ", exp1, exp2] = model[s, "tSZ"][c1, c2]
                             fg_dict[s, "cibc", exp1, exp2] = model[s, "cibc"][c1, c2]
                             fg_dict[s, "tSZxCIB", exp1, exp2] = (
-                                model[s, comp][c1, c2]
-                                - model[s, "tSZ"][c1, c2]
-                                - model[s, "cibc"][c1, c2]
+                                    model[s, comp][c1, c2]
+                                    - model[s, "tSZ"][c1, c2]
+                                    - model[s, "cibc"][c1, c2]
                             )
                             fg_dict[s, "all", exp1, exp2] += model[s, comp][c1, c2]
                         else:
                             fg_dict[s, comp, exp1, exp2] = model[s, comp][c1, c2]
                             fg_dict[s, "all", exp1, exp2] += fg_dict[s, comp, exp1, exp2]
-
         return fg_dict
 
     ###########################################################################
@@ -513,9 +513,9 @@ class TheoryForge:
     ## A global calibration factor calG_all is also considered.
     ###########################################################################
 
-    def _get_calibrated_spectra(self, dls_dict, **nuis_params):
+    def _calibrate_spectra(self, dls_dict, **nuis_params):
         r"""
-        Calibrates the spectra through calibration factors at
+        Calibrates the spectra in place through calibration factors at
         the map level:
 
         .. math::
@@ -535,36 +535,30 @@ class TheoryForge:
            {\rm cal}^{\nu_1}_{\rm E}\,
            {\rm cal}^{\nu_2}_{\rm E}}\, D^{EE, \nu_1 \nu_2}_{\ell}
 
-        It uses the ``syslibrary.syslib_mflike.Calibration_alm`` function.
 
-        :param dls_dict: the CMB+foregrounds :math:`D_{\ell}` dictionary
+        :param dls_dict: the CMB+foregrounds :math:`D_{\ell}` dictionary, calibrated in place
         :param \**nuis_params: dictionary of nuisance parameters
 
-        :return: dictionary of calibrated CMB+foregrounds :math:`D_{\ell}`
-        """
-        from syslibrary import syslib_mflike as syl
 
+        """
         # allowing for not having calT_{exp} in the yaml
 
         cal_pars = {}
+        calG_all = 1 / nuis_params["calG_all"]
         if "tt" in self.requested_cls or "te" in self.requested_cls:
-            cal = nuis_params["calG_all"] * np.array(
-                [
-                    nuis_params[f"cal_{exp}"] * nuis_params.get(f"calT_{exp}", 1)
-                    for exp in self.experiments
-                ]
-            )
-            cal_pars["t"] = 1 / cal
+            cal_pars["t"] = {exp: calG_all / (nuis_params[f"cal_{exp}"] * nuis_params.get(f"calT_{exp}", 1))
+                             for exp in self.experiments}
 
         if "ee" in self.requested_cls or "te" in self.requested_cls:
-            cal = nuis_params["calG_all"] * np.array(
-                [nuis_params[f"cal_{exp}"] * nuis_params[f"calE_{exp}"] for exp in self.experiments]
-            )
-            cal_pars["e"] = 1 / cal
+            cal_pars["e"] = {exp: calG_all / (nuis_params[f"cal_{exp}"] * nuis_params[f"calE_{exp}"])
+                             for exp in self.experiments}
 
-        calib = syl.Calibration_alm(ell=self.l_bpws, spectra=dls_dict)
+        self._mul_calibrations(dls_dict, cal1=cal_pars, cal2=cal_pars)
 
-        return calib(cal1=cal_pars, cal2=cal_pars, nu=self.experiments)
+    def _mul_calibrations(self, dls_dict, cal1, cal2):
+        for (spec, freq1, freq2), cl in dls_dict.items():
+            if (cal := (cal1[spec[0]][freq1] * cal2[spec[1]][freq2])) != 1:
+                cl *= cal
 
     ###########################################################################
     ## This part deals with rotation of spectra
@@ -646,7 +640,7 @@ class TheoryForge:
             for i1, exp1 in enumerate(self.experiments):
                 for i2, exp2 in enumerate(self.experiments):
                     dls_dict[cls, exp1, exp2] += (
-                        templ_pars[cls][i1][i2] * self.dltempl_from_file[cls, exp1, exp2]
+                            templ_pars[cls][i1][i2] * self.dltempl_from_file[cls, exp1, exp2]
                     )
 
         return dls_dict
