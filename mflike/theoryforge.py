@@ -219,7 +219,7 @@ class TheoryForge:
                     tranb = _cmb2bb(nub)
                     # normalization integral to be evaluated at the shifted freqs
                     # in order to have cmb component calibrated to 1
-                    tranb_norm = np.trapz(_cmb2bb(nub), nub)
+                    tranb_norm = trapz(_cmb2bb(nub), nub)
                     self.bandint_freqs.append([nub, tranb / tranb_norm])
                 # in case we don't want to do band integration, e.g. when we have multifreq bandpass in sacc file
                 if self.bandint_nsteps == 1:
@@ -234,7 +234,7 @@ class TheoryForge:
                     data_are_monofreq = True
                     self.bandint_freqs.append(nub[0])
                 else:
-                    trans_norm = np.trapz(bp * _cmb2bb(nub), nub)
+                    trans_norm = trapz(bp * _cmb2bb(nub), nub)
                     trans = bp / trans_norm * _cmb2bb(nub)
                     self.bandint_freqs.append([nub, trans])
 
