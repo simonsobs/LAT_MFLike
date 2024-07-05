@@ -214,7 +214,7 @@ class TheoryForge:
                     tranb = _cmb2bb(nub)
                     # normalization integral to be evaluated at the shifted freqs
                     # in order to have cmb component calibrated to 1
-                    tranb_norm = np.trapz(_cmb2bb(nub), nub)
+                    tranb_norm = np.trapezoid(_cmb2bb(nub), nub)
                     self.bandint_freqs.append([nub, tranb / tranb_norm])
                 # in case we don't want to do band integration, e.g. when we have multifreq bandpass in sacc file
                 if self.bandint_nsteps == 1:
@@ -229,7 +229,7 @@ class TheoryForge:
                     data_are_monofreq = True
                     self.bandint_freqs.append(nub[0])
                 else:
-                    trans_norm = np.trapz(bp * _cmb2bb(nub), nub)
+                    trans_norm = np.trapezoid(bp * _cmb2bb(nub), nub)
                     trans = bp / trans_norm * _cmb2bb(nub)
                     self.bandint_freqs.append([nub, trans])
 
@@ -336,7 +336,9 @@ class TheoryForge:
         self.ksz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.kSZ_bat())
         self.cibp = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
         self.radio = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
-        self.tsz = fgc.FactorizedCrossSpectrum(fgf.ThermalSZ(), fgp.PowerLawRescaledTemplate(tsz_file))
+        self.tsz = fgc.FactorizedCrossSpectrum(
+            fgf.ThermalSZ(), fgp.PowerLawRescaledTemplate(tsz_file)
+        )
         self.cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerSpectrumFromFile(cibc_file))
         self.dust = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
 
@@ -344,7 +346,7 @@ class TheoryForge:
         tsz_cib_power_spectra = [
             fgp.PowerLawRescaledTemplate(tsz_file),
             fgp.PowerSpectrumFromFile(cibc_file),
-            fgp.PowerSpectrumFromFile(cibxtsz_file)
+            fgp.PowerSpectrumFromFile(cibxtsz_file),
         ]
         tsz_cib_cl = fgp.PowerSpectraAndCovariance(*tsz_cib_power_spectra)
 
@@ -439,7 +441,7 @@ class TheoryForge:
                         "ell": ell,
                         "ell_0": ell_0,
                         "amp": fg_params["a_tSZ"],
-                        "alpha": fg_params["alpha_tSZ"]
+                        "alpha": fg_params["alpha_tSZ"],
                     },
                     {"ell": ell, "ell_0": ell_0, "amp": fg_params["a_c"]},
                     {
