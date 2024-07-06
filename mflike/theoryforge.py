@@ -616,17 +616,17 @@ class TheoryForge:
     def _init_template_from_file(self):
         """
         Reads the systematics template from file, using
-        the ``syslibrary.syslib_mflike.ReadTemplateFromFile``
+        the ``syslibrary.syslib.ReadTemplateFromFile``
         function.
         """
         if not self.systematics_template.get("rootname"):
             raise LoggedError(self.log, "Missing 'rootname' for systematics template!")
 
-        from syslibrary import syslib_mflike as syl
+        from syslibrary import syslib
 
         # decide where to store systematics template.
         # Currently stored inside syslibrary package
-        templ_from_file = syl.ReadTemplateFromFile(rootname=self.systematics_template["rootname"])
+        templ_from_file = syslib.ReadTemplateFromFile(rootname=self.systematics_template["rootname"])
         self.dltempl_from_file = templ_from_file(ell=self.l_bpws)
 
     def _get_template_from_file(self, dls_dict, **nuis_params):
