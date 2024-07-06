@@ -361,7 +361,7 @@ class TheoryForge:
         The computation assumes the bandpass transmissions computed in ``_bandpass_construction``
         and integration in frequency is performed if the passbands are not Dirac delta.
 
-        :param g_params: parameters of the foreground components
+        :param fg_params: parameters of the foreground components
         :param ell: ell range. If ``None`` the default range
             set in ``mflike.l_bpws`` is used
 
