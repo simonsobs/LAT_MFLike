@@ -21,13 +21,12 @@ through ``fgspectra``.
 
 import os
 from typing import Optional
-
 import numpy as np
+from numbers import Real
+import sacc
 from cobaya.conventions import data_path, packages_path_input
 from cobaya.likelihoods.base_classes import InstallableLikelihood, _fast_chi_square
 from cobaya.log import LoggedError
-from cobaya.tools import are_different_params_lists
-
 from .theoryforge import TheoryForge
 
 
@@ -39,11 +38,13 @@ class MFLike(InstallableLikelihood):
     # attributes set from .yaml
     input_file: Optional[str]
     cov_Bbl_file: Optional[str]
+    data_folder: str
     data: dict
     defaults: dict
     foregrounds: dict
     top_hat_band: dict
     systematics_template: dict
+    lmax_theory: Optional[int]
 
     _fast_chi_squared = _fast_chi_square()
 
@@ -53,7 +54,7 @@ class MFLike(InstallableLikelihood):
         self.spec_meta = []
 
         # Set path to data
-        if (not getattr(self, "path", None)) and (not getattr(self, packages_path_input, None)):
+        if not getattr(self, "path", None) and not getattr(self, packages_path_input, None):
             raise LoggedError(
                 self.log,
                 "No path given to MFLike data. Set the likelihood property "
@@ -80,74 +81,9 @@ class MFLike(InstallableLikelihood):
         self.lmax_theory = self.lmax_theory or 9000
         self.log.debug(f"Maximum multipole value: {self.lmax_theory}")
 
-        self.expected_params_fg = [
-            "a_tSZ",
-            "a_kSZ",
-            "a_p",
-            "beta_p",
-            "a_c",
-            "beta_c",
-            "a_s",
-            "a_gtt",
-            "a_gte",
-            "a_gee",
-            "a_psee",
-            "a_pste",
-            "xi",
-            "T_d",
-            "beta_s",
-            "alpha_s",
-            "T_effd",
-            "beta_d",
-            "alpha_dT",
-            "alpha_dE",
-            "alpha_tSZ",
-            "alpha_p",
-        ]
-
-        self.expected_params_nuis = ["calG_all"]
-        for f in self.experiments:
-            self.expected_params_nuis += [
-                f"bandint_shift_{f}",
-                f"calT_{f}",
-                f"cal_{f}",
-                f"calE_{f}",
-                f"alpha_{f}",
-            ]
-
+        self._constant_nuisance: Optional[dict] = None
         self.ThFo = TheoryForge(self)
         self.log.info("Initialized!")
-
-    def initialize_non_sampled_params(self):
-        """
-        Allows for systematic params such as polarization angles and ``calT``
-        not to be sampled and not to be required
-        """
-        self.non_sampled_params = {}
-        for exp in self.experiments:
-            self.non_sampled_params.update({f"calT_{exp}": 1.0, f"alpha_{exp}": 0.0})
-
-    def initialize_with_params(self):
-        # Check that the parameters are the right ones
-        self.initialize_non_sampled_params()
-
-        # Remove the parameters if it appears in the input/samples ones
-        for par in self.input_params:
-            self.non_sampled_params.pop(par, None)
-
-        # Finally set the list of nuisance params
-        self.expected_params_nuis = [
-            par for par in self.expected_params_nuis if par not in self.non_sampled_params
-        ]
-
-        differences = are_different_params_lists(
-            self.input_params,
-            self.expected_params_fg + self.expected_params_nuis,
-            name_A="given",
-            name_B="expected",
-        )
-        if differences:
-            raise LoggedError(self.log, f"Configuration error in parameters: {differences}.")
 
     def get_requirements(self):
         r"""
@@ -160,38 +96,50 @@ class MFLike(InstallableLikelihood):
 
     def logp(self, **params_values):
         cl = self.provider.get_Cl(ell_factor=True)
-        params_values_nocosmo = {
-            k: params_values[k] for k in self.expected_params_fg + self.expected_params_nuis
-        }
+        return self._loglike(cl, **params_values)
 
-        return self.loglike(cl, **params_values_nocosmo)
-
-    def loglike(self, cl, **params_values_nocosmo):
+    def _loglike(self, cl, **params_values):
         """
         Computes the gaussian log-likelihood
 
         :param cl: the dictionary of theory + foregrounds :math:`D_{\ell}`
-        :param params_values_nocosmo: the dictionary of required foreground + systematic parameters
+        :param params_values: the dictionary of all foreground + systematic parameters
 
         :return: the exact loglikelihood :math:`\ln \mathcal{L}`
         """
-        # This is needed if someone calls the function without initializing the likelihood
-        # (typically a call with a precomputed Cl and no cobaya initialization steps e.g
-        # test_mflike)
-        if not hasattr(self, "non_sampled_params"):
-            self.initialize_non_sampled_params()
-
-        params_values_nocosmo = self.non_sampled_params | params_values_nocosmo
-
-        ps_vec = self._get_power_spectra(cl, **params_values_nocosmo)
+        ps_vec = self._get_power_spectra(cl, **params_values)
         delta = self.data_vec - ps_vec
         # logp = -0.5 * (delta @ self.inv_cov @ delta)
         logp = -0.5 * self._fast_chi_squared(self.inv_cov, delta)
         logp += self.logp_const
         self.log.debug(
-            f"Log-likelihood value computed = {logp} (Χ² = {-2 * (logp - self.logp_const)})"
+            f"Log-likelihood value computed = {logp} (Χ² = {-2 * (- self.logp_const)})"
         )
         return logp
+
+    def loglike(self, cl, **params_values):
+        """
+        Computes the gaussian log-likelihood, callable independent of Cobaya.
+
+        :param cl: the dictionary of theory + foregrounds :math:`D_{\ell}`
+        :param params_values: the dictionary of required foreground + systematic parameters
+
+        :return: the exact loglikelihood :math:`\ln \mathcal{L}`
+        """
+        # This is needed if someone calls the function without initializing the likelihood
+        # (typically a call with a precomputed Cl and no cobaya initialization steps e.g.
+        # test_mflike)
+        if self._constant_nuisance is None:
+            from cobaya.parameterization import expand_info_param
+            # pre-set default nuisance parameters
+            self._constant_nuisance = {p: float(v) for p, info in self.params.items()
+                                       if isinstance(v := expand_info_param(info).get("value"), Real)}
+            if unknown := (set(params_values) - set(self.params)):
+                raise ValueError(f"Unknown parameters: {unknown}")
+
+        params_values = self._constant_nuisance | params_values
+
+        return self._loglike(cl, **params_values)
 
     def prepare_data(self):
         r"""
@@ -204,8 +152,6 @@ class MFLike(InstallableLikelihood):
         range, bandpowers and :math:`D_{\ell}` for each power spectrum required
         in the yaml.
         """
-        import sacc
-
         data = self.data
         # Read data
         input_fname = os.path.join(self.data_folder, self.input_file)

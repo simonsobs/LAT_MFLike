@@ -3,8 +3,8 @@ r"""
 
 The ``TheoryForge`` class applies the foreground spectra and systematics effects to the theory
 spectra provided by ``MFLike``. To do that, ``TheoryForge`` gets from ``MFLike`` the appropriate
-list of arrays, the requested temperature/polarization fields, the :math:`\ell` ranges, the list of
-expected parameters, a dictionary of the passbands read from the ``sacc`` file:
+list of arrays, the requested temperature/polarization fields, the :math:`\ell` ranges,
+a dictionary of the passbands read from the ``sacc`` file:
 
 .. code-block:: python
 
@@ -55,7 +55,8 @@ For the second option, the ``top_hat_band`` dictionary in ``MFLike.yaml`` has to
       :math:`\nu_{\rm{low/high}} = \nu_{\rm{center}}(1 \mp \delta/2) + \Delta^{\nu}_{\rm band}`
       (with :math:`\Delta^{\nu}_{\rm band}` being the possible bandpass shift).
       ``bandwidth`` has to be 0 if ``nstep`` = 1, > 0 otherwise.
-      ``bandwidth`` can be a list if you want a different width for each band e.g. ``bandwidth: [0.3,0.2,0.3]`` for 3 bands.
+      ``bandwidth`` can be a list if you want a different width for each band
+      e.g. ``bandwidth: [0.3,0.2,0.3]`` for 3 bands.
 
 The effective frequencies, used as central frequencies to build the bandpasses, are read from the
 ``bands`` dictionary as before. To build a Dirac delta, use:
@@ -69,8 +70,6 @@ The effective frequencies, used as central frequencies to build the bandpasses, 
 """
 
 import os
-from itertools import product
-
 import numpy as np
 from cobaya.log import LoggedError
 from scipy import constants
@@ -132,8 +131,6 @@ class TheoryForge:
             self.bands = mflike.bands
             self.l_bpws = mflike.l_bpws
             self.requested_cls = mflike.requested_cls
-            self.expected_params_fg = mflike.expected_params_fg
-            self.expected_params_nuis = mflike.expected_params_nuis
             self.spec_meta = mflike.spec_meta
             self.defaults_cuts = mflike.defaults
 
@@ -163,6 +160,7 @@ class TheoryForge:
                     raise LoggedError(
                         self.log, "One band has width = 0, set a positive width and run again"
                     )
+        self._bandint_shift_params = [f"bandint_shift_{f}" for f in self.experiments]
 
     # Takes care of the bandpass construction. It returns a list of nu-transmittance
     # for each frequency or an array with the effective freqs.
@@ -191,8 +189,7 @@ class TheoryForge:
         """
         data_are_monofreq = False
         self.bandint_freqs = []
-        for iexp, exp in enumerate(self.experiments):
-            bandpar = f"bandint_shift_{exp}"
+        for iexp, (bandpar, exp) in enumerate(zip(self._bandint_shift_params, self.experiments)):
             # Only temperature bandpass for the time being
             bands = self.bands[f"{exp}_s0"]
             nu_ghz, bp = np.asarray(bands["nu"]), np.asarray(bands["bandpass"])
@@ -238,7 +235,7 @@ class TheoryForge:
             self.bandint_freqs = np.asarray(self.bandint_freqs)
             self.log.info("bandpass is delta function, no band integration performed")
 
-    def get_modified_theory(self, Dls, **params):
+    def get_modified_theory(self, Dls, **nuis_params):
         r"""
         Takes the theory :math:`D_{\ell}`, sums it to the total
         foreground power spectrum (possibly computed with bandpass
@@ -252,21 +249,15 @@ class TheoryForge:
         :return: the CMB+foregrounds :math:`D_{\ell}` dictionary,
                  modulated by systematics
         """
-        fg_params = {k: params[k] for k in self.expected_params_fg}
-        nuis_params = {k: params[k] for k in self.expected_params_nuis}
-
         # compute bandpasses at each step only if bandint_shift params are not null
         # and bandint_freqs has been computed at least once
-        if np.all(
-                np.array([nuis_params[k] for k in nuis_params.keys() if "bandint_shift_" in k]) == 0.0
-        ):
-            if not hasattr(self, "bandint_freqs"):
-                self.log.info("Computing bandpass at first step, no shifts")
-                self._bandpass_construction(**nuis_params)
-        else:
+        if any(nuis_params[k] for k in self._bandint_shift_params):
+            self._bandpass_construction(**nuis_params)
+        elif not hasattr(self, "bandint_freqs"):
+            self.log.info("Computing bandpass at first step, no shifts")
             self._bandpass_construction(**nuis_params)
 
-        model = self._get_foreground_model_arrays(fg_params)
+        model = self._get_foreground_model_arrays(nuis_params)
         # get total foregrounds; model is dictionary of n x n arrays for each frequency combo
         totals = [np.sum([model[s, comp] for comp in self.fg_component_list[s]], axis=0)
                   for s in self.requested_cls]
