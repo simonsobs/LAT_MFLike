@@ -323,19 +323,19 @@ class Foreground(Theory):
 class BandpowerForeground(Foreground):
     # foregrounds integrated over bandpass windows
 
-    top_hat_band: dict
-    bands = {
-        f"{exp}_s0": {"nu": [Foreground.bandint_freqs[iexp]], "bandpass": [1.0]}
-        for iexp, exp in enumerate(Foreground.experiments)
-    }
+    top_hat_band: dict = None
+    bands: dict = None
 
     def initialize(self):
-
         super().initialize()
+        if self.bands is None:
+            self.bands = {f"{exp}_s0":
+                              {"nu": [self.bandint_freqs[iexp]], "bandpass": [1.0]}
+                          for iexp, exp in enumerate(self.experiments)}
+
         self.init_bandpowers()
 
     def init_bandpowers(self):
-
         self.use_top_hat_band = bool(self.top_hat_band)
         # Parameters for band integration
         if self.use_top_hat_band:
@@ -353,7 +353,8 @@ class BandpowerForeground(Foreground):
                 )
         self._bandint_shift_params = [f"bandint_shift_{f}" for f in self.experiments]
         # default bandpass when shift is 0
-        self._bandpass_construction(**dict.fromkeys(self._bandint_shift_params, 0.0))
+        shift_params = dict.fromkeys(self._bandint_shift_params, 0.0)
+        self._bandpass_construction(**shift_params)
 
     def must_provide(self, **requirements):
         # fg_dict is required by mflije

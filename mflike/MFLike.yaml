@@ -60,6 +60,7 @@ data:
 systematics_template:
 #  rootname: "test_template"
 
+params:
   # Systematics and calibration
   calT_LAT_93:
     value: 1
