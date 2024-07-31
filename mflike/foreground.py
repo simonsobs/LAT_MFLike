@@ -77,6 +77,7 @@ class Foreground(Theory):
     lmax: int
     requested_cls: list[str]
     bandint_freqs: list
+    ells: np.ndarray
 
     # Initializes the foreground model. It sets the SED and reads the templates
     def initialize(self):
@@ -118,8 +119,8 @@ class Foreground(Theory):
         self.tSZ_and_CIB = fgc.CorrelatedFactorizedCrossSpectrum(tsz_cib_sed, tsz_cib_cl)
 
         self.fg_component_list = {s: self.components[s] for s in self.requested_cls}
-
-        self.ells = np.arange(self.lmin, self.lmax + 1)
+        if self.ells is None:
+            self.ells = np.arange(self.lmin, self.lmax + 1)
 
     # Gets the actual power spectrum of foregrounds given the passed parameters
     def _get_foreground_model_arrays(self, fg_params, ell=None):
@@ -259,6 +260,7 @@ class Foreground(Theory):
 
         :return: the foreground dictionary
         """
+
         model = self._get_foreground_model_arrays(fg_params, ell=ell)
         experiments = self.experiments if freqs_order is None else freqs_order
         fg_dict = {}
@@ -303,7 +305,7 @@ class Foreground(Theory):
         :return: list of arrays for each requested_cl
         """
         # get total foregrounds; model is dictionary of arrays for each frequency combo
-        model = self._get_foreground_model_arrays(**params_values_dict)
+        model = self._get_foreground_model_arrays(params_values_dict)
         return [np.sum([model[s, comp] for comp in self.fg_component_list[s]], axis=0)
                 for s in (requested_cl if requested_cl else self.requested_cls)]
 
@@ -357,11 +359,12 @@ class BandpowerForeground(Foreground):
         self._bandpass_construction(**shift_params)
 
     def must_provide(self, **requirements):
-        # fg_dict is required by mflije
+        # fg_dict is required by mflike
         # and requires some params to be computed
         # Assign those as requested or us defaults
         # otherwise use default values
         # Foreground requires bandint_freqs from BandPass
+        # TODO: not clear that changing number of freqs actually works (for shift parameters)
         super().must_provide(**requirements)
         if (req := requirements.get("fg_totals")) is not None:
             self.bands = req.get("bands", self.bands)

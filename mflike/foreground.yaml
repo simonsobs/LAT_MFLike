@@ -1,6 +1,8 @@
 requested_cls: [ "tt", "te", "ee" ]
 lmin: 2
 lmax: 6001
+# ells set automatically from above if not set directly
+ells:
 experiments: [ "LAT_93", "LAT_145", "LAT_225" ]
 bandint_freqs: [ 93.0, 145.0, 225.0 ]
 # Parameters to build a top-hat band:

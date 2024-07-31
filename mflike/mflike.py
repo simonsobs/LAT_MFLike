@@ -46,6 +46,7 @@ from cobaya.conventions import data_path, packages_path_input
 from cobaya.likelihoods.base_classes import InstallableLikelihood, _fast_chi_square
 from cobaya.log import LoggedError
 
+
 class MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
     _release = "v0.8"
@@ -105,6 +106,12 @@ class MFLike(InstallableLikelihood):
         self._constant_nuisance: Optional[dict] = None
         self.log.info("Initialized!")
 
+    def get_fg_requirements(self):
+        return {"ells": self.l_bpws,
+                "requested_cls": self.requested_cls,
+                "experiments": self.experiments,
+                "bands": self.bands}
+
     def get_requirements(self):
         r"""
         Gets the foreground dictionary and theory :math:`D_{\ell}` from the Boltzmann solver code used,
@@ -113,12 +120,8 @@ class MFLike(InstallableLikelihood):
         :return: the dictionary of theory :math:`D_{\ell}` and foregrounds
         """
 
-        return dict(
-            fg_totals={"ell": self.l_bpws,
-                       "requested_cls": self.requested_cls,
-                       "experiments": self.experiments,
-                       "bands": self.bands},
-            Cl={k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()})
+        return dict(fg_totals=self.get_fg_requirements(),
+                    Cl={k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()})
 
     def logp(self, **params_values):
         cl = self.provider.get_Cl(ell_factor=True)
@@ -130,6 +133,7 @@ class MFLike(InstallableLikelihood):
         Computes the gaussian log-likelihood
 
         :param cl: the dictionary of theory + foregrounds :math:`D_{\ell}`
+        :param fg_totals: the dictionary of foreground arrays
         :param params_values: the dictionary of all foreground + systematic parameters
 
         :return: the exact loglikelihood :math:`\ln \mathcal{L}`
@@ -144,11 +148,12 @@ class MFLike(InstallableLikelihood):
         )
         return logp
 
-    def loglike(self, cl, **params_values):
+    def loglike(self, cl, fg_totals, **params_values):
         """
         Computes the gaussian log-likelihood, callable independent of Cobaya.
 
         :param cl: the dictionary of theory + foregrounds :math:`D_{\ell}`
+        :param fg_totals: the dictionary of foreground arrays, can be obtained from ``BandpowerForeground``
         :param params_values: the dictionary of required foreground + systematic parameters
 
         :return: the exact loglikelihood :math:`\ln \mathcal{L}`
@@ -161,12 +166,10 @@ class MFLike(InstallableLikelihood):
             # pre-set default nuisance parameters
             self._constant_nuisance = {p: float(v) for p, info in self.params.items()
                                        if isinstance(v := expand_info_param(info).get("value"), Real)}
-            if unknown := set(params_values).difference(self.params):
-                raise ValueError(f"Unknown parameters: {unknown}")
 
         params_values = self._constant_nuisance | params_values
 
-        return self._loglike(cl, **params_values)
+        return self._loglike(cl, fg_totals, **params_values)
 
     def prepare_data(self):
         r"""

@@ -31,12 +31,12 @@ nuis_params = {
     "a_psee": 0,
     "a_pste": 0,
     "xi": 0.10,
-    "beta_s": -2.5,    
-    "alpha_s": 1,      
-    "T_effd": 19.6,    
-    "beta_d": 1.5,     
-    "alpha_dT": -0.6,  
-    "alpha_dE": -0.4,  
+    "beta_s": -2.5,
+    "alpha_s": 1,
+    "T_effd": 19.6,
+    "beta_d": 1.5,
+    "alpha_dT": -0.6,
+    "alpha_dE": -0.4,
     "alpha_p": 1,
     "alpha_tSZ": 0.,
     "bandint_shift_LAT_93": 0,
@@ -75,21 +75,20 @@ class MFLikeTest(unittest.TestCase):
     def test_mflike(self):
         import camb
 
-        camb_cosmo = cosmo_params.copy()
-        #using camb low accuracy parameters for the test
-        camb_cosmo.update({"lmax": 9001, "lens_potential_accuracy": 1})
+        # using camb low accuracy parameters for the test
+        camb_cosmo = cosmo_params | {"lmax": 9001, "lens_potential_accuracy": 1}
         pars = camb.set_params(**camb_cosmo)
         results = camb.get_results(pars)
         powers = results.get_cmb_power_spectra(pars, CMB_unit="muK")
         cl_dict = {k: powers["total"][:, v] for k, v in {"tt": 0, "ee": 1, "te": 3}.items()}
         for select, chi2 in chi2s.items():
-            from mflike import MFLike
+            from mflike import MFLike, BandpowerForeground
 
             my_mflike = MFLike(
                 {
                     "packages_path": packages_path,
                     "input_file": pre + "00000.fits",
-                    "cov_Bbl_file":  "data_sacc_w_covar_and_Bbl.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                     "defaults": {
                         "polarizations": select.upper().split("-"),
                         "scales": {
@@ -102,8 +101,10 @@ class MFLikeTest(unittest.TestCase):
                     },
                 }
             )
+            fg = BandpowerForeground(my_mflike.get_fg_requirements())
+            fg_totals = fg.get_foreground_model_totals(**nuis_params)
 
-            loglike = my_mflike.loglike(cl_dict,  **nuis_params)
+            loglike = my_mflike.loglike(cl_dict, fg_totals, **nuis_params)
             self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 2)
 
     def test_cobaya(self):
@@ -112,10 +113,11 @@ class MFLikeTest(unittest.TestCase):
                 "mflike.MFLike": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
-                    },
+                },
             },
-            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
-            "params": cosmo_params,
+            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                       "mflike.foreground.BandpowerForeground": {}},
+            "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
         }
         from cobaya.model import get_model
@@ -144,14 +146,15 @@ class MFLikeTest(unittest.TestCase):
                     "mflike.MFLike": {
                         "input_file": pre + "00000.fits",
                         "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
-                        "top_hat_band": {
-                            "nsteps": nsteps,
-                            "bandwidth": bandwidth,
-                        },
+
                     }
                 },
-                "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
-                "params": {**cosmo_params,  **params},
+                "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                           "mflike.foreground.BandpowerForeground": {"top_hat_band": {
+                               "nsteps": nsteps,
+                               "bandwidth": bandwidth,
+                           }}},
+                "params": {**cosmo_params, **params},
                 "packages_path": packages_path,
             }
 
