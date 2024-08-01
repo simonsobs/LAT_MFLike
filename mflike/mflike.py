@@ -184,17 +184,16 @@ class MFLike(InstallableLikelihood):
         """
         data = self.data
         # Read data
-        input_fname = os.path.join(self.data_folder, self.input_file)
+        input_fname = os.path.normpath(os.path.join(self.data_folder, self.input_file))
         s = sacc.Sacc.load_fits(input_fname)
 
         # Read extra file containing covariance and windows if needed.
         cbbl_extra = False
         s_b = s
-        if self.cov_Bbl_file:
-            if self.cov_Bbl_file != self.input_file:
-                cov_Bbl_fname = os.path.join(self.data_folder, self.cov_Bbl_file)
-                s_b = sacc.Sacc.load_fits(cov_Bbl_fname)
-                cbbl_extra = True
+        if self.cov_Bbl_file and self.cov_Bbl_file != self.input_file:
+            cov_Bbl_fname = os.path.join(self.data_folder, self.cov_Bbl_file)
+            s_b = sacc.Sacc.load_fits(cov_Bbl_fname)
+            cbbl_extra = True
 
         try:
             default_cuts = self.defaults
@@ -468,7 +467,7 @@ class MFLike(InstallableLikelihood):
 
         :param Dls: CMB theory spectra
         :param fg_totals: dictionary of foreground spectra
-        :param params: dictionary of nuisance and foregrounds parameters
+        :param nuis_params: dictionary of nuisance and foregrounds parameters
 
         :return: the CMB+foregrounds :math:`D_{\ell}` dictionary,
                  modulated by systematics

@@ -76,7 +76,7 @@ class Foreground(Theory):
     lmin: int
     lmax: int
     requested_cls: list[str]
-    bandint_freqs: list
+    bandint_freqs: list | np.ndarray
     ells: np.ndarray
 
     # Initializes the foreground model. It sets the SED and reads the templates
@@ -256,7 +256,7 @@ class Foreground(Theory):
                           used to compute the foreground components. Useful when
                           this function is called outside of mflike, used in place of
                           ``self.experiments``
-        :param \**fg_params: parameters of the foreground components
+        :param **fg_params: parameters of the foreground components
 
         :return: the foreground dictionary
         """
@@ -291,7 +291,8 @@ class Foreground(Theory):
 
         :param state: ``state`` dictionary to be filled with computed foreground
                       spectra
-        :param *params_values_dict: dictionary of parameters from the sampler
+        :param want_derived: if derived wanted (none here)
+        :param **params_values_dict: dictionary of parameters from the sampler
         """
 
         state["fg_totals"] = self.get_foreground_model_totals(**params_values_dict)
@@ -331,9 +332,9 @@ class BandpowerForeground(Foreground):
     def initialize(self):
         super().initialize()
         if self.bands is None:
-            self.bands = {f"{exp}_s0":
-                              {"nu": [self.bandint_freqs[iexp]], "bandpass": [1.0]}
-                          for iexp, exp in enumerate(self.experiments)}
+            self.bands = {
+                f"{exp}_s0": {"nu": [self.bandint_freqs[iexp]], "bandpass": [1.0]}
+                for iexp, exp in enumerate(self.experiments)}
         self._initialized = False
         self.init_bandpowers()
 

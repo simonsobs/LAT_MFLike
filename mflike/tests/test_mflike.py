@@ -1,6 +1,8 @@
 import os
 import tempfile
 import unittest
+from cobaya.model import get_model
+from cobaya.install import install
 
 packages_path = os.environ.get("COBAYA_PACKAGES_PATH") or os.path.join(
     tempfile.gettempdir(), "LAT_packages"
@@ -68,11 +70,10 @@ pre = "LAT_simu_sacc_"
 
 class MFLikeTest(unittest.TestCase):
     def setUp(self):
-        from cobaya.install import install
-
         install({"likelihood": {"mflike.MFLike": None}}, path=packages_path)
 
     def test_mflike(self):
+        from mflike import MFLike, BandpowerForeground
         import camb
 
         # using camb low accuracy parameters for the test
@@ -82,8 +83,6 @@ class MFLikeTest(unittest.TestCase):
         powers = results.get_cmb_power_spectra(pars, CMB_unit="muK")
         cl_dict = {k: powers["total"][:, v] for k, v in {"tt": 0, "ee": 1, "te": 3}.items()}
         for select, chi2 in chi2s.items():
-            from mflike import MFLike, BandpowerForeground
-
             my_mflike = MFLike(
                 {
                     "packages_path": packages_path,
@@ -116,31 +115,25 @@ class MFLikeTest(unittest.TestCase):
                 },
             },
             "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                       "mflike.foreground.BandpowerForeground": {}},
+                       "mflike.BandpowerForeground": {}},
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
         }
-        from cobaya.model import get_model
 
         model = get_model(info)
         my_mflike = model.likelihood["mflike.MFLike"]
-        chi2 = -2 * (model.loglikes(nuis_params)[0] - my_mflike.logp_const)
-        self.assertAlmostEqual(chi2[0], chi2s["tt-te-et-ee"], 2)
+        chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        self.assertAlmostEqual(chi2, chi2s["tt-te-et-ee"], 2)
 
     def test_top_hat_bandpasses(self):
-        from copy import deepcopy
-
         # Let's vary values of bandint_shift parameters
-        params = deepcopy(nuis_params)
-        params.update(
-            {
-                k: {"prior": dict(min=0.9 * v, max=1.1 * v)}
-                for k, v in params.items()
-                if k.startswith("bandint_shift")
-            }
-        )
+        params = nuis_params | {
+            k: {"prior": dict(min=0.9 * v, max=1.1 * v)}
+            for k, v in nuis_params.items()
+            if k.startswith("bandint_shift")
+        }
 
-        def get_model(nsteps, bandwidth):
+        def _get_model(nsteps, bandwidth):
             info = {
                 "likelihood": {
                     "mflike.MFLike": {
@@ -158,16 +151,14 @@ class MFLikeTest(unittest.TestCase):
                 "packages_path": packages_path,
             }
 
-            from cobaya.model import get_model
-
             model = get_model(info)
             return model, model.likelihood["mflike.MFLike"].logp_const
 
         #  top hat band
-        self.model1, logp_const = get_model(nsteps=1, bandwidth=0)
+        self.model1, logp_const = _get_model(nsteps=1, bandwidth=0)
 
         # 10 integrationn points and 10% of central frequency value
-        self.model2, logp_const = get_model(nsteps=10, bandwidth=0.1)
+        self.model2, logp_const = _get_model(nsteps=10, bandwidth=0.1)
 
         # chi2 reference results for the different models and different bandshifts
         chi2s = {
@@ -181,5 +172,6 @@ class MFLikeTest(unittest.TestCase):
                     **params,
                     **{par: bandshift for par in params.keys() if par.startswith("bandint_shift")},
                 }
-                chi2_mflike = -2 * (getattr(self, model).loglikes(new_params)[0] - logp_const)
-                self.assertAlmostEqual(chi2_mflike[0], chi2[i], 1)
+                chi2_mflike = -2 * (getattr(self, model).loglike(
+                    new_params, return_derived=False) - logp_const)
+                self.assertAlmostEqual(chi2_mflike, chi2[i], 1)
