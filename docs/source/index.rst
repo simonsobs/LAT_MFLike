@@ -17,4 +17,4 @@
    :caption: API
 
    mflike.rst
-   theoryforge.rst
+   foreground.rst

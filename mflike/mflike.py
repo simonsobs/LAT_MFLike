@@ -425,7 +425,7 @@ class MFLike(InstallableLikelihood):
         r"""
         Gets the theory :math:`D_{\ell}`, adds foregrounds :math:`D_{\ell}`
         and applies possible systematic effects through the ``get_modified_theory``
-        function from the ``TheoryForge`` class. The spectra get then binned
+        function from the ``BandpowerForeground`` class. The spectra get then binned
         like the data.
 
         :param cl: the dictionary of theory :math:`D_{\ell}`
