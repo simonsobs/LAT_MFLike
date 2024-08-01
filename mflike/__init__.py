@@ -1,5 +1,5 @@
 from .mflike import MFLike
-from .foreground import BandpowerForeground
+from .foreground import Foreground, BandpowerForeground
 from importlib.metadata import version, PackageNotFoundError
 
 try:

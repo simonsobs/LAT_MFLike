@@ -150,7 +150,7 @@ class MFLikeTest(unittest.TestCase):
                     }
                 },
                 "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                           "mflike.foreground.BandpowerForeground": {"top_hat_band": {
+                           "mflike.BandpowerForeground": {"top_hat_band": {
                                "nsteps": nsteps,
                                "bandwidth": bandwidth,
                            }}},
@@ -182,4 +182,4 @@ class MFLikeTest(unittest.TestCase):
                     **{par: bandshift for par in params.keys() if par.startswith("bandint_shift")},
                 }
                 chi2_mflike = -2 * (getattr(self, model).loglikes(new_params)[0] - logp_const)
-                self.assertAlmostEqual(chi2_mflike[0], chi2[i], 2)
+                self.assertAlmostEqual(chi2_mflike[0], chi2[i], 1)

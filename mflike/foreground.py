@@ -334,7 +334,7 @@ class BandpowerForeground(Foreground):
             self.bands = {f"{exp}_s0":
                               {"nu": [self.bandint_freqs[iexp]], "bandpass": [1.0]}
                           for iexp, exp in enumerate(self.experiments)}
-
+        self._initialized = False
         self.init_bandpowers()
 
     def init_bandpowers(self):
@@ -398,7 +398,7 @@ class BandpowerForeground(Foreground):
     # bandpasses saved in the sacc file have to be divided by nu^2
     # if measured with respect to a RJ source.
     # This factor is already included in the _cmb2bb function
-    def _bandpass_construction(self, **params):
+    def _bandpass_construction(self, _initialize=False, **params):
         r"""
         Builds the bandpass transmission
         :math:`\frac{\frac{\partial B_{\nu+\Delta \nu}}{\partial T}
@@ -465,4 +465,6 @@ class BandpowerForeground(Foreground):
         # assume all of them and pass to fgspectra an array (not list!!) of frequencies
         if data_are_monofreq:
             self.bandint_freqs = np.asarray(self.bandint_freqs)
-            self.log.info("bandpass is delta function, no band integration performed")
+            if self._initialized:
+                self.log.info("bandpass is delta function, no band integration performed")
+        self._initialized = True
