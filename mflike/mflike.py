@@ -129,7 +129,7 @@ class MFLike(InstallableLikelihood):
         return self._loglike(cl, fg_totals, **params_values)
 
     def _loglike(self, cl, fg_totals, **params_values):
-        """
+        r"""
         Computes the gaussian log-likelihood
 
         :param cl: the dictionary of theory + foregrounds :math:`D_{\ell}`
@@ -149,7 +149,7 @@ class MFLike(InstallableLikelihood):
         return logp
 
     def loglike(self, cl, fg_totals, **params_values):
-        """
+        r"""
         Computes the gaussian log-likelihood, callable independent of Cobaya.
 
         :param cl: the dictionary of theory + foregrounds :math:`D_{\ell}`
