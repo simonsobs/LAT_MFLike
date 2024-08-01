@@ -76,7 +76,7 @@ class Foreground(Theory):
     lmin: int
     lmax: int
     requested_cls: list[str]
-    bandint_freqs: list | np.ndarray
+    bandint_freqs: list
     ells: np.ndarray
 
     # Initializes the foreground model. It sets the SED and reads the templates
