@@ -126,9 +126,9 @@ class MFLike(InstallableLikelihood):
     def logp(self, **params_values):
         cl = self.provider.get_Cl(ell_factor=True)
         fg_totals = self.provider.get_fg_totals()
-        return self._loglike(cl, fg_totals, **params_values)
+        return self._loglike(cl, fg_totals, params_values)
 
-    def _loglike(self, cl, fg_totals, **params_values):
+    def _loglike(self, cl, fg_totals, params_values):
         r"""
         Computes the gaussian log-likelihood
 
@@ -169,7 +169,7 @@ class MFLike(InstallableLikelihood):
 
         params_values = self._constant_nuisance | params_values
 
-        return self._loglike(cl, fg_totals, **params_values)
+        return self._loglike(cl, fg_totals, params_values)
 
     def _prepare_data(self):
         r"""
@@ -509,6 +509,27 @@ class MFLike(InstallableLikelihood):
                     dls_dict[p, m["t1"], m["t2"]] *= 0.5
 
         return dls_dict
+
+    def _get_gauss_data(self):
+        """
+        Get Gaussian likelihood data for use with SoLiket
+        :return: GaussianData instance
+        """
+        from soliket.gaussian import GaussianData
+        ell_vec = np.zeros_like(self.data_vec)
+        for m in self.spec_meta:
+            ell_vec[m["ids"]] = m["leff"]
+        return GaussianData("mflike", ell_vec, self.data_vec, self.cov)
+
+    def _get_theory(self, **params_values):
+        """
+        Get theory vector (e.g. for use with SoLiket)
+
+        :return: binned theory vector
+        """
+        cl = self.provider.get_Cl(ell_factor=True)
+        fg_totals = self.provider.get_fg_totals()
+        return self._get_power_spectra(cl, fg_totals, **params_values)
 
     ###########################################################################
     ## This part deals with calibration factors
