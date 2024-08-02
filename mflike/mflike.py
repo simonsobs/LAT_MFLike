@@ -4,15 +4,15 @@ r"""
 :Synopsis: Definition of likelihood for Simons Observatory
 :Authors: Simons Observatory Collaboration PS Group
 
-MFLike is a multi frequency likelihood code interfaced with the Cobaya
+MFLike is a multi frequency likelihood code that can be interfaced with the Cobaya
 sampler and a theory Boltzmann code such as CAMB, CLASS or Cosmopower.
+
 The ``MFLike`` likelihood class reads the data file (in ``sacc`` format)
 and all the settings
 for the MCMC run (such as file paths, :math:`\ell` ranges, experiments
-and frequencies to be used, parameters priors...)
-from the ``MFLike.yaml`` file.
+and frequencies to be used, parameters priors...) from the ``MFLike.yaml`` file.
 
-The theory :math:`C_{\ell}` are then summed to the (possibly frequency
+The theory :math:`C_{\ell}` are then summed with the (possibly frequency
 integrated) foreground power spectra from the ``BandpowerForeground`` class,
  and modified by systematic effects and calibrations.
  The underlying foreground spectra are computed through ``fgspectra``.
@@ -89,7 +89,7 @@ class MFLike(InstallableLikelihood):
             )
 
         # Read data
-        self.prepare_data()
+        self._prepare_data()
 
         # State requisites to the theory code
         self.requested_cls = ["tt", "te", "ee"]
@@ -171,7 +171,7 @@ class MFLike(InstallableLikelihood):
 
         return self._loglike(cl, fg_totals, **params_values)
 
-    def prepare_data(self):
+    def _prepare_data(self):
         r"""
         Reads the sacc data, extracts the data tracers,
         trims the spectra and covariance according to the :math:`\ell` scales
@@ -590,11 +590,14 @@ class MFLike(InstallableLikelihood):
 
         :return: dictionary of rotated CMB+foregrounds :math:`D_{\ell}`
         """
-        from syslibrary import syslib_mflike as syl
 
         # allowing for not having polarization angles in the yaml
 
         rot_pars = [nuis_params.get(f"alpha_{exp}", 0) for exp in self.experiments]
+        if not any(rot_pars):
+            return dls_dict
+
+        from syslibrary import syslib_mflike as syl
 
         rot = syl.Rotation_alm(ell=self.l_bpws, spectra=dls_dict)
 

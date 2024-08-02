@@ -3,7 +3,7 @@
 
 .. automodule:: mflike.foreground
 
-``TheoryForge`` class content
+``Foreground`` class content
 -----------------------------
 
 .. autoclass:: mflike.Foreground

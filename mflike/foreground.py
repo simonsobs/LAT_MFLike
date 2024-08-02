@@ -2,10 +2,10 @@ r"""
 .. module:: foreground
 
 The ``Foreground`` class calculates foreground spectra , using :math:`\ell` ranges, array of frequencies,etc.
-The inherited ``BandpowerForegrounds`` adds integration over bandpowers, using the bandpass transmissions.
+The inherited ``BandpowerForeground`` adds integration over bandpowers, using the bandpass transmissions.
 
 If one wants to use this class as standalone, the ``bands`` dictionary is filled when initializing
-``BandpowerForegrounds``.
+``BandpowerForeground``.
 
 The values of the systematic parameters are set in ``MFLike.yaml``.  They have to be named as
 ``cal/calT/calE/alpha`` + ``_`` + experiment_channel string (e.g. ``LAT_93/dr6_pa4_f150``).
@@ -249,18 +249,23 @@ class Foreground(Theory):
         r"""
         Gets the foreground power spectra for each component computed by ``fgspectra``.
         Integration over frequency is performed using bandint_freqs.
+        This function is not used by Cobaya, but can be used to get the individual
+        foreground components and total as a dictionary when accessing the class
+        separately.
 
         :param ell: ell range. If ``None`` the default range
-                    set in ``mflike.l_bpws`` is used
+                    set in ``l_bpws`` is used
         :param freqs_order: list of the effective frequencies for each channel
                           used to compute the foreground components. Useful when
-                          this function is called outside of mflike, used in place of
+                          this class is called outside of mflike, used in place of
                           ``self.experiments``
         :param **fg_params: parameters of the foreground components
 
         :return: the foreground dictionary
         """
 
+        if ell is None:
+            ell = self.ells
         model = self._get_foreground_model_arrays(fg_params, ell=ell)
         experiments = self.experiments if freqs_order is None else freqs_order
         fg_dict = {}
@@ -312,7 +317,8 @@ class Foreground(Theory):
 
     def get_fg_totals(self):
         """
-        Returns the ``state`` dictionary of foreground spectra, when used with Cobaya
+        Returns the ``state`` dictionary of foreground spectra, when used with Cobaya.
+        Should only be called after the model is calculated by Cobaya.
         """
         return self.current_state["fg_totals"]
 
