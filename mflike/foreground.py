@@ -44,6 +44,11 @@ from scipy import constants
 from cobaya.theory import Theory
 from cobaya.log import LoggedError
 
+try:
+    from numpy import trapezoid
+except ImportError:
+    from numpy import trapz as trapezoid
+
 
 # Converts from cmb temperature to differential source intensity
 # (see eq. 8 of https://arxiv.org/abs/1303.5070).
@@ -449,7 +454,7 @@ class BandpowerForeground(Foreground):
                     tranb = _cmb2bb(nub)
                     # normalization integral to be evaluated at the shifted freqs
                     # in order to have cmb component calibrated to 1
-                    tranb_norm = np.trapz(_cmb2bb(nub), nub)
+                    tranb_norm = trapezoid(_cmb2bb(nub), nub)
                     self.bandint_freqs.append([nub, tranb / tranb_norm])
                 # in case we don't want to do band integration, e.g. when we have multifreq bandpass in sacc file
                 if self.bandint_nsteps == 1:
@@ -464,7 +469,7 @@ class BandpowerForeground(Foreground):
                     data_are_monofreq = True
                     self.bandint_freqs.append(nub[0])
                 else:
-                    trans_norm = np.trapz(bp * _cmb2bb(nub), nub)
+                    trans_norm = trapezoid(bp * _cmb2bb(nub), nub)
                     trans = bp / trans_norm * _cmb2bb(nub)
                     self.bandint_freqs.append([nub, trans])
 
