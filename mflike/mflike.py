@@ -45,6 +45,7 @@ import sacc
 from cobaya.conventions import data_path, packages_path_input
 from cobaya.likelihoods.base_classes import InstallableLikelihood, _fast_chi_square
 from cobaya.log import LoggedError
+from syslibrary import syslib_mflike, syslib
 
 
 class MFLike(InstallableLikelihood):
@@ -65,7 +66,7 @@ class MFLike(InstallableLikelihood):
 
     def initialize(self):
         # Set default values to data member not initialized via yaml file
-        self.l_bpws = None
+        self.l_bpws: Optional[np.ndarray] = None
         self.spec_meta = []
 
         # Set path to data
@@ -99,9 +100,11 @@ class MFLike(InstallableLikelihood):
         self.use_systematics_template = bool(self.systematics_template)
 
         if self.use_systematics_template:
-            self.systematics_template = self.systematics_template
             # Initialize template for marginalization, if needed
             self._init_template_from_file()
+
+        self.rotation = syslib_mflike.RotationAlm(ell=self.l_bpws, nu=self.experiments,
+                                                  requested_cls=self.requested_cls)
 
         self._constant_nuisance: Optional[dict] = None
         self.log.info("Initialized!")
@@ -486,7 +489,7 @@ class MFLike(InstallableLikelihood):
 
         # Introduce templates of systematics from file, if needed
         if self.use_systematics_template:
-            cmbfg_dict = self._get_template_from_file(cmbfg_dict, **nuis_params)
+            self._add_template_from_file(cmbfg_dict, **nuis_params)
 
         # Built theory
         dls_dict = {}
@@ -618,11 +621,7 @@ class MFLike(InstallableLikelihood):
         if not any(rot_pars):
             return dls_dict
 
-        from syslibrary import syslib_mflike as syl
-
-        rot = syl.Rotation_alm(ell=self.l_bpws, spectra=dls_dict)
-
-        return rot(rot_pars, nu=self.experiments, cls=self.requested_cls)
+        return self.rotation.get_rotated_cl(dls_dict, rot_pars)
 
     ###########################################################################
     ## This part deals with template marginalization
@@ -637,17 +636,14 @@ class MFLike(InstallableLikelihood):
         the ``syslibrary.syslib.ReadTemplateFromFile``
         function.
         """
-        if not self.systematics_template.get("rootname"):
+        if not (rootname := self.systematics_template.get("rootname")):
             raise LoggedError(self.log, "Missing 'rootname' for systematics template!")
-
-        from syslibrary import syslib
 
         # decide where to store systematics template.
         # Currently stored inside syslibrary package
-        templ_from_file = syslib.ReadTemplateFromFile(rootname=self.systematics_template["rootname"])
-        self.dltempl_from_file = templ_from_file(ell=self.l_bpws)
+        self.dltempl_from_file = syslib.TemplateResidual(ell=self.l_bpws, file_root_name=rootname)
 
-    def _get_template_from_file(self, dls_dict, **nuis_params):
+    def _add_template_from_file(self, dls_dict, **nuis_params):
         r"""
         Adds the systematics template, modulated by ``nuis_params['templ_freq']``
         parameters, to the :math:`D_{\ell}`.
@@ -655,22 +651,20 @@ class MFLike(InstallableLikelihood):
         :param dls_dict: the CMB+foregrounds :math:`D_{\ell}` dictionary
         :param \**nuis_params: dictionary of nuisance parameters
 
-        :return: dictionary of CMB+foregrounds :math:`D_{\ell}`
-                 with systematics templates
         """
         # templ_pars=[nuis_params['templ_'+str(exp)] for exp in self.experiments]
         # templ_pars currently hard-coded
         # but ideally should be passed as input nuisance
+
+        # Note code currently does nothing
         templ_pars = {
             cls: np.zeros((len(self.experiments), len(self.experiments)))
             for cls in self.requested_cls
         }
-
+        dcl = self.dltempl_from_file.get_delta_cl()
         for cls in self.requested_cls:
             for i1, exp1 in enumerate(self.experiments):
                 for i2, exp2 in enumerate(self.experiments):
                     dls_dict[cls, exp1, exp2] += (
-                            templ_pars[cls][i1][i2] * self.dltempl_from_file[cls, exp1, exp2]
+                            templ_pars[cls][i1][i2] * dcl[cls, exp1, exp2]
                     )
-
-        return dls_dict
