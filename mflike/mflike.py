@@ -297,31 +297,14 @@ class MFLike(InstallableLikelihood):
             k: params_values[k] for k in self.expected_params_fg + self.expected_params_nuis
         }
 
-        # derive the physical systematic parameters from the latent ones
-        # NOTE: the latent parameters have 1 fewer than physical; the 
-        # matrix of orthogonal columns latent2phys_mat ensures that the
-        # physical params sum to 0 through a non-scaling transformation.
-        # this way, the latent params, which are sampled, will converge
-        for sys in self.requested_sys: # (deltaT, ...)
-            for sysparam in self.requested_sysparams: # (m, b, ...)
-                latent_sys_vector = np.array([params_values[k] for k in self.latent_sys_amps[sys][sysparam]])
-                phys_sys_vector = self.latent2phys_mat[sys] @ latent_sys_vector
+        return self.loglike(cl, derived=_derived, **params_values_nocosmo)
 
-                if _derived is not None:
-                    for i, k in enumerate(self.phys_sys_amps[sys][sysparam]):
-                        _derived[k] = phys_sys_vector[i]
-
-                # pass the physical params into the interior likelihood call
-                for i, k in enumerate(self.phys_sys_amps[sys][sysparam]):
-                    params_values_nocosmo[k] = phys_sys_vector[i]
-
-        return self.loglike(cl, **params_values_nocosmo)
-
-    def loglike(self, cl, **params_values_nocosmo):
+    def loglike(self, cl, derived=None, **params_values_nocosmo):
         """
         Computes the gaussian log-likelihood
 
         :param cl: the dictionary of theory + foregrounds :math:`D_{\ell}`
+        :param derived: if not None, a dictionary to hold derived parameters
         :param params_values_nocosmo: the dictionary of required foreground + systematic parameters
 
         :return: the exact loglikelihood :math:`\ln \mathcal{L}`
@@ -331,6 +314,24 @@ class MFLike(InstallableLikelihood):
         # test_mflike)
         if not hasattr(self, "non_sampled_params"):
             self.initialize_non_sampled_params()
+
+        # derive the physical systematic parameters from the latent ones
+        # NOTE: the latent parameters have 1 fewer than physical; the 
+        # matrix of orthogonal columns latent2phys_mat ensures that the
+        # physical params sum to 0 through a non-scaling transformation.
+        # this way, the latent params, which are sampled, will converge
+        for sys in self.requested_sys: # (deltaT, ...)
+            for sysparam in self.requested_sysparams: # (m, b, ...)
+                latent_sys_vector = np.array([params_values_nocosmo[k] for k in self.latent_sys_amps[sys][sysparam]])
+                phys_sys_vector = self.latent2phys_mat[sys] @ latent_sys_vector
+
+                if derived is not None:
+                    for i, k in enumerate(self.phys_sys_amps[sys][sysparam]):
+                        derived[k] = phys_sys_vector[i]
+
+                # pass the physical params into the interior likelihood call
+                for i, k in enumerate(self.phys_sys_amps[sys][sysparam]):
+                    params_values_nocosmo[k] = phys_sys_vector[i]
 
         params_values_nocosmo = self.non_sampled_params | params_values_nocosmo
 
