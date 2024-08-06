@@ -75,6 +75,8 @@ class MFLike(InstallableLikelihood):
 
         # State requisites to the theory code
         self.requested_cls = ["tt", "te", "ee"]
+        self.requested_sys = ['deltaT', 'gamma', 'deltaE']
+        self.requested_sysparams = ['m', 'b']
         self.lmax_theory = self.lmax_theory or 9000
         self.log.debug(f"Maximum multipole value: {self.lmax_theory}")
 
@@ -104,18 +106,139 @@ class MFLike(InstallableLikelihood):
         ]
 
         self.expected_params_nuis = ["calG_all"]
-        for f in self.experiments:
+        for i, f in enumerate(self.experiments):
             self.expected_params_nuis += [
                 f"bandint_shift_{f}",
-                f"calT_{f}",
+                # f"calT_{f}",
                 f"cal_{f}",
                 f"calE_{f}",
-                f"alpha_{f}",
-                # amplitudes of systematic templates
-                f"a_deltaT_{f}",
-                f"a_deltaE_{f}",
-                f"a_gamma_{f}"
+                # f"alpha_{f}"
             ]
+
+        # Parse the spectra to get the map-level scale cuts
+        # TODO: should probably specify map-level scale cuts
+        # in yaml and the spectra lcuts are inferred from them,
+        # rather than other way around. the yaml would be much
+        # shorter and guaranteed to be internally consistent
+        # NOTE: we want the actual cuts in lspace, not in binned
+        # lspace
+        self.requested_sys2scales = {f'{sys}':
+            {f'{exp}': [np.inf, -np.inf] for exp in self.data['experiments']}
+            for sys in self.requested_sys}
+
+        def update_extremal_scales(exp, pol, bpw):
+            if pol == 't':
+                affecting_sys = ['deltaT']
+            elif pol == 'e':
+                affecting_sys = ['gamma', 'deltaE']
+
+            lmin = bpw.values[np.where(bpw.weight[:, 0])][0]
+            lmax = bpw.values[np.where(bpw.weight[:, -1])][-1]
+
+            for sys in affecting_sys:
+                self.requested_sys2scales[sys][exp][0] = min(self.requested_sys2scales[sys][exp][0], lmin)
+                self.requested_sys2scales[sys][exp][1] = max(self.requested_sys2scales[sys][exp][0], lmax + 1) # exclusive upper bound
+
+        for spec_meta in self.spec_meta:
+            exp1 = spec_meta['t1']
+            exp2 = spec_meta['t2']
+            _pol1, _pol2 = spec_meta['pol']
+            if spec_meta['hasYX_xsp']:
+                pol1 = _pol2
+                pol2 = _pol1
+            else:
+                pol1 = _pol1
+                pol2 = _pol2
+            bpw = spec_meta['bpw']
+
+            update_extremal_scales(exp1, pol1, bpw)
+            update_extremal_scales(exp2, pol2, bpw)
+
+        # Prune the systematics based on their scales: for a given systematic
+        # and experiment, if there are no valid scales, then we remove that
+        # systematic from self.requested_sys2scales. NOTE: need copy so we can
+        # modify during iteration
+        for sys, exp2scales in self.requested_sys2scales.copy().items():
+            for exp, scales in exp2scales.copy().items():
+                lmin = scales[0]
+                lmax = scales[1] - 1
+                if lmax - lmin <= 0:
+                    del self.requested_sys2scales[sys][exp]
+
+        # Add the remaining systematic parameters to the expected nuisance
+        # parameters. Also do extra management of the parameters in preparation
+        # for sampling
+        self.derived_params_nuis = []
+        
+        self.latent_sys_amps = {sys: 
+            {sysparam: [] for sysparam in self.requested_sysparams}
+            for sys in self.requested_sys}
+        self.phys_sys_amps = {sys: 
+            {sysparam: [] for sysparam in self.requested_sysparams}
+            for sys in self.requested_sys}
+        
+        self.latent2phys_mat = {sys: None for sys in self.requested_sys}
+        
+        for sys, exp2scales in self.requested_sys2scales.items(): # (deltaT, ...)
+            self.expected_params_nuis.append(f'lknee_{sys}')
+
+            for sysparam in self.requested_sysparams: # (m, b, ...)
+                for i, f in enumerate(exp2scales):
+                    if i < len(exp2scales) - 1: # one fewer sampled than physical sys param
+                        self.expected_params_nuis.append(f'{sysparam}_{sys}_{i}')
+                        self.latent_sys_amps[sys][sysparam].append(f'{sysparam}_{sys}_{i}')
+
+                    self.derived_params_nuis.append(f'{sysparam}_{sys}_{f}')
+                    self.phys_sys_amps[sys][sysparam].append(f'{sysparam}_{sys}_{f}')
+
+            self.latent2phys_mat[sys] = get_O(len(exp2scales))
+
+        # Parse self.requested_sys2scales to get the number of valid arrays
+        # by lrange. To do this, for each systematic, first get all the 
+        # unique lranges. Then, get the list of arrays which have valid scales
+        # for each lrange. Finally, get a transformation matrix for each lrange
+        # which sums the elements corresponding to the valid arrays to 0, and 
+        # sets the other arrays to 0
+        self.phys2norm_mat_by_lrange = {sys: {} for sys in self.requested_sys}
+
+        for sys, exp2scales in self.requested_sys2scales.items(): # (deltaT, ...)
+            exps = list(exp2scales.keys())
+            lcuts = [min(self.l_bpws), max(self.l_bpws) + 1]
+            for exp, scales in exp2scales.items():
+                lmin = scales[0]
+                lmax = scales[1]
+
+                if lmin not in lcuts:
+                    lcuts.append(lmin)
+                if lmax not in lcuts:
+                    lcuts.append(lmax)
+
+            lcuts = np.sort(lcuts)
+            lranges = np.array([lcuts[:-1], lcuts[1:]]).T
+
+            for (llow, lhigh) in lranges:
+                valid_exps = []
+
+                for exp, scales in exp2scales.items():
+                    lmin = scales[0]
+                    lmax = scales[1]
+
+                    # valid if lmin < lhigh and lmax > llow
+                    if lmin < lhigh and lmax > llow:
+                        valid_exps.append(exp)
+
+                    # get the indices of the valid experiments in all the experiments
+                    # for this systematic
+                    intersect_valid_exps, valid_exp_idxs_in_valid_exps, valid_exp_idxs_in_exps = np.intersect1d(valid_exps, exps, return_indices=True)
+                    assert np.all(intersect_valid_exps == valid_exps)
+                    assert np.all(valid_exp_idxs_in_valid_exps == np.arange(len(valid_exps)))
+
+                    # get the transformation matrix
+                    mat = np.zeros((len(exps), len(exps)))
+                    if len(valid_exps) > 0:
+                        mat[np.ix_(valid_exp_idxs_in_exps, valid_exp_idxs_in_exps)] = get_A(len(valid_exps))
+
+                self.phys2norm_mat_by_lrange[sys][llow, lhigh] = mat
 
         self.ThFo = TheoryForge(self)
         self.log.info("Initialized!")
@@ -127,8 +250,15 @@ class MFLike(InstallableLikelihood):
         """
         self.non_sampled_params = {}
         for exp in self.experiments:
-            self.non_sampled_params.update({f"calT_{exp}": 1.0, f"alpha_{exp}": 0.0,
-                f"a_deltaT_{exp}": 0.0, f"a_deltaE_{exp}": 0.0, f"a_gamma_{exp}": 0.0})
+            self.non_sampled_params.update({f"calT_{exp}": 1.0, f"alpha_{exp}": 0.0}),
+        
+        for sys, exp2scales in self.requested_sys2scales.items(): # (deltaT, ...)
+            self.non_sampled_params.update({f'lknee_{sys}': 3000.0})
+
+            for sysparam in self.requested_sysparams: # (m, b, ...)
+                for i in range(len(exp2scales)):
+                    if i < len(exp2scales) - 1: # one fewer sampled than physical sys param
+                        self.non_sampled_params.update({f'{sysparam}_{sys}_{i}': 0.0})
 
     def initialize_with_params(self):
         # Check that the parameters are the right ones
@@ -161,11 +291,29 @@ class MFLike(InstallableLikelihood):
         """
         return dict(Cl={k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()})
 
-    def logp(self, **params_values):
+    def logp(self, _derived=None, **params_values):
         cl = self.provider.get_Cl(ell_factor=True)
         params_values_nocosmo = {
             k: params_values[k] for k in self.expected_params_fg + self.expected_params_nuis
         }
+
+        # derive the physical systematic parameters from the latent ones
+        # NOTE: the latent parameters have 1 fewer than physical; the 
+        # matrix of orthogonal columns latent2phys_mat ensures that the
+        # physical params sum to 0 through a non-scaling transformation.
+        # this way, the latent params, which are sampled, will converge
+        for sys in self.requested_sys: # (deltaT, ...)
+            for sysparam in self.requested_sysparams: # (m, b, ...)
+                latent_sys_vector = np.array([params_values[k] for k in self.latent_sys_amps[sys][sysparam]])
+                phys_sys_vector = self.latent2phys_mat[sys] @ latent_sys_vector
+
+                if _derived is not None:
+                    for i, k in enumerate(self.phys_sys_amps[sys][sysparam]):
+                        _derived[k] = phys_sys_vector[i]
+
+                # pass the physical params into the interior likelihood call
+                for i, k in enumerate(self.phys_sys_amps[sys][sysparam]):
+                    params_values_nocosmo[k] = phys_sys_vector[i]
 
         return self.loglike(cl, **params_values_nocosmo)
 
@@ -474,3 +622,24 @@ class MFLike(InstallableLikelihood):
             ps_vec[i] = clt
 
         return ps_vec
+
+def get_A(N): 
+    w = np.full(N, 1/N)
+    A = np.eye(N)
+    A -= np.tile(w/w.sum(), (N, 1))
+    return A
+
+def get_O(N):
+    if N == 1:
+        return np.array([[0.]])
+    A = get_A(N)
+    l, O = np.linalg.eigh(A)
+    cut_idx = np.argmin(abs(l))
+    
+    assert np.min(abs(l)) < 1e-12, f'{np.min(abs(l))=}'
+    assert (l == np.min(l)).sum() == 1, f'{(l == np.min(l)).sum()=}'
+    assert cut_idx == 0, f'{cut_idx=}'
+
+    cut_window = np.ones(N, dtype=bool)
+    cut_window[cut_idx] = False
+    return O[:, cut_window]

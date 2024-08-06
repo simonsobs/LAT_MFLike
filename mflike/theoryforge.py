@@ -135,6 +135,9 @@ class TheoryForge:
             self.requested_cls = mflike.requested_cls
             self.expected_params_fg = mflike.expected_params_fg
             self.expected_params_nuis = mflike.expected_params_nuis
+            self.derived_params_nuis = mflike.derived_params_nuis
+            self.requested_sys2scales = mflike.requested_sys2scales
+            self.phys2norm_mat_by_lrange = mflike.phys2norm_mat_by_lrange
             self.spec_meta = mflike.spec_meta
             self.defaults_cuts = mflike.defaults
 
@@ -255,6 +258,7 @@ class TheoryForge:
         """
         fg_params = {k: params[k] for k in self.expected_params_fg}
         nuis_params = {k: params[k] for k in self.expected_params_nuis}
+        nuis_params.update({k: params[k] for k in self.derived_params_nuis})
 
         # compute bandpasses at each step only if bandint_shift params are not null
         # and bandint_freqs has been computed at least once
@@ -280,6 +284,9 @@ class TheoryForge:
 
         # Introduce spectra rotations
         cmbfg_dict = self._get_rotated_spectra(cmbfg_dict, **nuis_params)
+
+        # Introduce parameterized systematics
+        cmbfg_dict = self._get_sys_spectra(cmbfg_dict, **nuis_params)
 
         # Introduce templates of systematics from file, if needed
         if self.use_systematics_template:
@@ -599,6 +606,56 @@ class TheoryForge:
         rot = syl.Rotation_alm(ell=self.l_bpws, spectra=dls_dict)
 
         return rot(rot_pars, nu=self.experiments, cls=self.requested_cls)
+    
+    ###########################################################################
+    ## This part deals with parametric marginalization of relative
+    ## systematics between arrays
+    ###########################################################################
+    
+    def _get_sys_spectra(self, dls_dict, **nuis_params):
+        # first get raw systematics model over all ells
+        l = self.l_bpws.copy()
+        sys_model = {f'{sys}': {} for sys in self.requested_sys2scales}
+        for sys, exp2scales in self.requested_sys2scales.items(): # (deltaT, ...)
+            lknee = nuis_params[f'lknee_{sys}']
+
+            for f in exp2scales:
+                m = nuis_params[f'm_{sys}_{f}']
+                b = nuis_params[f'b_{sys}_{f}']
+                
+                y = np.where(l < lknee, m * (l - lknee) + b, b)
+                sys_model[sys][f] = y 
+
+        # for each lrange, sum valid systematics to 0
+        # optimize=False seems to be fastest for such a simple contraction
+        for sys, lranges in self.phys2norm_mat_by_lrange.items():
+            # collect ys into a vector, ordered by exps
+            ys = np.array([y for y in sys_model[sys].values()])
+            
+            # normalize
+            for (llow, lhigh), mat in lranges.items():
+                idxs = np.logical_and(llow <= l, l < lhigh)
+                np.einsum('ba,al->bl', mat, ys[..., idxs], out=ys[..., idxs])
+
+            # extract out of vector
+            for i, f in enumerate(self.requested_sys2scales[sys]):
+                sys_model[sys][f] = ys[i]
+
+        # apply to spectra
+        for k, cl in dls_dict.items():
+            spec, exp1, exp2 = k
+            if spec == 'tt':
+                dls_dict[k] = (1 + sys_model['deltaT'].get(exp1, 0)) * (1 + sys_model['deltaT'].get(exp2, 0)) * cl
+            elif spec == 'te':
+                dls_dict[k] = (1 + sys_model['deltaT'].get(exp1, 0)) * sys_model['gamma'].get(exp2, 0) * dls_dict['tt', exp1, exp2]
+                dls_dict[k] += (1 + sys_model['deltaT'].get(exp1, 0)) * (1 + sys_model['deltaE'].get(exp2, 0)) * cl
+            elif spec == 'ee':
+                dls_dict[k] = sys_model['gamma'].get(exp1, 0) * sys_model['gamma'].get(exp2, 0) * dls_dict['tt', exp1, exp2]
+                dls_dict[k] += sys_model['gamma'].get(exp1, 0) * (1 + sys_model['deltaT'].get(exp2, 0)) * dls_dict['te', exp1, exp2]
+                dls_dict[k] += sys_model['gamma'].get(exp2, 0) * (1 + sys_model['deltaT'].get(exp1, 0)) * dls_dict['te', exp2, exp1]
+                dls_dict[k] += (1 + sys_model['deltaE'].get(exp1, 0)) * (1 + sys_model['deltaE'].get(exp2, 0)) * cl
+
+        return dls_dict
 
     ###########################################################################
     ## This part deals with template marginalization
