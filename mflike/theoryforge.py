@@ -635,24 +635,25 @@ class TheoryForge:
             # normalize
             for (llow, lhigh), mat in lranges.items():
                 idxs = np.logical_and(llow <= l, l < lhigh)
-                np.einsum('ba,al->bl', mat, ys[..., idxs], out=ys[..., idxs])
+                ys[..., idxs] = mat @ ys[..., idxs]
 
             # extract out of vector
             for i, f in enumerate(self.requested_sys2scales[sys]):
                 sys_model[sys][f] = ys[i]
 
         # apply to spectra
+        dls_dict_in = dls_dict.copy()
         for k, cl in dls_dict.items():
             spec, exp1, exp2 = k
             if spec == 'tt':
                 dls_dict[k] = (1 + sys_model['deltaT'].get(exp1, 0)) * (1 + sys_model['deltaT'].get(exp2, 0)) * cl
             elif spec == 'te':
-                dls_dict[k] = (1 + sys_model['deltaT'].get(exp1, 0)) * sys_model['gamma'].get(exp2, 0) * dls_dict['tt', exp1, exp2]
+                dls_dict[k] = (1 + sys_model['deltaT'].get(exp1, 0)) * sys_model['gamma'].get(exp2, 0) * dls_dict_in['tt', exp1, exp2]
                 dls_dict[k] += (1 + sys_model['deltaT'].get(exp1, 0)) * (1 + sys_model['deltaE'].get(exp2, 0)) * cl
             elif spec == 'ee':
-                dls_dict[k] = sys_model['gamma'].get(exp1, 0) * sys_model['gamma'].get(exp2, 0) * dls_dict['tt', exp1, exp2]
-                dls_dict[k] += sys_model['gamma'].get(exp1, 0) * (1 + sys_model['deltaT'].get(exp2, 0)) * dls_dict['te', exp1, exp2]
-                dls_dict[k] += sys_model['gamma'].get(exp2, 0) * (1 + sys_model['deltaT'].get(exp1, 0)) * dls_dict['te', exp2, exp1]
+                dls_dict[k] = sys_model['gamma'].get(exp1, 0) * sys_model['gamma'].get(exp2, 0) * dls_dict_in['tt', exp1, exp2]
+                dls_dict[k] += sys_model['gamma'].get(exp1, 0) * (1 + sys_model['deltaE'].get(exp2, 0)) * dls_dict_in['te', exp1, exp2]
+                dls_dict[k] += sys_model['gamma'].get(exp2, 0) * (1 + sys_model['deltaE'].get(exp1, 0)) * dls_dict_in['te', exp2, exp1]
                 dls_dict[k] += (1 + sys_model['deltaE'].get(exp1, 0)) * (1 + sys_model['deltaE'].get(exp2, 0)) * cl
 
         return dls_dict
