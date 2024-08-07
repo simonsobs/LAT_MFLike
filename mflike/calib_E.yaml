@@ -1,0 +1,9 @@
+calE_LAT_93:
+  value: 1
+  latex: \mathrm{Cal}_{\rm E}^{93}
+calE_LAT_145:
+  value: 1
+  latex: \mathrm{Cal}_{\rm E}^{145}
+calE_LAT_225:
+  value: 1
+  latex: \mathrm{Cal}_{\rm E}^{225}

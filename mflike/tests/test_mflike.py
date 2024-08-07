@@ -108,6 +108,7 @@ class MFLikeTest(unittest.TestCase):
             self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 2)
 
     def test_cobaya_TT(self):
+        TT_nuis_params = {k: v for k, v in nuis_params.items() if "calE" not in k}
         info = {
             "likelihood": {
                 "mflike.TT": {
@@ -117,13 +118,13 @@ class MFLikeTest(unittest.TestCase):
             },
             "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
                        "mflike.BandpowerForeground": {}},
-            "params": cosmo_params | nuis_params,
+            "params": cosmo_params | TT_nuis_params,
             "packages_path": packages_path,
         }
 
         model = get_model(info)
         my_mflike = model.likelihood["mflike.TT"]
-        chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        chi2 = -2 * (model.loglike(TT_nuis_params, return_derived=False) - my_mflike.logp_const)
         self.assertAlmostEqual(chi2, chi2s["tt"], 2)
 
     def test_cobaya_TE(self):
@@ -146,6 +147,7 @@ class MFLikeTest(unittest.TestCase):
         self.assertAlmostEqual(chi2, chi2s["te-et"], 2)
 
     def test_cobaya_EE(self):
+        EE_nuis_params = {k: v for k, v in nuis_params.items() if "calT" not in k}
         info = {
             "likelihood": {
                 "mflike.EE": {
@@ -155,13 +157,13 @@ class MFLikeTest(unittest.TestCase):
             },
             "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
                        "mflike.BandpowerForeground": {}},
-            "params": cosmo_params | nuis_params,
+            "params": cosmo_params | EE_nuis_params,
             "packages_path": packages_path,
         }
 
         model = get_model(info)
         my_mflike = model.likelihood["mflike.EE"]
-        chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        chi2 = -2 * (model.loglike(EE_nuis_params, return_derived=False) - my_mflike.logp_const)
         self.assertAlmostEqual(chi2, chi2s["ee"], 2)
 
     def test_cobaya_TTTEEE(self):
