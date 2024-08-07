@@ -70,10 +70,16 @@ pre = "LAT_simu_sacc_"
 
 class MFLikeTest(unittest.TestCase):
     def setUp(self):
-        install({"likelihood": {"mflike.MFLike": None}}, path=packages_path)
+        install({"likelihood": {
+            "mflike.MFLike_TT": None,
+            "mflike.MFLike_TE": None,
+            "mflike.MFLike_EE": None,
+            "mflike.MFLike_TTTEEE": None,
+            }}, path=packages_path)
+
 
     def test_mflike(self):
-        from mflike import MFLike, BandpowerForeground
+        from mflike import MFLike_TTTEEE, BandpowerForeground
         import camb
 
         # using camb low accuracy parameters for the test
@@ -83,7 +89,7 @@ class MFLikeTest(unittest.TestCase):
         powers = results.get_cmb_power_spectra(pars, CMB_unit="muK")
         cl_dict = {k: powers["total"][:, v] for k, v in {"tt": 0, "ee": 1, "te": 3}.items()}
         for select, chi2 in chi2s.items():
-            my_mflike = MFLike(
+            my_mflike = MFLike_TTTEEE(
                 {
                     "packages_path": packages_path,
                     "input_file": pre + "00000.fits",
@@ -106,10 +112,10 @@ class MFLikeTest(unittest.TestCase):
             loglike = my_mflike.loglike(cl_dict, fg_totals, **nuis_params)
             self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 2)
 
-    def test_cobaya(self):
+    def test_cobaya_TTTEEE(self):
         info = {
             "likelihood": {
-                "mflike.MFLike": {
+                "mflike.MFLike_TTTEEE": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                 },
@@ -121,14 +127,17 @@ class MFLikeTest(unittest.TestCase):
         }
 
         model = get_model(info)
-        my_mflike = model.likelihood["mflike.MFLike"]
+        my_mflike = model.likelihood["mflike.MFLike_TTTEEE"]
+        print("logp_const", my_mflike.logp_const)
+        print("loglike", model.loglike(nuis_params, return_derived=False))
+        print("test", model.loglikes(nuis_params, return_derived=False))
         chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
         self.assertAlmostEqual(chi2, chi2s["tt-te-et-ee"], 2)
 
     def test_top_hat_bandpasses(self):
         # Let's vary values of bandint_shift parameters
         params = nuis_params | {
-            k: {"prior": dict(min=0.9 * v, max=1.1 * v)}
+            k: {"prior": {"min": 0.9 * v, "max": 1.1 * v}}
             for k, v in nuis_params.items()
             if k.startswith("bandint_shift")
         }
@@ -136,7 +145,7 @@ class MFLikeTest(unittest.TestCase):
         def _get_model(nsteps, bandwidth):
             info = {
                 "likelihood": {
-                    "mflike.MFLike": {
+                    "mflike.MFLike_TTTEEE": {
                         "input_file": pre + "00000.fits",
                         "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
 
@@ -152,7 +161,7 @@ class MFLikeTest(unittest.TestCase):
             }
 
             model = get_model(info)
-            return model, model.likelihood["mflike.MFLike"].logp_const
+            return model, model.likelihood["mflike.MFLike_TTTEEE"].logp_const
 
         #  top hat band
         self.model1, logp_const = _get_model(nsteps=1, bandwidth=0)
