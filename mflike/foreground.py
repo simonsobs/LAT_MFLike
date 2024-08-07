@@ -39,10 +39,11 @@ The effective frequencies, used as central frequencies to build the bandpasses, 
 """
 
 import os
+
 import numpy as np
-from scipy import constants
-from cobaya.theory import Theory
 from cobaya.log import LoggedError
+from cobaya.theory import Provider, Theory
+from scipy import constants
 
 try:
     from numpy import trapezoid
@@ -123,9 +124,11 @@ class Foreground(Theory):
 
         self.tSZ_and_CIB = fgc.CorrelatedFactorizedCrossSpectrum(tsz_cib_sed, tsz_cib_cl)
 
-        self.fg_component_list = {s: self.components[s] for s in self.requested_cls}
         if self.ells is None:
             self.ells = np.arange(self.lmin, self.lmax + 1)
+
+    def initialize_with_provider(self, provider: Provider):
+        self.fg_component_list = {s: self.components[s] for s in self.requested_cls}
 
     # Gets the actual power spectrum of foregrounds given the passed parameters
     def _get_foreground_model_arrays(self, fg_params, ell=None):
@@ -290,7 +293,6 @@ class Foreground(Theory):
                             fg_dict[s, comp, exp1, exp2] = term
                         sum_all += term
                     fg_dict[s, "all", exp1, exp2] = sum_all
-
         return fg_dict
 
     def calculate(self, state, want_derived=False, **params_values_dict):
@@ -342,6 +344,7 @@ class BandpowerForeground(Foreground):
 
     def initialize(self):
         super().initialize()
+        super().initialize_with_provider(self)
         if self.bands is None:
             self.bands = {
                 f"{exp}_s0": {"nu": [self.bandint_freqs[iexp]], "bandpass": [1.0]}
