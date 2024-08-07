@@ -230,8 +230,10 @@ class MFLike(InstallableLikelihood):
                     # get the indices of the valid experiments in all the experiments
                     # for this systematic
                     intersect_valid_exps, valid_exp_idxs_in_valid_exps, valid_exp_idxs_in_exps = np.intersect1d(valid_exps, exps, return_indices=True)
-                    assert np.all(intersect_valid_exps == valid_exps)
-                    assert np.all(valid_exp_idxs_in_valid_exps == np.arange(len(valid_exps)))
+                    assert np.all(intersect_valid_exps == valid_exps), \
+                        f'{intersect_valid_exps=} but {valid_exps=}'
+                    assert np.all(valid_exp_idxs_in_valid_exps == np.arange(len(valid_exps))), \
+                        f'{valid_exp_idxs_in_valid_exps=} but {valid_exps=}'
 
                     # get the transformation matrix
                     mat = np.zeros((len(exps), len(exps)))
