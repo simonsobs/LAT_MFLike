@@ -135,8 +135,8 @@ class MFLike(InstallableLikelihood):
         :return: the dictionary of theory :math:`D_{\ell}` and foregrounds
         """
 
-        return dict(fg_totals=self.get_fg_requirements(),
-                    Cl={k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()})
+        return {"fg_totals": self.get_fg_requirements(),
+                "Cl": {k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()}}
 
     def logp(self, **params_values):
         cl = self.provider.get_Cl(ell_factor=True)
@@ -689,3 +689,19 @@ class MFLike(InstallableLikelihood):
                     )
 
         return dls_dict
+
+
+class MFLike_TT(_MFLike):
+    pass
+
+
+class MFLike_TE(_MFLike):
+    pass
+
+
+class MFLike_EE(_MFLike):
+    pass
+
+
+class MFLike_TTTEEE(_MFLike):
+    pass
