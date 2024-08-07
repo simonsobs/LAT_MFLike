@@ -91,8 +91,23 @@ class MFLike(InstallableLikelihood):
         # Read data
         self._prepare_data()
 
+        # Setting mode given likelihood name
+        likelihood_name = self.__class__.__name__
+        self.mode = likelihood_name.replace("MFLike_", "").lower()
+        if self.mode not in ["tt", "te", "ee", "ttteee"]:
+            raise LoggedError(
+                self.log,
+                f"This likelihood mode ({self.mode}) is not supported.",
+            )
+
         # State requisites to the theory code
-        self.requested_cls = ["tt", "te", "ee"]
+        requested_cls = {
+            "tt": ["tt"],
+            "te": ["te"],
+            "ee": ["ee"],
+            "ttteee": ["tt", "te", "ee"],
+        }
+        self.requested_cls = requested_cls[self.mode]
         self.lmax_theory = self.lmax_theory or 9000
         self.log.debug(f"Maximum multipole value: {self.lmax_theory}")
 
