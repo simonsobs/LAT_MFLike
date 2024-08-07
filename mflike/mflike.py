@@ -691,17 +691,15 @@ class _MFLike(InstallableLikelihood):
         return dls_dict
 
 
-class MFLike_TT(_MFLike):
-    pass
+class TTTEEE(_MFLike):
+    ...
 
 
-class MFLike_TE(_MFLike):
-    pass
+class TT(_MFLike):
+    ...
 
 
-class MFLike_EE(_MFLike):
-    pass
+    ...
 
 
-class MFLike_TTTEEE(_MFLike):
-    pass
+    ...

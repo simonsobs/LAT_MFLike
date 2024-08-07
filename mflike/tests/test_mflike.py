@@ -70,16 +70,11 @@ pre = "LAT_simu_sacc_"
 
 class MFLikeTest(unittest.TestCase):
     def setUp(self):
-        install({"likelihood": {
-            "mflike.MFLike_TT": None,
-            "mflike.MFLike_TE": None,
-            "mflike.MFLike_EE": None,
-            "mflike.MFLike_TTTEEE": None,
-            }}, path=packages_path)
+        install({"likelihood": {"mflike.TTTEEE": None}}, path=packages_path)
 
 
     def test_mflike(self):
-        from mflike import MFLike_TTTEEE, BandpowerForeground
+        from mflike import TTTEEE, BandpowerForeground
         import camb
 
         # using camb low accuracy parameters for the test
@@ -89,7 +84,7 @@ class MFLikeTest(unittest.TestCase):
         powers = results.get_cmb_power_spectra(pars, CMB_unit="muK")
         cl_dict = {k: powers["total"][:, v] for k, v in {"tt": 0, "ee": 1, "te": 3}.items()}
         for select, chi2 in chi2s.items():
-            my_mflike = MFLike_TTTEEE(
+            my_mflike = TTTEEE(
                 {
                     "packages_path": packages_path,
                     "input_file": pre + "00000.fits",
@@ -115,7 +110,7 @@ class MFLikeTest(unittest.TestCase):
     def test_cobaya_TT(self):
         info = {
             "likelihood": {
-                "mflike.MFLike_TT": {
+                "mflike.TT": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                 },
@@ -127,14 +122,14 @@ class MFLikeTest(unittest.TestCase):
         }
 
         model = get_model(info)
-        my_mflike = model.likelihood["mflike.MFLike_TT"]
+        my_mflike = model.likelihood["mflike.TT"]
         chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
         self.assertAlmostEqual(chi2, chi2s["tt"], 2)
 
     def test_cobaya_TE(self):
         info = {
             "likelihood": {
-                "mflike.MFLike_TE": {
+                "mflike.TE": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                 },
@@ -146,14 +141,14 @@ class MFLikeTest(unittest.TestCase):
         }
 
         model = get_model(info)
-        my_mflike = model.likelihood["mflike.MFLike_TE"]
+        my_mflike = model.likelihood["mflike.TE"]
         chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
         self.assertAlmostEqual(chi2, chi2s["te-et"], 2)
 
     def test_cobaya_EE(self):
         info = {
             "likelihood": {
-                "mflike.MFLike_EE": {
+                "mflike.EE": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                 },
@@ -165,14 +160,14 @@ class MFLikeTest(unittest.TestCase):
         }
 
         model = get_model(info)
-        my_mflike = model.likelihood["mflike.MFLike_EE"]
+        my_mflike = model.likelihood["mflike.EE"]
         chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
         self.assertAlmostEqual(chi2, chi2s["ee"], 2)
 
     def test_cobaya_TTTEEE(self):
         info = {
             "likelihood": {
-                "mflike.MFLike_TTTEEE": {
+                "mflike.TTTEEE": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                 },
@@ -184,7 +179,7 @@ class MFLikeTest(unittest.TestCase):
         }
 
         model = get_model(info)
-        my_mflike = model.likelihood["mflike.MFLike_TTTEEE"]
+        my_mflike = model.likelihood["mflike.TTTEEE"]
         print("logp_const", my_mflike.logp_const)
         print("loglike", model.loglike(nuis_params, return_derived=False))
         print("test", model.loglikes(nuis_params, return_derived=False))
@@ -202,7 +197,7 @@ class MFLikeTest(unittest.TestCase):
         def _get_model(nsteps, bandwidth):
             info = {
                 "likelihood": {
-                    "mflike.MFLike_TTTEEE": {
+                    "mflike.TTTEEE": {
                         "input_file": pre + "00000.fits",
                         "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
 
@@ -218,7 +213,7 @@ class MFLikeTest(unittest.TestCase):
             }
 
             model = get_model(info)
-            return model, model.likelihood["mflike.MFLike_TTTEEE"].logp_const
+            return model, model.likelihood["mflike.TTTEEE"].logp_const
 
         #  top hat band
         self.model1, logp_const = _get_model(nsteps=1, bandwidth=0)

@@ -1,7 +1,7 @@
 from importlib.metadata import PackageNotFoundError, version
 
 from .foreground import BandpowerForeground, Foreground
-from .mflike import MFLike_TT, MFLike_TE, MFLike_EE, MFLike_TTTEEE
+from .mflike import TT, TE, EE, TTTEEE
 
 try:
     __version__ = version("mflike")
@@ -11,10 +11,10 @@ except PackageNotFoundError:
 
 __all__ = [
     # mflike
-    "MFLike_TT",
-    "MFLike_TE",
-    "MFLike_EE",
-    "MFLike_TTTEEE",
+    "TT",
+    "TE",
+    "EE",
+    "TTTEEE",
     # foreground
     "Foreground",
     "BandpowerForeground",
