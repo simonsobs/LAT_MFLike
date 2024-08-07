@@ -112,6 +112,63 @@ class MFLikeTest(unittest.TestCase):
             loglike = my_mflike.loglike(cl_dict, fg_totals, **nuis_params)
             self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 2)
 
+    def test_cobaya_TT(self):
+        info = {
+            "likelihood": {
+                "mflike.MFLike_TT": {
+                    "input_file": pre + "00000.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                },
+            },
+            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                       "mflike.BandpowerForeground": {}},
+            "params": cosmo_params | nuis_params,
+            "packages_path": packages_path,
+        }
+
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.MFLike_TT"]
+        chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        self.assertAlmostEqual(chi2, chi2s["tt"], 2)
+
+    def test_cobaya_TE(self):
+        info = {
+            "likelihood": {
+                "mflike.MFLike_TE": {
+                    "input_file": pre + "00000.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                },
+            },
+            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                       "mflike.BandpowerForeground": {}},
+            "params": cosmo_params | nuis_params,
+            "packages_path": packages_path,
+        }
+
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.MFLike_TE"]
+        chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        self.assertAlmostEqual(chi2, chi2s["te-et"], 2)
+
+    def test_cobaya_EE(self):
+        info = {
+            "likelihood": {
+                "mflike.MFLike_EE": {
+                    "input_file": pre + "00000.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                },
+            },
+            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                       "mflike.BandpowerForeground": {}},
+            "params": cosmo_params | nuis_params,
+            "packages_path": packages_path,
+        }
+
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.MFLike_EE"]
+        chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        self.assertAlmostEqual(chi2, chi2s["ee"], 2)
+
     def test_cobaya_TTTEEE(self):
         info = {
             "likelihood": {
