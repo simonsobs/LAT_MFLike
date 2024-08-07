@@ -47,7 +47,7 @@ from cobaya.likelihoods.base_classes import InstallableLikelihood, _fast_chi_squ
 from cobaya.log import LoggedError
 
 
-class MFLike(InstallableLikelihood):
+class _MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
     _release = "v0.8"
     install_options = {"download_url": f"{_url}/{_release}.tar.gz"}
