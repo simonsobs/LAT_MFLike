@@ -50,7 +50,10 @@ from cobaya.log import LoggedError
 class _MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
     _release = "v0.8"
-    install_options = {"download_url": f"{_url}/{_release}.tar.gz"}
+    install_options = {
+        "download_url": f"{_url}/{_release}.tar.gz",
+        "data_path": "MFLike",
+    }
 
     # attributes set from .yaml
     input_file: Optional[str]
@@ -97,7 +100,7 @@ class _MFLike(InstallableLikelihood):
         if self.mode not in ["tt", "te", "ee", "ttteee"]:
             raise LoggedError(
                 self.log,
-                f"This likelihood mode ({self.mode}) is not supported.",
+                f"This likelihood mode ({self.mode}) is not supported."
             )
 
         # State requisites to the theory code
@@ -699,7 +702,8 @@ class TT(_MFLike):
     ...
 
 
+class TE(_MFLike):
     ...
 
-
+class EE(_MFLike):
     ...
