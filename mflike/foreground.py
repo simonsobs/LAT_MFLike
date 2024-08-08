@@ -50,6 +50,30 @@ try:
 except ImportError:
     from numpy import trapz as trapezoid
 
+nuis_params_defaults = {
+    "a_tSZ": 3.30,
+    "a_kSZ": 1.60,
+    "a_p": 6.90,
+    "beta_p": 2.20,
+    "a_c": 4.90,
+    "beta_c": 2.20,
+    "a_s": 3.10,
+    "a_gtt": 2.80,
+    "a_gte": 0.10,
+    "a_gee": 0.10,
+    "a_psee": 0.0,
+    "a_pste": 0.0,
+    "xi": 0.10,
+    "T_d": 9.60,
+    "beta_s": -2.5,
+    "alpha_s": 1.0,
+    "T_effd": 19.6,
+    "beta_d": 1.5,
+    "alpha_dT": -0.6,
+    "alpha_dE": -0.4,
+    "alpha_p": 1.0,
+    "alpha_tSZ": 0.0
+}
 
 # Converts from cmb temperature to differential source intensity
 # (see eq. 8 of https://arxiv.org/abs/1303.5070).
