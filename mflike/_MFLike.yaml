@@ -44,3 +44,5 @@ data:
 # default is systematic_template to be a null dict
 systematics_template:
 #  rootname: "test_template"
+
+params: !defaults [calib_common, calib_T, calib_E, params_common, params_TT, params_TE, params_EE]
