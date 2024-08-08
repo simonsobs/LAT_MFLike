@@ -45,6 +45,9 @@ import sacc
 from cobaya.conventions import data_path, packages_path_input
 from cobaya.likelihoods.base_classes import InstallableLikelihood, _fast_chi_square
 from cobaya.log import LoggedError
+from cobaya.parameterization import expand_info_param
+
+from mflike.foreground import nuis_params_defaults
 
 
 class _MFLike(InstallableLikelihood):
@@ -62,6 +65,7 @@ class _MFLike(InstallableLikelihood):
     data: dict
     defaults: dict
     systematics_template: dict
+    supported_params: dict
     lmax_theory: Optional[int]
 
     _fast_chi_squared = _fast_chi_square()
@@ -122,6 +126,12 @@ class _MFLike(InstallableLikelihood):
             self._init_template_from_file()
 
         self._constant_nuisance: Optional[dict] = None
+
+        for p in nuis_params_defaults:
+            if p not in self.supported_params:
+                if isinstance(expand_info_param(self.params[p]).get("value"), Real):
+                    continue
+                self.params[p] = nuis_params_defaults[p]
         self.log.info("Initialized!")
 
     def get_fg_requirements(self):
