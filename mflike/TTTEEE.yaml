@@ -13,4 +13,4 @@ defaults:
   # instead of TE and ET separately.
   symmetrize: false
 
-params: !defaults [calib, calib_T, calib_E]
+supported_params: !defaults [calib_common, calib_T, calib_E, params_common, params_TT, params_TE, params_EE]

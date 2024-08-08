@@ -7,4 +7,4 @@ defaults:
   scales:
     TT: [30, 9000]
 
-params: !defaults [calib, calib_T]
+supported_params: !defaults [calib_common, calib_T, params_common, params_TT]
