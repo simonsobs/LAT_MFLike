@@ -120,6 +120,7 @@ class MFLikeTest(unittest.TestCase):
 
     def test_cobaya_TT(self):
         nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
+        nuis_params = {k: v for k, v in nuis_params.items() if "calE" not in k}
         info = {
             "likelihood": {
                 "mflike.TT": {
@@ -160,6 +161,7 @@ class MFLikeTest(unittest.TestCase):
 
     def test_cobaya_EE(self):
         nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
+        nuis_params = {k: v for k, v in nuis_params.items() if "calT" not in k}
         info = {
             "likelihood": {
                 "mflike.EE": {
@@ -171,6 +173,7 @@ class MFLikeTest(unittest.TestCase):
                        "mflike.BandpowerForeground": {}},
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
+            "debug": True,
         }
 
         model = get_model(info)

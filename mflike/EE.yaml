@@ -7,4 +7,6 @@ defaults:
   scales:
     EE: [30, 9000]
 
+params: !defaults [calib_common, calib_E, params_common, params_TT, params_TE, params_EE]
+
 supported_params: !defaults [calib_common, calib_E, params_common, params_EE]
