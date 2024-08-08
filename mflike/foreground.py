@@ -179,101 +179,104 @@ class Foreground(Theory):
         ell_0clp = ell_0 * (ell_0 + 1.0)
 
         model = {}
-        model["tt", "kSZ"] = fg_params["a_kSZ"] * self.ksz(
-            {"nu": self.bandint_freqs}, {"ell": ell, "ell_0": ell_0}
-        )
-        model["tt", "cibp"] = fg_params["a_p"] * self.cibp(
-            {
-                "nu": self.bandint_freqs,
-                "nu_0": nu_0,
-                "temp": fg_params["T_d"],
-                "beta": fg_params["beta_p"],
-            },
-            {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_p"]},
-        )
-        model["tt", "radio"] = fg_params["a_s"] * self.radio(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": fg_params["beta_s"]},
-            {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
-        )
-        model["tt", "tSZ"] = fg_params["a_tSZ"] * self.tsz(
-            {"nu": self.bandint_freqs, "nu_0": nu_0},
-            {"ell": ell, "ell_0": ell_0, "alpha": fg_params["alpha_tSZ"]},
-        )
-        model["tt", "cibc"] = fg_params["a_c"] * self.cibc(
-            {
-                "nu": self.bandint_freqs,
-                "nu_0": nu_0,
-                "temp": fg_params["T_d"],
-                "beta": fg_params["beta_c"],
-            },
-            {"ell": ell, "ell_0": ell_0},
-        )
-        model["tt", "dust"] = fg_params["a_gtt"] * self.dust(
-            {
-                "nu": self.bandint_freqs,
-                "nu_0": nu_0,
-                "temp": fg_params["T_effd"],
-                "beta": fg_params["beta_d"],
-            },
-            {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dT"]},
-        )
-        model["tt", "tSZ_and_CIB"] = self.tSZ_and_CIB(
-            {
-                "kwseq": (
-                    {"nu": self.bandint_freqs, "nu_0": nu_0},
-                    {
-                        "nu": self.bandint_freqs,
-                        "nu_0": nu_0,
-                        "temp": fg_params["T_d"],
-                        "beta": fg_params["beta_c"],
-                    },
-                )
-            },
-            {
-                "kwseq": (
-                    {
-                        "ell": ell,
-                        "ell_0": ell_0,
-                        "amp": fg_params["a_tSZ"],
-                        "alpha": fg_params["alpha_tSZ"]
-                    },
-                    {"ell": ell, "ell_0": ell_0, "amp": fg_params["a_c"]},
-                    {
-                        "ell": ell,
-                        "ell_0": ell_0,
-                        "amp": -fg_params["xi"] * np.sqrt(fg_params["a_tSZ"] * fg_params["a_c"]),
-                    },
-                )
-            },
-        )
+        if "tt" in self.requested_cls:
+            model["tt", "kSZ"] = fg_params["a_kSZ"] * self.ksz(
+                {"nu": self.bandint_freqs}, {"ell": ell, "ell_0": ell_0}
+            )
+            model["tt", "cibp"] = fg_params["a_p"] * self.cibp(
+                {
+                    "nu": self.bandint_freqs,
+                    "nu_0": nu_0,
+                    "temp": fg_params["T_d"],
+                    "beta": fg_params["beta_p"],
+                },
+                {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_p"]},
+            )
+            model["tt", "radio"] = fg_params["a_s"] * self.radio(
+                {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": fg_params["beta_s"]},
+                {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
+            )
+            model["tt", "tSZ"] = fg_params["a_tSZ"] * self.tsz(
+                {"nu": self.bandint_freqs, "nu_0": nu_0},
+                {"ell": ell, "ell_0": ell_0, "alpha": fg_params["alpha_tSZ"]},
+            )
+            model["tt", "cibc"] = fg_params["a_c"] * self.cibc(
+                {
+                    "nu": self.bandint_freqs,
+                    "nu_0": nu_0,
+                    "temp": fg_params["T_d"],
+                    "beta": fg_params["beta_c"],
+                },
+                {"ell": ell, "ell_0": ell_0},
+            )
+            model["tt", "dust"] = fg_params["a_gtt"] * self.dust(
+                {
+                    "nu": self.bandint_freqs,
+                    "nu_0": nu_0,
+                    "temp": fg_params["T_effd"],
+                    "beta": fg_params["beta_d"],
+                },
+                {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dT"]},
+            )
+            model["tt", "tSZ_and_CIB"] = self.tSZ_and_CIB(
+                {
+                    "kwseq": (
+                        {"nu": self.bandint_freqs, "nu_0": nu_0},
+                        {
+                            "nu": self.bandint_freqs,
+                            "nu_0": nu_0,
+                            "temp": fg_params["T_d"],
+                            "beta": fg_params["beta_c"],
+                        },
+                    )
+                },
+                {
+                    "kwseq": (
+                        {
+                            "ell": ell,
+                            "ell_0": ell_0,
+                            "amp": fg_params["a_tSZ"],
+                            "alpha": fg_params["alpha_tSZ"]
+                        },
+                        {"ell": ell, "ell_0": ell_0, "amp": fg_params["a_c"]},
+                        {
+                            "ell": ell,
+                            "ell_0": ell_0,
+                            "amp": -fg_params["xi"] * np.sqrt(fg_params["a_tSZ"] * fg_params["a_c"]),
+                        },
+                    )
+                },
+            )
 
-        model["ee", "radio"] = fg_params["a_psee"] * self.radio(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": fg_params["beta_s"]},
-            {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
-        )
-        model["ee", "dust"] = fg_params["a_gee"] * self.dust(
-            {
-                "nu": self.bandint_freqs,
-                "nu_0": nu_0,
-                "temp": fg_params["T_effd"],
-                "beta": fg_params["beta_d"],
-            },
-            {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
-        )
+        if "ee" in self.requested_cls:
+            model["ee", "radio"] = fg_params["a_psee"] * self.radio(
+                {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": fg_params["beta_s"]},
+                {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
+            )
+            model["ee", "dust"] = fg_params["a_gee"] * self.dust(
+                {
+                    "nu": self.bandint_freqs,
+                    "nu_0": nu_0,
+                    "temp": fg_params["T_effd"],
+                    "beta": fg_params["beta_d"],
+                },
+                {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
+            )
 
-        model["te", "radio"] = fg_params["a_pste"] * self.radio(
-            {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": fg_params["beta_s"]},
-            {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
-        )
-        model["te", "dust"] = fg_params["a_gte"] * self.dust(
-            {
-                "nu": self.bandint_freqs,
-                "nu_0": nu_0,
-                "temp": fg_params["T_effd"],
-                "beta": fg_params["beta_d"],
-            },
-            {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
-        )
+        if "te" in self.requested_cls:
+            model["te", "radio"] = fg_params["a_pste"] * self.radio(
+                {"nu": self.bandint_freqs, "nu_0": nu_0, "beta": fg_params["beta_s"]},
+                {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
+            )
+            model["te", "dust"] = fg_params["a_gte"] * self.dust(
+                {
+                    "nu": self.bandint_freqs,
+                    "nu_0": nu_0,
+                    "temp": fg_params["T_effd"],
+                    "beta": fg_params["beta_d"],
+                },
+                {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
+            )
 
         return model
 
