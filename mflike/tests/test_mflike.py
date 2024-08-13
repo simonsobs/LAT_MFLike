@@ -82,7 +82,6 @@ class MFLikeTest(unittest.TestCase):
     def setUp(self):
         install({"likelihood": {"mflike.TTTEEE": None}}, path=packages_path)
 
-
     def test_mflike(self):
         from mflike import TTTEEE, BandpowerForeground
         import camb
@@ -129,7 +128,7 @@ class MFLikeTest(unittest.TestCase):
                 },
             },
             "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                       "mflike.BandpowerForeground": {}},
+                       "mflike.BandpowerForeground": {'requested_cls': ['tt']}},
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
         }
@@ -149,7 +148,7 @@ class MFLikeTest(unittest.TestCase):
                 },
             },
             "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                       "mflike.BandpowerForeground": {}},
+                       "mflike.BandpowerForeground": {'requested_cls': ['te']}},
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
         }
@@ -170,16 +169,18 @@ class MFLikeTest(unittest.TestCase):
                 },
             },
             "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                       "mflike.BandpowerForeground": {}},
+                       "mflike.BandpowerForeground": {'requested_cls': ['ee']}},
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
             "debug": True,
         }
-
-        model = get_model(info)
-        my_mflike = model.likelihood["mflike.EE"]
-        chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
-        self.assertAlmostEqual(chi2, chi2s["ee"], 2)
+        for _ in (False, True):
+            model = get_model(info)
+            my_mflike = model.likelihood["mflike.EE"]
+            chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+            self.assertAlmostEqual(chi2, chi2s["ee"], 2)
+            info["theory"].pop("mflike.BandpowerForeground", None)
+            info["theory"]["mflike.EEForeground"] = None
 
     def test_cobaya_TTTEEE(self):
         nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params

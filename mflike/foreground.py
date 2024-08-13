@@ -43,6 +43,7 @@ import os
 import numpy as np
 from cobaya.log import LoggedError
 from cobaya.theory import Provider, Theory
+from cobaya.yaml import yaml_load
 from scipy import constants
 
 try:
@@ -50,30 +51,6 @@ try:
 except ImportError:
     from numpy import trapz as trapezoid
 
-nuis_params_defaults = {
-    "a_tSZ": 3.30,
-    "a_kSZ": 1.60,
-    "a_p": 6.90,
-    "beta_p": 2.20,
-    "a_c": 4.90,
-    "beta_c": 2.20,
-    "a_s": 3.10,
-    "a_gtt": 2.80,
-    "a_gte": 0.10,
-    "a_gee": 0.10,
-    "a_psee": 0.0,
-    "a_pste": 0.0,
-    "xi": 0.10,
-    "T_d": 9.60,
-    "beta_s": -2.5,
-    "alpha_s": 1.0,
-    "T_effd": 19.6,
-    "beta_d": 1.5,
-    "alpha_dT": -0.6,
-    "alpha_dE": -0.4,
-    "alpha_p": 1.0,
-    "alpha_tSZ": 0.0
-}
 
 # Converts from cmb temperature to differential source intensity
 # (see eq. 8 of https://arxiv.org/abs/1303.5070).
@@ -99,7 +76,22 @@ def _cmb2bb(nu):
     return np.exp(x) * (nu * x / np.expm1(x)) ** 2
 
 
-class Foreground(Theory):
+class ForegroundParamsTheory(Theory):
+
+    @classmethod
+    def get_class_options(cls, input_options={}):
+        # dynamically generate defaults for params based on nbins
+        options = super().get_class_options().copy()
+        param_requested_cls = input_options.get(
+            'requested_cls') or options.get('requested_cls', ['tt', 'te', 'ee'])
+        params = yaml_load(cls.get_text_file_content('params_common.yaml'))
+        for spec in param_requested_cls:
+            params |= yaml_load(cls.get_text_file_content('params_%s.yaml' % spec.upper()))
+        options["params"] = params
+        return options
+
+
+class Foreground(ForegroundParamsTheory):
     normalisation: dict
     components: dict
     experiments: list[str]
@@ -120,39 +112,40 @@ class Foreground(Theory):
         from fgspectra import frequency as fgf
         from fgspectra import power as fgp
 
-        template_path = os.path.join(os.path.dirname(os.path.abspath(fgp.__file__)), "data")
-        tsz_file = os.path.join(template_path, "cl_tsz_150_bat.dat")
-        cibc_file = os.path.join(template_path, "cl_cib_Choi2020.dat")
-        cibxtsz_file = os.path.join(template_path, "cl_sz_x_cib.dat")
+        self.fg_component_list = {s: self.components[s] for s in self.requested_cls}
 
+        template_path = os.path.join(os.path.dirname(os.path.abspath(fgp.__file__)), "data")
         # set pivot freq and multipole
         self.fg_nu_0 = self.normalisation["nu_0"]
         self.fg_ell_0 = self.normalisation["ell_0"]
 
-        # We don't seem to be using this
-        # cirrus = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
-        self.ksz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.kSZ_bat())
-        self.cibp = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
+        if 'tt' in self.requested_cls:
+            tsz_file = os.path.join(template_path, "cl_tsz_150_bat.dat")
+            cibc_file = os.path.join(template_path, "cl_cib_Choi2020.dat")
+            cibxtsz_file = os.path.join(template_path, "cl_sz_x_cib.dat")
+
+            # We don't seem to be using this
+            # cirrus = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
+            self.ksz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.kSZ_bat())
+            self.cibp = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
+            self.tsz = fgc.FactorizedCrossSpectrum(fgf.ThermalSZ(), fgp.PowerLawRescaledTemplate(tsz_file))
+            self.cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerSpectrumFromFile(cibc_file))
+
+            tsz_cib_sed = fgf.Join(fgf.ThermalSZ(), fgf.CIB())
+            tsz_cib_power_spectra = [
+                fgp.PowerLawRescaledTemplate(tsz_file),
+                fgp.PowerSpectrumFromFile(cibc_file),
+                fgp.PowerSpectrumFromFile(cibxtsz_file)
+            ]
+            tsz_cib_cl = fgp.PowerSpectraAndCovariance(*tsz_cib_power_spectra)
+
+            self.tSZ_and_CIB = fgc.CorrelatedFactorizedCrossSpectrum(tsz_cib_sed, tsz_cib_cl)
+
         self.radio = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
-        self.tsz = fgc.FactorizedCrossSpectrum(fgf.ThermalSZ(), fgp.PowerLawRescaledTemplate(tsz_file))
-        self.cibc = fgc.FactorizedCrossSpectrum(fgf.CIB(), fgp.PowerSpectrumFromFile(cibc_file))
         self.dust = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
-
-        tsz_cib_sed = fgf.Join(fgf.ThermalSZ(), fgf.CIB())
-        tsz_cib_power_spectra = [
-            fgp.PowerLawRescaledTemplate(tsz_file),
-            fgp.PowerSpectrumFromFile(cibc_file),
-            fgp.PowerSpectrumFromFile(cibxtsz_file)
-        ]
-        tsz_cib_cl = fgp.PowerSpectraAndCovariance(*tsz_cib_power_spectra)
-
-        self.tSZ_and_CIB = fgc.CorrelatedFactorizedCrossSpectrum(tsz_cib_sed, tsz_cib_cl)
 
         if self.ells is None:
             self.ells = np.arange(self.lmin, self.lmax + 1)
-
-    def initialize_with_provider(self, provider: Provider):
-        self.fg_component_list = {s: self.components[s] for s in self.requested_cls}
 
     # Gets the actual power spectrum of foregrounds given the passed parameters
     def _get_foreground_model_arrays(self, fg_params, ell=None):
@@ -358,7 +351,10 @@ class Foreground(Theory):
 
     def must_provide(self, **requirements):
         if (req := requirements.get("fg_totals")) is not None:
-            self.requested_cls = req.get("requested_cls", self.requested_cls)
+            if set(self.requested_cls) != set(req.get("requested_cls",
+                                                      ['tt', 'te', 'ee'])):
+                raise ValueError(
+                    "requested_cls must be the same in Foreground and MFLike")
             self.ells = req.get("ells", self.ells)
             self.experiments = req.get("experiments", self.experiments)
 
@@ -371,7 +367,6 @@ class BandpowerForeground(Foreground):
 
     def initialize(self):
         super().initialize()
-        super().initialize_with_provider(self)
         if self.bands is None:
             self.bands = {
                 f"{exp}_s0": {"nu": [self.bandint_freqs[iexp]], "bandpass": [1.0]}
@@ -510,3 +505,15 @@ class BandpowerForeground(Foreground):
             if self._initialized:
                 self.log.info("bandpass is delta function, no band integration performed")
         self._initialized = True
+
+
+class TTForeground(BandpowerForeground):
+    requested_cls = ['tt']
+
+
+class EEForeground(BandpowerForeground):
+    requested_cls = ['ee']
+
+
+class TEForeground(BandpowerForeground):
+    requested_cls = ['te']

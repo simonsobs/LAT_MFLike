@@ -46,5 +46,3 @@ components:
   ee:
     - radio
     - dust
-
-params: !defaults [params_common, params_TT, params_TE, params_EE]
