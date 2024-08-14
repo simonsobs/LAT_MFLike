@@ -1,18 +1,17 @@
 # Specify default set of spectra and scale cuts
 # to be used
+requested_cls: [ "tt", "te", "ee" ]
 defaults:
   # Which spectra?
-  polarizations: [TT, TE, ET, EE]
+  polarizations: [ TT, TE, ET, EE ]
   # Scale cuts (in ell) for each spectrum
   scales:
-    TT: [30, 9000]
-    TE: [30, 9000]
-    ET: [30, 9000]
-    EE: [30, 9000]
+    TT: [ 30, 9000 ]
+    TE: [ 30, 9000 ]
+    ET: [ 30, 9000 ]
+    EE: [ 30, 9000 ]
   # If True, TE' = (TE + ET) / 2 will be used
   # instead of TE and ET separately.
   symmetrize: false
 
-params: !defaults [calib_common, calib_T, calib_E, params_common, params_TT, params_TE, params_EE]
-
-supported_params: !defaults [calib_common, calib_T, calib_E, params_common, params_TT, params_TE, params_EE]
+params: !defaults [ calib_common, calib_T, calib_E ]

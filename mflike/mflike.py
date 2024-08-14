@@ -64,6 +64,7 @@ class _MFLike(InstallableLikelihood):
     systematics_template: dict
     supported_params: dict
     lmax_theory: Optional[int]
+    requested_cls: list[str]
 
     def initialize(self):
         # Set default values to data member not initialized via yaml file
@@ -651,7 +652,7 @@ class _MFLike(InstallableLikelihood):
         the ``syslibrary.syslib.ReadTemplateFromFile``
         function.
         """
-        if root := self.systematics_template.get("rootname"):
+        if not (root := self.systematics_template.get("rootname")):
             raise LoggedError(self.log, "Missing 'rootname' for systematics template!")
 
         from syslibrary import syslib

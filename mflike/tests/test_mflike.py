@@ -118,7 +118,7 @@ class MFLikeTest(unittest.TestCase):
             self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 2)
 
     def test_cobaya_TT(self):
-        nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
+        nuis_params = common_nuis_params | TT_nuis_params
         nuis_params = {k: v for k, v in nuis_params.items() if "calE" not in k}
         info = {
             "likelihood": {
@@ -139,7 +139,7 @@ class MFLikeTest(unittest.TestCase):
         self.assertAlmostEqual(chi2, chi2s["tt"], 2)
 
     def test_cobaya_TE(self):
-        nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
+        nuis_params = common_nuis_params | TE_nuis_params
         info = {
             "likelihood": {
                 "mflike.TE": {
@@ -159,8 +159,7 @@ class MFLikeTest(unittest.TestCase):
         self.assertAlmostEqual(chi2, chi2s["te-et"], 2)
 
     def test_cobaya_EE(self):
-        nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
-        nuis_params = {k: v for k, v in nuis_params.items() if "calT" not in k}
+        nuis_params = common_nuis_params | EE_nuis_params
         info = {
             "likelihood": {
                 "mflike.EE": {
@@ -192,7 +191,7 @@ class MFLikeTest(unittest.TestCase):
                 },
             },
             "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                       "mflike.BandpowerForeground": {}},
+                       "mflike.BandpowerForeground": None},
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
         }
@@ -229,8 +228,8 @@ class MFLikeTest(unittest.TestCase):
                 "packages_path": packages_path,
             }
 
-            model = get_model(info)
-            return model, model.likelihood["mflike.TTTEEE"].logp_const
+            _model = get_model(info)
+            return _model, _model.likelihood["mflike.TTTEEE"].logp_const
 
         #  top hat band
         self.model1, logp_const = _get_model(nsteps=1, bandwidth=0)

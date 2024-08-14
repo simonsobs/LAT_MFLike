@@ -1,12 +1,11 @@
 # Specify default set of spectra and scale cuts
 # to be used
+requested_cls: [ "ee" ]
 defaults:
   # Which spectra?
-  polarizations: [EE]
+  polarizations: [ EE ]
   # Scale cuts (in ell) for each spectrum
   scales:
-    EE: [30, 9000]
+    EE: [ 30, 9000 ]
 
-params: !defaults [calib_common, calib_E, params_common, params_TT, params_TE, params_EE]
-
-supported_params: !defaults [calib_common, calib_E, params_common, params_EE]
+params: !defaults [ calib_common, calib_E ]
