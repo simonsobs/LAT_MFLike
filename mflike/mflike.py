@@ -678,6 +678,18 @@ class TTTEEE(_MFLike):
     ...
 
 
+class TTEE(_MFLike):
+    ...
+
+
+class TTTE(_MFLike):
+    ...
+
+
+class TEEE(_MFLike):
+    ...
+
+
 class TT(_MFLike):
     ...
 

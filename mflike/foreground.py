@@ -518,3 +518,15 @@ class EEForeground(BandpowerForeground):
 
 class TEForeground(BandpowerForeground):
     requested_cls = ['te']
+
+
+class TTEEForeground(BandpowerForeground):
+    requested_cls = ['tt', 'ee']
+
+
+class TTTEForeground(BandpowerForeground):
+    requested_cls = ['tt', 'te']
+
+
+class TEEEForeground(BandpowerForeground):
+    requested_cls = ['te', 'ee']
