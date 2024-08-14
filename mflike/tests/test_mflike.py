@@ -73,6 +73,9 @@ chi2s = {
     "tt": 920.2630056646808,
     "te-et": 1375.0253752060808,
     "ee": 850.9616194876838,
+    "tt-ee": 1770.2453437088866,
+    "tt-te-et": 2289.876148743457,
+    "te-et-ee": 2221.3950392195356,
     "tt-te-et-ee": 3137.874002938912,
 }
 pre = "LAT_simu_sacc_"
@@ -180,6 +183,66 @@ class MFLikeTest(unittest.TestCase):
             self.assertAlmostEqual(chi2, chi2s["ee"], 2)
             info["theory"].pop("mflike.BandpowerForeground", None)
             info["theory"]["mflike.EEForeground"] = None
+
+    def test_cobaya_TT_EE(self):
+        nuis_params = common_nuis_params | TT_nuis_params | EE_nuis_params
+        info = {
+            "likelihood": {
+                "mflike.TTEE": {
+                    "input_file": pre + "00000.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                },
+            },
+            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                       "mflike.BandpowerForeground": {'requested_cls': ['tt', 'ee']}},
+            "params": cosmo_params | nuis_params,
+            "packages_path": packages_path,
+        }
+
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.TTEE"]
+        chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        self.assertAlmostEqual(chi2, chi2s["tt-ee"], 2)
+
+    def test_cobaya_TT_TE(self):
+        nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params
+        info = {
+            "likelihood": {
+                "mflike.TTTE": {
+                    "input_file": pre + "00000.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                },
+            },
+            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                       "mflike.BandpowerForeground": {'requested_cls': ['tt', 'te']}},
+            "params": cosmo_params | nuis_params,
+            "packages_path": packages_path,
+        }
+
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.TTTE"]
+        chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        self.assertAlmostEqual(chi2, chi2s["tt-te-et"], 2)
+
+    def test_cobaya_TE_EE(self):
+        nuis_params = common_nuis_params | TE_nuis_params | EE_nuis_params
+        info = {
+            "likelihood": {
+                "mflike.TEEE": {
+                    "input_file": pre + "00000.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                },
+            },
+            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                       "mflike.BandpowerForeground": {'requested_cls': ['te', 'ee']}},
+            "params": cosmo_params | nuis_params,
+            "packages_path": packages_path,
+        }
+
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.TEEE"]
+        chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        self.assertAlmostEqual(chi2, chi2s["te-et-ee"], 2)
 
     def test_cobaya_TTTEEE(self):
         nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
