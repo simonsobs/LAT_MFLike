@@ -77,10 +77,10 @@ def _cmb2bb(nu):
 
 
 class ForegroundParamsTheory(Theory):
+    # TODO: this class can be abolished once Cobaya allows class options and yaml for the same class
 
     @classmethod
     def get_class_options(cls, input_options={}):
-        # dynamically generate defaults for params based on nbins
         options = super().get_class_options().copy()
         param_requested_cls = input_options.get(
             'requested_cls') or options.get('requested_cls', ['tt', 'te', 'ee'])
