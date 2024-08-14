@@ -82,12 +82,13 @@ class ForegroundParamsTheory(Theory):
     @classmethod
     def get_class_options(cls, input_options={}):
         options = super().get_class_options().copy()
-        param_requested_cls = input_options.get(
-            'requested_cls') or options.get('requested_cls', ['tt', 'te', 'ee'])
-        params = yaml_load(cls.get_text_file_content('params_common.yaml'))
-        for spec in param_requested_cls:
-            params |= yaml_load(cls.get_text_file_content('params_%s.yaml' % spec.upper()))
-        options["params"] = params
+        if cls is ForegroundParamsTheory:  # only add params once
+            param_requested_cls = input_options.get(
+                'requested_cls') or options.get('requested_cls', ['tt', 'te', 'ee'])
+            params = yaml_load(cls.get_text_file_content('params_common.yaml'))
+            for spec in param_requested_cls:
+                params |= yaml_load(cls.get_text_file_content('params_%s.yaml' % spec.upper()))
+            options["params"] = params
         return options
 
 
