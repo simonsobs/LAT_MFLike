@@ -8,4 +8,4 @@ defaults:
   scales:
     EE: [ 30, 9000 ]
 
-params: !defaults [ calib_common, calib_E ]
+params: !defaults [ mflike_common, calib_E ]

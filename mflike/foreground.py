@@ -39,10 +39,9 @@ The effective frequencies, used as central frequencies to build the bandpasses, 
 """
 
 import os
-
 import numpy as np
 from cobaya.log import LoggedError
-from cobaya.theory import Provider, Theory
+from cobaya.theory import Theory
 from cobaya.yaml import yaml_load
 from scipy import constants
 
@@ -81,13 +80,14 @@ class ForegroundParamsTheory(Theory):
 
     @classmethod
     def get_class_options(cls, input_options={}):
+
         options = super().get_class_options().copy()
         if cls is ForegroundParamsTheory and (
                 param_requested_cls := input_options.get('requested_cls', ['tt', 'te', 'ee'])) \
                 or ('requested_cls' not in input_options and (param_requested_cls := options.get('requested_cls'))):
-            params = yaml_load(cls.get_text_file_content('params_common.yaml'))
+            params = yaml_load(cls.get_text_file_content('fg_common.yaml'))
             for spec in param_requested_cls:
-                params |= yaml_load(cls.get_text_file_content('params_%s.yaml' % spec.upper()))
+                params |= yaml_load(cls.get_text_file_content('fg_%s.yaml' % spec.upper()))
             options["params"] = params
         return options
 

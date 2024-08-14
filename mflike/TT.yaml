@@ -1,6 +1,6 @@
 # Specify default set of spectra and scale cuts
 # to be used
-requested_cls: [ "tt", "te", "ee" ]
+requested_cls: [ "tt" ]
 defaults:
   # Which spectra?
   polarizations: [ TT ]
@@ -8,5 +8,5 @@ defaults:
   scales:
     TT: [ 30, 9000 ]
 
-params: !defaults [ calib_common, calib_T ]
+params: !defaults [ mflike_common, calib_T ]
 
