@@ -43,6 +43,7 @@ import numpy as np
 from cobaya.log import LoggedError
 from cobaya.theory import Theory
 from cobaya.yaml import yaml_load
+from cobaya.typing import empty_dict
 from scipy import constants
 
 try:
@@ -75,24 +76,7 @@ def _cmb2bb(nu):
     return np.exp(x) * (nu * x / np.expm1(x)) ** 2
 
 
-class ForegroundParamsTheory(Theory):
-    # TODO: this class can be abolished once Cobaya allows class options and yaml for the same class
-
-    @classmethod
-    def get_class_options(cls, input_options={}):
-
-        options = super().get_class_options().copy()
-        if cls is ForegroundParamsTheory and (
-                param_requested_cls := input_options.get('requested_cls', ['tt', 'te', 'ee'])) \
-                or ('requested_cls' not in input_options and (param_requested_cls := options.get('requested_cls'))):
-            params = yaml_load(cls.get_text_file_content('fg_common.yaml'))
-            for spec in param_requested_cls:
-                params |= yaml_load(cls.get_text_file_content('fg_%s.yaml' % spec.upper()))
-            options["params"] = params
-        return options
-
-
-class Foreground(ForegroundParamsTheory):
+class Foreground(Theory):
     normalisation: dict
     components: dict
     experiments: list[str]
@@ -101,6 +85,16 @@ class Foreground(ForegroundParamsTheory):
     requested_cls: list[str]
     bandint_freqs: list
     ells: np.ndarray
+
+    @classmethod
+    def get_modified_defaults(cls, defaults, input_options=empty_dict):
+        """
+        Adds the appropriate foreground parameters based on the requested_cls
+        """
+        requested_cls = input_options.get('requested_cls') or defaults.get('requested_cls', ['tt', 'te', 'ee'])
+        for spec in requested_cls:
+            defaults['params'] |= yaml_load(cls.get_text_file_content('fg_%s.yaml' % spec.upper()))
+        return defaults
 
     # Initializes the foreground model. It sets the SED and reads the templates
     def initialize(self):
@@ -288,7 +282,7 @@ class Foreground(ForegroundParamsTheory):
                           used to compute the foreground components. Useful when
                           this class is called outside of mflike, used in place of
                           ``self.experiments``
-        :param **fg_params: parameters of the foreground components
+        :param fg_params: parameters of the foreground components
 
         :return: the foreground dictionary
         """
@@ -325,7 +319,7 @@ class Foreground(ForegroundParamsTheory):
         :param state: ``state`` dictionary to be filled with computed foreground
                       spectra
         :param want_derived: if derived wanted (none here)
-        :param **params_values_dict: dictionary of parameters from the sampler
+        :param params_values_dict: dictionary of parameters from the sampler
         """
 
         state["fg_totals"] = self.get_foreground_model_totals(**params_values_dict)
