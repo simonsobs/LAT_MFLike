@@ -76,7 +76,7 @@ class MFLike(InstallableLikelihood):
         # State requisites to the theory code
         self.requested_cls = ["tt", "te", "ee"]
         self.requested_sys = ['deltaT', 'gamma', 'deltaE']
-        self.requested_sysparams = ['m', 'b']
+        self.requested_sysparams = ['m']
         self.lmax_theory = self.lmax_theory or 9000
         self.log.debug(f"Maximum multipole value: {self.lmax_theory}")
 
@@ -111,9 +111,11 @@ class MFLike(InstallableLikelihood):
                 f"bandint_shift_{f}",
                 # f"calT_{f}",
                 f"cal_{f}",
-                f"calE_{f}",
+                # f"calE_{f}",
                 # f"alpha_{f}"
             ]
+            for sys in self.requested_sys:
+                self.expected_params_nuis.append(f'b_{sys}_{f}')
 
         # Parse the spectra to get the map-level scale cuts
         # TODO: should probably specify map-level scale cuts
@@ -182,7 +184,7 @@ class MFLike(InstallableLikelihood):
         for sys, exp2scales in self.requested_sys2scales.items(): # (deltaT, ...)
             self.expected_params_nuis.append(f'lknee_{sys}')
 
-            for sysparam in self.requested_sysparams: # (m, b, ...)
+            for sysparam in self.requested_sysparams: # (m, ...)
                 for i, f in enumerate(exp2scales):
                     if i < len(exp2scales) - 1: # one fewer sampled than physical sys param
                         self.expected_params_nuis.append(f'{sysparam}_{sys}_{i}')
@@ -323,7 +325,7 @@ class MFLike(InstallableLikelihood):
         # physical params sum to 0 through a non-scaling transformation.
         # this way, the latent params, which are sampled, will converge
         for sys in self.requested_sys: # (deltaT, ...)
-            for sysparam in self.requested_sysparams: # (m, b, ...)
+            for sysparam in self.requested_sysparams: # (m, ...)
                 latent_sys_vector = np.array([params_values_nocosmo[k] for k in self.latent_sys_amps[sys][sysparam]])
                 phys_sys_vector = self.latent2phys_mat[sys] @ latent_sys_vector
 

@@ -565,7 +565,7 @@ class TheoryForge:
 
         if "ee" in self.requested_cls or "te" in self.requested_cls:
             cal = nuis_params["calG_all"] * np.array(
-                [nuis_params[f"cal_{exp}"] * nuis_params[f"calE_{exp}"] for exp in self.experiments]
+                [nuis_params[f"cal_{exp}"] for exp in self.experiments] # no more poleff
             )
             cal_pars["e"] = 1 / cal
 
@@ -621,9 +621,7 @@ class TheoryForge:
 
             for f in exp2scales:
                 m = nuis_params[f'm_{sys}_{f}']
-                b = nuis_params[f'b_{sys}_{f}']
-                
-                y = np.where(l < lknee, m * (l - lknee) + b, b)
+                y = np.where(l < lknee, m * l, m * lknee) # add b later
                 sys_model[sys][f] = y 
 
         # for each lrange, sum valid systematics to 0
@@ -639,7 +637,8 @@ class TheoryForge:
 
             # extract out of vector
             for i, f in enumerate(self.requested_sys2scales[sys]):
-                sys_model[sys][f] = ys[i]
+                b = nuis_params[f'b_{sys}_{f}']
+                sys_model[sys][f] = ys[i] + b # total model is mx + b
 
         # apply to spectra
         dls_dict_in = dls_dict.copy()
