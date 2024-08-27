@@ -43,14 +43,17 @@ import numpy as np
 from numbers import Real
 import sacc
 from cobaya.conventions import data_path, packages_path_input
-from cobaya.likelihoods.base_classes import InstallableLikelihood, _fast_chi_square
+from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
 
 
-class MFLike(InstallableLikelihood):
+class _MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
     _release = "v0.8"
-    install_options = {"download_url": f"{_url}/{_release}.tar.gz"}
+    install_options = {
+        "download_url": f"{_url}/{_release}.tar.gz",
+        "data_path": "MFLike",
+    }
 
     # attributes set from .yaml
     input_file: Optional[str]
@@ -59,9 +62,9 @@ class MFLike(InstallableLikelihood):
     data: dict
     defaults: dict
     systematics_template: dict
+    supported_params: dict
     lmax_theory: Optional[int]
-
-    _fast_chi_squared = _fast_chi_square()
+    requested_cls: list[str]
 
     def initialize(self):
         # Set default values to data member not initialized via yaml file
@@ -91,15 +94,10 @@ class MFLike(InstallableLikelihood):
         # Read data
         self._prepare_data()
 
-        # State requisites to the theory code
-        self.requested_cls = ["tt", "te", "ee"]
         self.lmax_theory = self.lmax_theory or 9000
         self.log.debug(f"Maximum multipole value: {self.lmax_theory}")
 
-        self.use_systematics_template = bool(self.systematics_template)
-
-        if self.use_systematics_template:
-            self.systematics_template = self.systematics_template
+        if self.systematics_template:
             # Initialize template for marginalization, if needed
             self._init_template_from_file()
 
@@ -120,8 +118,8 @@ class MFLike(InstallableLikelihood):
         :return: the dictionary of theory :math:`D_{\ell}` and foregrounds
         """
 
-        return dict(fg_totals=self.get_fg_requirements(),
-                    Cl={k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()})
+        return {"fg_totals": self.get_fg_requirements(),
+                "Cl": {k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()}}
 
     def logp(self, **params_values):
         cl = self.provider.get_Cl(ell_factor=True)
@@ -485,7 +483,7 @@ class MFLike(InstallableLikelihood):
         cmbfg_dict = self._get_rotated_spectra(cmbfg_dict, **nuis_params)
 
         # Introduce templates of systematics from file, if needed
-        if self.use_systematics_template:
+        if self.systematics_template:
             cmbfg_dict = self._get_template_from_file(cmbfg_dict, **nuis_params)
 
         # Built theory
@@ -637,14 +635,14 @@ class MFLike(InstallableLikelihood):
         the ``syslibrary.syslib.ReadTemplateFromFile``
         function.
         """
-        if not self.systematics_template.get("rootname"):
+        if not (root := self.systematics_template.get("rootname")):
             raise LoggedError(self.log, "Missing 'rootname' for systematics template!")
 
         from syslibrary import syslib
 
         # decide where to store systematics template.
         # Currently stored inside syslibrary package
-        templ_from_file = syslib.ReadTemplateFromFile(rootname=self.systematics_template["rootname"])
+        templ_from_file = syslib.ReadTemplateFromFile(rootname=root)
         self.dltempl_from_file = templ_from_file(ell=self.l_bpws)
 
     def _get_template_from_file(self, dls_dict, **nuis_params):
@@ -674,3 +672,31 @@ class MFLike(InstallableLikelihood):
                     )
 
         return dls_dict
+
+
+class TTTEEE(_MFLike):
+    ...
+
+
+class TTEE(_MFLike):
+    ...
+
+
+class TTTE(_MFLike):
+    ...
+
+
+class TEEE(_MFLike):
+    ...
+
+
+class TT(_MFLike):
+    ...
+
+
+class TE(_MFLike):
+    ...
+
+
+class EE(_MFLike):
+    ...

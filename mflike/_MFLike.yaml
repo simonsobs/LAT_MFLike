@@ -16,21 +16,6 @@ cov_Bbl_file: null
 # If set to null i.e. None, the program will set the value to 9000
 lmax_theory: null
 
-# Specify default set of spectra and scale cuts
-# to be used
-defaults:
-  # Which spectra?
-  polarizations: [TT, TE, ET, EE]
-  # Scale cuts (in ell) for each spectrum
-  scales:
-    TT: [30, 9000]
-    TE: [30, 9000]
-    ET: [30, 9000]
-    EE: [30, 9000]
-  # If True, TE' = (TE + ET) / 2 will be used
-  # instead of TE and ET separately.
-  symmetrize: false
-
 data:
   # List the names and frequencies of all the
   # relevant experiments.
@@ -60,44 +45,3 @@ data:
 systematics_template:
 #  rootname: "test_template"
 
-params:
-  # Systematics and calibration
-  calT_LAT_93:
-    value: 1
-    latex: \mathrm{Cal}_{\rm T}^{93}
-  calE_LAT_93:
-    value: 1
-    latex: \mathrm{Cal}_{\rm E}^{93}
-  calT_LAT_145:
-    value: 1
-    latex: \mathrm{Cal}_{\rm T}^{145}
-  calE_LAT_145:
-    value: 1
-    latex: \mathrm{Cal}_{\rm E}^{145}
-  calT_LAT_225:
-    value: 1
-    latex: \mathrm{Cal}_{\rm T}^{225}
-  calE_LAT_225:
-    value: 1
-    latex: \mathrm{Cal}_{\rm E}^{225}
-  cal_LAT_93:
-    value: 1
-    latex: \mathrm{Cal}^{93}
-  cal_LAT_145:
-    value: 1
-    latex: \mathrm{Cal}^{145}
-  cal_LAT_225:
-    value: 1
-    latex: \mathrm{Cal}^{225}
-  calG_all:
-    value: 1
-    latex: \mathrm{Cal}_{\rm G}^{\rm All}
-  alpha_LAT_93:
-    value: 0 #deg
-    latex: \alpha^{93}
-  alpha_LAT_145:
-    value: 0 #deg
-    latex: \alpha^{145}
-  alpha_LAT_225:
-    value: 0 #deg
-    latex: \alpha^{225}

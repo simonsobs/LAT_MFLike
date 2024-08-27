@@ -1,0 +1,15 @@
+a_gee:
+  prior:
+    dist: norm
+    loc: 0.13
+    scale: 0.03
+  proposal: 0.03
+  latex: a_\mathrm{dust}^\mathrm{EE}
+a_psee:
+  prior:
+    min: 0
+  proposal: 0.05
+  latex: a_\mathrm{ps}^\mathrm{EE}
+alpha_dE:             #galactic dust ell slope for E
+  value: -0.4
+  latex: \alpha_{\mathrm{dust},E}
