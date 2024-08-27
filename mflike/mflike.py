@@ -643,7 +643,7 @@ class _MFLike(InstallableLikelihood):
         # Currently stored inside syslibrary package
         self.dltempl_from_file = syslib.TemplateResidual(ell=self.l_bpws, file_root_name=root)
 
-    def _add_template_from_file(self, dls_dict, **nuis_params):
+    def _add_template_from_file(self, dls_dict, **_nuis_params):
         r"""
         Adds the systematics template, modulated by ``nuis_params['templ_freq']``
         parameters, to the :math:`D_{\ell}`.
@@ -668,7 +668,6 @@ class _MFLike(InstallableLikelihood):
                     dls_dict[cls, exp1, exp2] += (
                             templ_pars[cls][i1][i2] * dcl[cls, exp1, exp2]
                     )
-
 
 
 class TTTEEE(_MFLike):
