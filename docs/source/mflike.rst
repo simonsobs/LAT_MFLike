@@ -6,7 +6,7 @@
 ``MFLike`` class content
 ------------------------
 
-.. autoclass:: mflike.MFLike
+.. autoclass:: mflike.mflike._MFLike
     :exclude-members: initialize
     :members:
     :private-members:
