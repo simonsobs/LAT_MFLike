@@ -105,7 +105,7 @@ class _MFLike(InstallableLikelihood):
         self.log.info("Initialized!")
 
     def get_fg_requirements(self):
-        return {"ells": self.l_bpws,
+        return {"ells": self.l_bpws[:self.lmax_theory + 1],
                 "requested_cls": self.requested_cls,
                 "experiments": self.experiments,
                 "bands": self.bands}
@@ -119,7 +119,8 @@ class _MFLike(InstallableLikelihood):
         """
 
         return {"fg_totals": self.get_fg_requirements(),
-                "Cl": {k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()}}
+               "Cl": {k: self.lmax_theory + 1 for k, _ in self.lcuts.items()}}
+                #"Cl": {k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()}}
 
     def logp(self, **params_values):
         cl = self.provider.get_Cl(ell_factor=True)
