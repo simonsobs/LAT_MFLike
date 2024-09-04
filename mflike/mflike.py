@@ -1,49 +1,70 @@
 r"""
 .. module:: mflike
 
-:Synopsis: Definition of simplistic likelihood for Simons Observatory
+:Synopsis: Definition of likelihood for Simons Observatory
 :Authors: Simons Observatory Collaboration PS Group
 
-MFLike is a multi frequency likelihood code interfaced with the Cobaya
+MFLike is a multi frequency likelihood code that can be interfaced with the Cobaya
 sampler and a theory Boltzmann code such as CAMB, CLASS or Cosmopower.
+
 The ``MFLike`` likelihood class reads the data file (in ``sacc`` format)
 and all the settings
 for the MCMC run (such as file paths, :math:`\ell` ranges, experiments
-and frequencies to be used, parameters priors...)
-from the ``MFLike.yaml`` file.
+and frequencies to be used, parameters priors...) from the ``MFLike.yaml`` file.
 
-The theory :math:`C_{\ell}` are then summed to the (possibly frequency
-integrated) foreground power spectra and modified by systematic effects
-in the ``TheoryForge`` class. The foreground spectra are computed
-through ``fgspectra``.
+The theory :math:`C_{\ell}` are then summed with the (possibly frequency
+integrated) foreground power spectra from the ``BandpowerForeground`` class,
+ and modified by systematic effects and calibrations.
+ The underlying foreground spectra are computed through ``fgspectra``.
 
+
+This class applies three kinds of systematic effects to the CMB + foreground power spectrum:
+    * calibrations (global ``calG_all``, per channel ``cal_exp``, per field
+      ``calT_exp``, ``calE_exp``)
+    * polarization angles effect (``alpha_exp``)
+    * systematic templates (e.g. T --> P leakage). In this case the dictionary
+      ``systematics_template`` has to be filled with the correct path
+      ``rootname``:
+
+      .. code-block:: yaml
+
+        systematics_template:
+          rootname: "test_template"
+
+If left ``null``, no systematic template is applied.
+
+The values of the systematic parameters are set in ``MFLike.yaml``.  They have to be named as
+``cal/calT/calE/alpha`` + ``_`` + experiment_channel string (e.g. ``LAT_93/dr6_pa4_f150``).
 """
 
 import os
 from typing import Optional
-
 import numpy as np
+from numbers import Real
+import sacc
 from cobaya.conventions import data_path, packages_path_input
 from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
-from cobaya.tools import are_different_params_lists
-
-from .theoryforge import TheoryForge
 
 
-class MFLike(InstallableLikelihood):
+class _MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
     _release = "v0.8"
-    install_options = {"download_url": f"{_url}/{_release}.tar.gz"}
+    install_options = {
+        "download_url": f"{_url}/{_release}.tar.gz",
+        "data_path": "MFLike",
+    }
 
     # attributes set from .yaml
     input_file: Optional[str]
     cov_Bbl_file: Optional[str]
+    data_folder: str
     data: dict
     defaults: dict
-    foregrounds: dict
-    top_hat_band: dict
     systematics_template: dict
+    supported_params: dict
+    lmax_theory: Optional[int]
+    requested_cls: list[str]
 
     def initialize(self):
         # Set default values to data member not initialized via yaml file
@@ -51,7 +72,7 @@ class MFLike(InstallableLikelihood):
         self.spec_meta = []
 
         # Set path to data
-        if (not getattr(self, "path", None)) and (not getattr(self, packages_path_input, None)):
+        if not getattr(self, "path", None) and not getattr(self, packages_path_input, None):
             raise LoggedError(
                 self.log,
                 "No path given to MFLike data. Set the likelihood property "
@@ -71,126 +92,84 @@ class MFLike(InstallableLikelihood):
             )
 
         # Read data
-        self.prepare_data()
+        self._prepare_data()
 
-        # State requisites to the theory code
-        self.requested_cls = ["tt", "te", "ee"]
         self.lmax_theory = self.lmax_theory or 9000
         self.log.debug(f"Maximum multipole value: {self.lmax_theory}")
 
-        self.expected_params_fg = [
-            "a_tSZ",
-            "a_kSZ",
-            "a_p",
-            "beta_p",
-            "a_c",
-            "beta_c",
-            "a_s",
-            "a_gtt",
-            "a_gte",
-            "a_gee",
-            "a_psee",
-            "a_pste",
-            "xi",
-            "T_d",
-            "beta_s",
-            "alpha_s",
-            "T_effd",
-            "beta_d",
-            "alpha_dT",
-            "alpha_dE",
-            "alpha_tSZ",
-            "alpha_p",
-        ]
+        if self.systematics_template:
+            # Initialize template for marginalization, if needed
+            self._init_template_from_file()
 
-        self.expected_params_nuis = ["calG_all"]
-        for f in self.experiments:
-            self.expected_params_nuis += [
-                f"bandint_shift_{f}",
-                f"calT_{f}",
-                f"cal_{f}",
-                f"calE_{f}",
-                f"alpha_{f}",
-            ]
-
-        self.ThFo = TheoryForge(self)
+        self._constant_nuisance: Optional[dict] = None
         self.log.info("Initialized!")
 
-    def initialize_non_sampled_params(self):
-        """
-        Allows for systematic params such as polarization angles and ``calT``
-        not to be sampled and not to be required
-        """
-        self.non_sampled_params = {}
-        for exp in self.experiments:
-            self.non_sampled_params.update({f"calT_{exp}": 1.0, f"alpha_{exp}": 0.0})
-
-    def initialize_with_params(self):
-        # Check that the parameters are the right ones
-        self.initialize_non_sampled_params()
-
-        # Remove the parameters if it appears in the input/samples ones
-        for par in self.input_params:
-            self.non_sampled_params.pop(par, None)
-
-        # Finally set the list of nuisance params
-        self.expected_params_nuis = [
-            par for par in self.expected_params_nuis if par not in self.non_sampled_params
-        ]
-
-        differences = are_different_params_lists(
-            self.input_params,
-            self.expected_params_fg + self.expected_params_nuis,
-            name_A="given",
-            name_B="expected",
-        )
-        if differences:
-            raise LoggedError(self.log, f"Configuration error in parameters: {differences}.")
+    def get_fg_requirements(self):
+        return {"ells": self.l_bpws,
+                "requested_cls": self.requested_cls,
+                "experiments": self.experiments,
+                "bands": self.bands}
 
     def get_requirements(self):
         r"""
-        Gets the theory :math:`D_{\ell}` from the Boltzmann solver code used,
+        Gets the foreground dictionary and theory :math:`D_{\ell}` from the Boltzmann solver code used,
         for the :math:`\ell` range up to the :math:`\ell_{max}` specified in the yaml
 
-        :return: the dictionary of theory :math:`D_{\ell}`
+        :return: the dictionary of theory :math:`D_{\ell}` and foregrounds
         """
-        return dict(Cl={k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()})
+
+        return {"fg_totals": self.get_fg_requirements(),
+                "Cl": {k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()}}
 
     def logp(self, **params_values):
         cl = self.provider.get_Cl(ell_factor=True)
-        params_values_nocosmo = {
-            k: params_values[k] for k in self.expected_params_fg + self.expected_params_nuis
-        }
+        fg_totals = self.provider.get_fg_totals()
+        return self._loglike(cl, fg_totals, params_values)
 
-        return self.loglike(cl, **params_values_nocosmo)
-
-    def loglike(self, cl, **params_values_nocosmo):
-        """
+    def _loglike(self, cl, fg_totals, params_values):
+        r"""
         Computes the gaussian log-likelihood
 
         :param cl: the dictionary of theory + foregrounds :math:`D_{\ell}`
-        :param params_values_nocosmo: the dictionary of required foreground + systematic parameters
+        :param fg_totals: the dictionary of foreground arrays
+        :param params_values: the dictionary of all foreground + systematic parameters
+
+        :return: the exact loglikelihood :math:`\ln \mathcal{L}`
+        """
+        ps_vec = self._get_power_spectra(cl, fg_totals, **params_values)
+        delta = self.data_vec - ps_vec
+        # logp = -0.5 * (delta @ self.inv_cov @ delta)
+        logp = -0.5 * self._fast_chi_squared(self.inv_cov, delta)
+        logp += self.logp_const
+        self.log.debug(
+            f"Log-likelihood value computed = {logp} (Χ² = {-2 * (- self.logp_const)})"
+        )
+        return logp
+
+    def loglike(self, cl, fg_totals, **params_values):
+        r"""
+        Computes the gaussian log-likelihood, callable independent of Cobaya.
+
+        :param cl: the dictionary of theory + foregrounds :math:`D_{\ell}`
+        :param fg_totals: the dictionary of foreground arrays, can be obtained from ``BandpowerForeground``
+        :param params_values: the dictionary of required foreground + systematic parameters
 
         :return: the exact loglikelihood :math:`\ln \mathcal{L}`
         """
         # This is needed if someone calls the function without initializing the likelihood
-        # (typically a call with a precomputed Cl and no cobaya initialization steps e.g
+        # (typically a call with a precomputed Cl and no cobaya initialization steps e.g.
         # test_mflike)
-        if not hasattr(self, "non_sampled_params"):
-            self.initialize_non_sampled_params()
+        if self._constant_nuisance is None:
+            from cobaya.parameterization import expand_info_param
+            # pre-set default nuisance parameters
+            self._constant_nuisance = {p: float(v) for p, info in self.params.items()
+                                       if isinstance(v := expand_info_param(info).get("value"), Real)}
 
-        params_values_nocosmo = self.non_sampled_params | params_values_nocosmo
+        params_values = self._constant_nuisance | params_values
 
-        ps_vec = self._get_power_spectra(cl, **params_values_nocosmo)
-        delta = self.data_vec - ps_vec
-        logp = -0.5 * (delta @ self.inv_cov @ delta)
-        logp += self.logp_const
-        self.log.debug(
-            f"Log-likelihood value computed = {logp} (Χ² = {-2 * (logp - self.logp_const)})"
-        )
-        return logp
+        return self._loglike(cl, fg_totals, params_values)
 
-    def prepare_data(self):
+    def _prepare_data(self):
         r"""
         Reads the sacc data, extracts the data tracers,
         trims the spectra and covariance according to the :math:`\ell` scales
@@ -201,28 +180,25 @@ class MFLike(InstallableLikelihood):
         range, bandpowers and :math:`D_{\ell}` for each power spectrum required
         in the yaml.
         """
-        import sacc
-
         data = self.data
         # Read data
-        input_fname = os.path.join(self.data_folder, self.input_file)
+        input_fname = os.path.normpath(os.path.join(self.data_folder, self.input_file))
         s = sacc.Sacc.load_fits(input_fname)
 
         # Read extra file containing covariance and windows if needed.
         cbbl_extra = False
         s_b = s
-        if self.cov_Bbl_file:
-            if self.cov_Bbl_file != self.input_file:
-                cov_Bbl_fname = os.path.join(self.data_folder, self.cov_Bbl_file)
-                s_b = sacc.Sacc.load_fits(cov_Bbl_fname)
-                cbbl_extra = True
+        if self.cov_Bbl_file and self.cov_Bbl_file != self.input_file:
+            cov_Bbl_fname = os.path.join(self.data_folder, self.cov_Bbl_file)
+            s_b = sacc.Sacc.load_fits(cov_Bbl_fname)
+            cbbl_extra = True
 
         try:
             default_cuts = self.defaults
         except AttributeError:
             raise KeyError("You must provide a list of default cuts")
 
-        # Translation betwen TEB and sacc C_ell types
+        # Translation between TEB and sacc C_ell types
         pol_dict = {"T": "0", "E": "e", "B": "b"}
         ppol_dict = {
             "TT": "tt",
@@ -234,7 +210,6 @@ class MFLike(InstallableLikelihood):
             "BE": "eb",
             "TB": "tb",
             "BT": "tb",
-            "BB": "bb",
         }
 
         def get_cl_meta(spec):
@@ -369,6 +344,11 @@ class MFLike(InstallableLikelihood):
                     ws = s_b.get_bandpower_windows(ind_b)
                 else:
                     ws = s.get_bandpower_windows(ind)
+                # pre-compute the actual slices of the weights that are needed
+                nonzeros = np.array([np.nonzero(ws.weight[:, i])[0][[0, -1]] for i in range(ws.weight.shape[1])])
+                ws.nonzeros = [slice(i[0], i[1] + 1) for i in nonzeros]
+                ws.sliced_weights = [np.ascontiguousarray(ws.weight[ws.nonzeros[i], i])
+                                     for i in range(len(nonzeros))]
 
                 if self.l_bpws is None:
                     # The assumption here is that bandpower windows
@@ -438,34 +418,285 @@ class MFLike(InstallableLikelihood):
 
         self.log.info(f"Number of bins used: {self.data_vec.size}")
 
-    def _get_power_spectra(self, cl, **params_values_nocosmo):
+    def _get_power_spectra(self, cl, fg_totals, **params_values):
         r"""
         Gets the theory :math:`D_{\ell}`, adds foregrounds :math:`D_{\ell}`
         and applies possible systematic effects through the ``get_modified_theory``
-        function from the ``TheoryForge`` class. The spectra get then binned
+        function from the ``BandpowerForeground`` class. The spectra get then binned
         like the data.
 
         :param cl: the dictionary of theory :math:`D_{\ell}`
+        :param fg_totals: the dictionary of foreground arrays
         :param params_values_nocosmo: the dictionary of required foregrounds
                                       and systematics parameters
 
         :return: the binned data vector
         """
-        Dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
-        DlsObs = self.ThFo.get_modified_theory(Dls, **params_values_nocosmo)
+        dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
+        dls_obs = self.get_modified_theory(dls, fg_totals, **params_values)
 
+        return self._get_ps_vec(dls_obs)
+
+    def _get_ps_vec(self, DlsObs):
         ps_vec = np.zeros_like(self.data_vec)
         for m in self.spec_meta:
             p = m["pol"]
-            i = m["ids"]
-            w = m["bpw"].weight.T
+            w = m["bpw"]
             # If symmetrize = False, the (ET, exp1, exp2) spectrum
             # will have the flag m["hasYX_xsp"] = True.
             # In this case, the power spectrum
             # is computed as DlsObs["te", m["t2"], m["t1"]], to associate
             # T --> exp2, E --> exp1
             dls_obs = DlsObs[p, m["t2"], m["t1"]] if m["hasYX_xsp"] else DlsObs[p, m["t1"], m["t2"]]
-            clt = w @ dls_obs
-            ps_vec[i] = clt
 
+            for i, nonzero, weights in zip(m["ids"], w.nonzeros, w.sliced_weights):
+                ps_vec[i] = weights @ dls_obs[nonzero]
+            # can check against unoptimized version
+            # assert np.allclose(ps_vec[m["ids"]], np.dot(w.weight.T, dls_obs))
         return ps_vec
+
+    def get_modified_theory(self, Dls, fg_totals, **nuis_params):
+        r"""
+        Takes the theory :math:`D_{\ell}`, sums it to the total
+        foreground power spectrum (possibly computed with bandpass
+        shift and bandpass integration) computed by ``_get_foreground_model``
+        and applies calibration,
+        polarization angles rotation and systematic templates.
+
+        :param Dls: CMB theory spectra
+        :param fg_totals: dictionary of foreground spectra
+        :param nuis_params: dictionary of nuisance and foregrounds parameters
+
+        :return: the CMB+foregrounds :math:`D_{\ell}` dictionary,
+                 modulated by systematics
+        """
+
+        cmbfg_dict = {(s, exp1, exp2): Dls[s] + total_fg[i, j]  # Sum CMB and FGs
+                      for i, exp1 in enumerate(self.experiments)
+                      for j, exp2 in enumerate(self.experiments)
+                      for s, total_fg in zip(self.requested_cls, fg_totals)}
+
+        # Apply alm based calibration factors
+        self._calibrate_spectra(cmbfg_dict, **nuis_params)
+
+        # Introduce spectra rotations
+        cmbfg_dict = self._get_rotated_spectra(cmbfg_dict, **nuis_params)
+
+        # Introduce templates of systematics from file, if needed
+        if self.systematics_template:
+            cmbfg_dict = self._get_template_from_file(cmbfg_dict, **nuis_params)
+
+        # Built theory
+        dls_dict = {}
+        for m in self.spec_meta:
+            p = m["pol"]
+            if p in ["tt", "ee", "bb"]:
+                dls_dict[p, m["t1"], m["t2"]] = cmbfg_dict[p, m["t1"], m["t2"]]
+            else:  # ['te','tb','eb']
+                if m["hasYX_xsp"]:  # case with symmetrize = False and ET/BT/BE spectra
+                    dls_dict[p, m["t2"], m["t1"]] = cmbfg_dict[p, m["t2"], m["t1"]]
+                else:  # case of TE/TB/EB spectra, or symmetrize = True
+                    dls_dict[p, m["t1"], m["t2"]] = cmbfg_dict[p, m["t1"], m["t2"]]
+
+                # if symmetrize = True, dls_dict has already been set
+                # equal to cmbfg_dict[p, m["t1"], m["t2"]
+                # now we add cmbfg_dict[p, m["t2"], m["t1"] and we average them
+                # as we do for our data
+                if self.defaults["symmetrize"]:
+                    dls_dict[p, m["t1"], m["t2"]] += cmbfg_dict[p, m["t2"], m["t1"]]
+                    dls_dict[p, m["t1"], m["t2"]] *= 0.5
+
+        return dls_dict
+
+    def _get_gauss_data(self):
+        """
+        Get Gaussian likelihood data for use with SoLiket
+        :return: GaussianData instance
+        """
+        from soliket.gaussian import GaussianData
+        ell_vec = np.zeros_like(self.data_vec)
+        for m in self.spec_meta:
+            ell_vec[m["ids"]] = m["leff"]
+        return GaussianData("mflike", ell_vec, self.data_vec, self.cov)
+
+    def _get_theory(self, **params_values):
+        """
+        Get theory vector (e.g. for use with SoLiket)
+
+        :return: binned theory vector
+        """
+        cl = self.provider.get_Cl(ell_factor=True)
+        fg_totals = self.provider.get_fg_totals()
+        return self._get_power_spectra(cl, fg_totals, **params_values)
+
+    ###########################################################################
+    ## This part deals with calibration factors
+    ## Here we implement an alm based calibration
+    ## Each field {T,E,B}{freq1,freq2,...,freqn} gets an independent
+    ## calibration factor, e.g. calT_145, calE_154, calT_225, etc..
+    ## plus a calibration factor per channel, e.g. cal_145, etc...
+    ## A global calibration factor calG_all is also considered.
+    ###########################################################################
+
+    def _calibrate_spectra(self, dls_dict, **nuis_params):
+        r"""
+        Calibrates the spectra in place through calibration factors at
+        the map level:
+
+        .. math::
+
+           D^{{\rm cal}, TT, \nu_1 \nu_2}_{\ell} &= \frac{1}{
+           {\rm cal}_{G}\, {\rm cal}^{\nu_1} \, {\rm cal}^{\nu_2}\,
+           {\rm cal}^{\nu_1}_{\rm T}\,
+           {\rm cal}^{\nu_2}_{\rm T}}\, D^{TT, \nu_1 \nu_2}_{\ell}
+
+           D^{{\rm cal}, TE, \nu_1 \nu_2}_{\ell} &= \frac{1}{
+           {\rm cal}_{G}\,{\rm cal}^{\nu_1} \, {\rm cal}^{\nu_2}\,
+           {\rm cal}^{\nu_1}_{\rm T}\,
+           {\rm cal}^{\nu_2}_{\rm E}}\, D^{TT, \nu_1 \nu_2}_{\ell}
+
+           D^{{\rm cal}, EE, \nu_1 \nu_2}_{\ell} &= \frac{1}{
+           {\rm cal}_{G}\,{\rm cal}^{\nu_1} \, {\rm cal}^{\nu_2}\,
+           {\rm cal}^{\nu_1}_{\rm E}\,
+           {\rm cal}^{\nu_2}_{\rm E}}\, D^{EE, \nu_1 \nu_2}_{\ell}
+
+
+        :param dls_dict: the CMB+foregrounds :math:`D_{\ell}` dictionary, calibrated in place
+        :param \**nuis_params: dictionary of nuisance parameters
+
+
+        """
+        # allowing for not having calT_{exp} in the yaml
+
+        cal_pars = {}
+        calG_all = 1 / nuis_params["calG_all"]
+        if "tt" in self.requested_cls or "te" in self.requested_cls:
+            cal_pars["t"] = {exp: calG_all / (nuis_params[f"cal_{exp}"] * nuis_params.get(f"calT_{exp}", 1))
+                             for exp in self.experiments}
+
+        if "ee" in self.requested_cls or "te" in self.requested_cls:
+            cal_pars["e"] = {exp: calG_all / (nuis_params[f"cal_{exp}"] * nuis_params[f"calE_{exp}"])
+                             for exp in self.experiments}
+
+        self._mul_calibrations(dls_dict, cal1=cal_pars, cal2=cal_pars)
+
+    def _mul_calibrations(self, dls_dict, cal1, cal2):
+        for (spec, freq1, freq2), cl in dls_dict.items():
+            if (cal := (cal1[spec[0]][freq1] * cal2[spec[1]][freq2])) != 1:
+                cl *= cal
+
+    ###########################################################################
+    ## This part deals with rotation of spectra
+    ## Each freq {freq1,freq2,...,freqn} gets a rotation angle alpha_93, alpha_145, etc..
+    ###########################################################################
+
+    def _get_rotated_spectra(self, dls_dict, **nuis_params):
+        r"""
+        Rotates the polarization spectra through polarization angles:
+
+        .. math::
+
+           D^{{\rm rot}, TE, \nu_1 \nu_2}_{\ell} &= \cos(\alpha^{\nu_2})
+           D^{TE, \nu_1 \nu_2}_{\ell}
+
+           D^{{\rm rot}, EE, \nu_1 \nu_2}_{\ell} &= \cos(\alpha^{\nu_1})
+           \cos(\alpha^{\nu_2}) D^{EE, \nu_1 \nu_2}_{\ell}
+
+        It uses the ``syslibrary.syslib_mflike.Rotation_alm`` function.
+
+        :param dls_dict: the CMB+foregrounds :math:`D_{\ell}` dictionary
+        :param \**nuis_params: dictionary of nuisance parameters
+
+        :return: dictionary of rotated CMB+foregrounds :math:`D_{\ell}`
+        """
+
+        # allowing for not having polarization angles in the yaml
+
+        rot_pars = [nuis_params.get(f"alpha_{exp}", 0) for exp in self.experiments]
+        if not any(rot_pars):
+            return dls_dict
+
+        from syslibrary import syslib_mflike as syl
+
+        rot = syl.Rotation_alm(ell=self.l_bpws, spectra=dls_dict)
+
+        return rot(rot_pars, nu=self.experiments, cls=self.requested_cls)
+
+    ###########################################################################
+    ## This part deals with template marginalization
+    ## A dictionary of template dls is read from yaml (likely to be not efficient)
+    ## then rescaled and added to theory dls
+    ###########################################################################
+
+    # This is slow, but should be done only once
+    def _init_template_from_file(self):
+        """
+        Reads the systematics template from file, using
+        the ``syslibrary.syslib.ReadTemplateFromFile``
+        function.
+        """
+        if not (root := self.systematics_template.get("rootname")):
+            raise LoggedError(self.log, "Missing 'rootname' for systematics template!")
+
+        from syslibrary import syslib
+
+        # decide where to store systematics template.
+        # Currently stored inside syslibrary package
+        templ_from_file = syslib.ReadTemplateFromFile(rootname=root)
+        self.dltempl_from_file = templ_from_file(ell=self.l_bpws)
+
+    def _get_template_from_file(self, dls_dict, **nuis_params):
+        r"""
+        Adds the systematics template, modulated by ``nuis_params['templ_freq']``
+        parameters, to the :math:`D_{\ell}`.
+
+        :param dls_dict: the CMB+foregrounds :math:`D_{\ell}` dictionary
+        :param \**nuis_params: dictionary of nuisance parameters
+
+        :return: dictionary of CMB+foregrounds :math:`D_{\ell}`
+                 with systematics templates
+        """
+        # templ_pars=[nuis_params['templ_'+str(exp)] for exp in self.experiments]
+        # templ_pars currently hard-coded
+        # but ideally should be passed as input nuisance
+        templ_pars = {
+            cls: np.zeros((len(self.experiments), len(self.experiments)))
+            for cls in self.requested_cls
+        }
+
+        for cls in self.requested_cls:
+            for i1, exp1 in enumerate(self.experiments):
+                for i2, exp2 in enumerate(self.experiments):
+                    dls_dict[cls, exp1, exp2] += (
+                            templ_pars[cls][i1][i2] * self.dltempl_from_file[cls, exp1, exp2]
+                    )
+
+        return dls_dict
+
+
+class TTTEEE(_MFLike):
+    ...
+
+
+class TTEE(_MFLike):
+    ...
+
+
+class TTTE(_MFLike):
+    ...
+
+
+class TEEE(_MFLike):
+    ...
+
+
+class TT(_MFLike):
+    ...
+
+
+class TE(_MFLike):
+    ...
+
+
+class EE(_MFLike):
+    ...

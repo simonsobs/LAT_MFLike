@@ -1,0 +1,63 @@
+requested_cls: [ "tt", "te", "ee" ]
+lmin: 2
+lmax: 6001
+# ells set automatically from above if not set directly
+ells:
+experiments: [ "LAT_93", "LAT_145", "LAT_225" ]
+bandint_freqs: [ 93.0, 145.0, 225.0 ]
+# Parameters to build a top-hat band:
+# - nsteps sets the number of frequencies used in the band integration
+# - bandwidth sets the relative width of the band wrt the central frequency
+#   the central frequency of each band is set from the bands stored in the sacc file
+#     - with nstep: 1, bandwidth must be 0
+#     Dirac delta bandpass, no band integration
+#     useful if you don't want to do band integration
+#     when the bandpasses in the sacc file are multifrequency
+#     the freq used is the effective frequency from the bandpass
+#     - if nstep > 1,  bandwidth must be > 1
+#     bandwidth can be a list if you want a different width for each band
+#     e.g. bandwidth: [0.3,0.2,0.3] for 3 bands
+# when top_hat_band is a null dict: no top-hat band is built and
+# bandpasses read from sacc file. Band integration is performed accordingly
+# (if bandpass in sacc is a single freq, no band integration)
+# the default is to read bandpasses from file, to build top-hat uncomment the
+# parameters of the block!
+# Bandpass has to be divided by nu^2 if measured with respect to a RJ source
+# the nu^2 factor is set back again in the _bandpass_construction function
+top_hat_band:
+#  nsteps: 1
+#  bandwidth: 0
+
+normalisation:
+  nu_0: 150.0
+  ell_0: 3000
+  T_CMB: 2.725
+
+components:
+  tt:
+    - kSZ
+    - tSZ_and_CIB
+    - cibp
+    - dust
+    - radio
+  te:
+    - radio
+    - dust
+  ee:
+    - radio
+    - dust
+
+# parameters that are always used
+params:
+  beta_s: #beta radio
+    value: -2.5
+    latex: \beta_s
+  alpha_s: #alpha radio
+    value: 1.0
+    latex: \alpha_s
+  T_effd: #effective galactic dust temperature
+    value: 19.6
+    latex: T_{\mathrm{dust},\mathrm{eff}}
+  beta_d: #beta galactic dust
+    value: 1.5
+    latex: \beta_\mathrm{dust}
