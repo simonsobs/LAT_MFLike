@@ -139,11 +139,9 @@ class _MFLike(InstallableLikelihood):
         ps_vec = self._get_power_spectra(cl, fg_totals, **params_values)
         delta = self.data_vec - ps_vec
         # logp = -0.5 * (delta @ self.inv_cov @ delta)
-        logp = -0.5 * self._fast_chi_squared(self.inv_cov, delta)
-        logp += self.logp_const
-        self.log.debug(
-            f"Log-likelihood value computed = {logp} (Χ² = {-2 * (- self.logp_const)})"
-        )
+        chi2 = self._fast_chi_squared(self.inv_cov, delta)
+        logp = -0.5 * chi2 + self.logp_const
+        self.log.debug(f"Log-likelihood value computed = {logp} (Χ² = {-2 * chi2})")
         return logp
 
     def loglike(self, cl, fg_totals, **params_values):
