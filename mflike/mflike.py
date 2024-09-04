@@ -14,8 +14,8 @@ and frequencies to be used, parameters priors...) from the ``MFLike.yaml`` file.
 
 The theory :math:`C_{\ell}` are then summed with the (possibly frequency
 integrated) foreground power spectra from the ``BandpowerForeground`` class,
- and modified by systematic effects and calibrations.
- The underlying foreground spectra are computed through ``fgspectra``.
+and modified by systematic effects and calibrations.
+The underlying foreground spectra are computed through ``fgspectra``.
 
 
 This class applies three kinds of systematic effects to the CMB + foreground power spectrum:
