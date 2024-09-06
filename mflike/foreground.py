@@ -7,9 +7,11 @@ The inherited ``BandpowerForeground`` adds integration over bandpowers, using th
 If one wants to use this class as standalone, the ``bands`` dictionary is filled when initializing
 ``BandpowerForeground``.
 
-The default values of the systematic parameters are set in the ``TTTEEE/TEEE/TT/EE/TE/etc.yaml`` files.  They have to be named as ``cal/calT/calE/alpha`` + ``_`` + experiment_channel string (e.g. ``LAT_93/dr6_pa4_f150``).
+The default values of the systematic parameters are set in the ``TTTEEE/TEEE/TT/EE/TE/etc.yaml`` files.  
+They have to be named as ``cal/calT/calE/alpha`` + ``_`` + experiment_channel string (e.g. ``LAT_93/dr6_pa4_f150``).
 The default values of the foreground parameters are set in the ``fg_TT/TE/EE.yaml`` files.
-If you want to set different parameters settings, do that in the ``params`` block of the ``yaml`` file you will use for running (see the `examples/mflike_example.yaml <https://github.com/simonsobs/LAT_MFLike/blob/master/examples/mflike_example.yaml>`_).
+If you want to set different parameters settings, do that in the ``params`` block of the ``yaml`` file 
+you will use for running (see the `examples/mflike_example.yaml <https://github.com/simonsobs/LAT_MFLike/blob/master/examples/mflike_example.yaml>`_).
 
 .. note::
     Note that when you set different foregrounds/systematics parameters in the ``params`` block 
@@ -47,6 +49,7 @@ The effective frequencies, used as central frequencies to build the bandpasses, 
       top_hat_band:
         nsteps: 1
         bandwidth: 0
+
 """
 
 import os
