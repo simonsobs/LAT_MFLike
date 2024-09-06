@@ -7,6 +7,21 @@ likelihood:
     input_file: LAT_simu_sacc_00044.fits
     cov_Bbl_file: data_sacc_w_covar_and_Bbl.fits
 
+theory:
+  camb:
+    stop_at_error: False
+    extra_args:
+      kmax: 10
+      k_per_logint: 130
+      nonlinear: True
+      lens_potential_accuracy: 8
+      lens_margin: 2050
+      AccuracyBoost: 2.0
+      lSampleBoost: 2.0
+      lAccuracyBoost: 2.0
+      DoLateRadTruncation: False
+  mflike.BandpowerForeground:
+
 params:
   # Sampled
   cosmomc_theta:
@@ -65,20 +80,6 @@ params:
   T_d:
     value: 9.60
     latex: T_d
-
-theory:
-  camb:
-    stop_at_error: False
-    extra_args:
-      kmax: 10
-      k_per_logint: 130
-      nonlinear: True
-      lens_potential_accuracy: 8
-      lens_margin: 2050
-      AccuracyBoost: 2.0
-      lSampleBoost: 2.0
-      lAccuracyBoost: 2.0
-      DoLateRadTruncation: False
 
 
 sampler:

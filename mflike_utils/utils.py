@@ -17,7 +17,7 @@ packages_path = os.environ.get("COBAYA_PACKAGES_PATH") or os.path.join(
 
 data_path = packages_path + "/data/MFLike/v0.8"
 
-install({"likelihood": {"mflike.MFLike": None}}, path=packages_path)
+install({"likelihood": {"mflike.TTTEEE": None}}, path=packages_path)
 
 def compute_FWHM(nu):
     """

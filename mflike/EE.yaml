@@ -1,0 +1,11 @@
+# Specify default set of spectra and scale cuts
+# to be used
+requested_cls: [ "ee" ]
+defaults:
+  # Which spectra?
+  polarizations: [ EE ]
+  # Scale cuts (in ell) for each spectrum
+  scales:
+    EE: [ 30, 9000 ]
+
+params: !defaults [ mflike_common, calib_E ]

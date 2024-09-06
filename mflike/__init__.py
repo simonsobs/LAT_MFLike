@@ -1,6 +1,7 @@
-from .mflike import MFLike
-from .theoryforge import TheoryForge
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
+
+from .foreground import BandpowerForeground, Foreground, EEForeground, TEForeground, TTForeground, TTEEForeground, TTTEForeground, TEEEForeground
+from .mflike import TT, TE, EE, TTEE, TTTE, TEEE, TTTEEE
 
 try:
     __version__ = version("mflike")
