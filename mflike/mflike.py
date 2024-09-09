@@ -35,7 +35,7 @@ This class applies four kinds of systematic effects to the CMB + foreground powe
 
 If left ``null``, no systematic template is applied.
 
-The values of the systematic parameters are set in the ``TTTEEE/TTTE/TT/EE/TE/etc.yaml`` fils corresponding to the classes that inherit the ``_MFLike`` one.  They have to be named as
+The values of the systematic parameters are set in the ``TTTEEE/TTTE/TT/EE/TE/etc.yaml`` files corresponding to the classes that inherit the ``_MFLike`` one.  They have to be named as
 ``cal/calT/calE/alpha`` + ``_`` + experiment_channel string (e.g. ``LAT_93/dr6_pa4_f150``).
 """
 

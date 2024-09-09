@@ -57,7 +57,7 @@ The effective frequencies, used as central frequencies to build the bandpasses, 
         nsteps: 1
         bandwidth: 0
 
-If we want to consider it, we have several options on how to compute/read the beam profiles. Notice that we need arrays(freqs, ells+2) (computed from :math:`\ell = 0`), since we want a beam window function for each freq in the bandpasses. We should use this block under ``mflike.BandpowerForeground``:
+If we want to consider the beam chromaticity effect, we have several options on how to compute/read the beam profiles. Notice that we need arrays(freqs, ells+2) (computed from :math:`\ell = 0`), since we want a beam window function for each freq in the bandpasses. We should use this block under ``mflike.BandpowerForeground``:
 
 .. code-block:: yaml
 
