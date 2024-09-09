@@ -518,7 +518,6 @@ class BandpowerForeground(Foreground):
         
         self.use_beam_profile = bool(self.beam_profile)
         if self.use_beam_profile:
-            print("AOOOOO", self.data_folder)
             if not self.beam_profile.get("Gaussian_beam"):
                 self.beam_file = self.beam_profile.get("beam_from_file")
                 self._init_beam_from_file()
@@ -529,8 +528,13 @@ class BandpowerForeground(Foreground):
             # this has to be present in case bandpass shifts != 0
             self.bandsh_beams_path = self.beam_profile.get("Bandpass_shifted_beams")
             if self.bandsh_beams_path:
-                print("AOOOOO", self.data_folder)
-                self.bandpass_shifted_beams = self._read_yaml_file(self.bandsh_beams_path)
+                if self.data_folder is not None:
+                    self.bandpass_shifted_beams = self._read_yaml_file(self.bandsh_beams_path)
+                else:
+                    if self._initialized:
+                        self.log.info("The data path has not been found")
+
+                    
 
 
         self._bandint_shift_params = [f"bandint_shift_{f}" for f in self.experiments]

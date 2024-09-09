@@ -19,3 +19,12 @@ alpha_LAT_145:
 alpha_LAT_225:
   value: 0 #deg
   latex: \alpha^{225}
+bandint_shift_LAT_93:
+  value: 0
+  latex: \Delta_{\rm band}^{93}
+bandint_shift_LAT_145:
+  value: 0
+  latex: \Delta_{\rm band}^{145}
+bandint_shift_LAT_225:
+  value: 0
+  latex: \Delta_{\rm band}^{225}
