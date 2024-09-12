@@ -65,16 +65,15 @@ If we want to consider the beam chromaticity effect, we have several options on 
     mflike.BandpowerForeground:
       beam_profile:
         Gaussian_beam: dict/False/null
-        beam_from_file: "filename"/False/null
+        beam_from_file: filename/False/null
     
 There are several options: 
     * reading the beams from the sacc file (``Gaussian_beam: False/null``, ``beam_from_file: False/null``). 
       The beams have to be stored in the ``sacc.tracers[exp].beam`` tracer 
       (this is not working so far, since the sacc beam tracer doesn't like an array(freq, ell))
-    * reading the beams from an external yaml file (``Gaussian_beam: False/null``, ``beam_from_file: "filename"``). 
-      Do not use the ".yaml" extension nor the path to the file, which has to be the same as the 
-      data path. The yaml file has to be a dictionary ``{"{exp}_s0": {"nu": nu, 
-      "beams": array(freqs, ells+2)}, "{exp}_s2": {"nu": nu, "beams": array(freqs, ells+2)},...}``
+    * reading the beams from an external yaml file (``Gaussian_beam: False/null``, ``beam_from_file: filename``). ``filename`` has to be the absolute path for the file, without the ``.yaml`` extension, 
+      which is automatically added by the code. The yaml file has to be a dictionary 
+      ``{"{exp}_s0": {"nu": nu, "beams": array(freqs, ells+2)}, "{exp}_s2": {"nu": nu, "beams": array(freqs, ells+2)},...}``
     * computing the beams as Gaussian beams (``Gaussian_beam: dict``, ``beam_from_file: ...``). When 
       ``Gaussian_beam`` is not empty, the beam is automatically computed within the code. Both T and 
       polarization Gaussian beams are computed through ``healpy.gauss_beam``. We need to pass a
@@ -115,11 +114,11 @@ This means that, when bandpass shifts are different from 0, we need to provide a
 .. code-block:: yaml
 
   beam_profile:
-    Bandpass_shifted_beams: "bandpass_shifted_beams"
+    Bandpass_shifted_beams: bandpass_shifted_beams
     Gaussian_beam: dict/False/null
-    beam_from_file: "filename"/False/null
+    beam_from_file: filename/False/null
 
-where the "bandpass_shifted_beams.yaml" file is structured as:
+where the ``bandpass_shifted_beams.yaml`` file is structured as:
 
 .. code-block:: yaml
 
@@ -141,7 +140,7 @@ where the "bandpass_shifted_beams.yaml" file is structured as:
       alpha: ...
     ...
 
-The "bandpass_shifted_beams.yaml" file has to be saved in the same path as the data. 
+``bandpass_shifted_beams`` has to be an absolute path, without the ``.yaml`` extension, which is added by the code. 
 
 It is important the keys of ``beam_profile["Bandpass_shifted_beams"]["{exp}_s0/2"]["beams"]`` are strings of floats representing the value of :math:`\Delta \nu` (if they are strings of int the code to read the associated beams would not work).
 """
@@ -478,7 +477,6 @@ class Foreground(Theory):
                     "requested_cls must be the same in Foreground and MFLike")
             self.ells = req.get("ells", self.ells)
             self.experiments = req.get("experiments", self.experiments)
-           # self.data_folder = req.get("data_folder", self.data_folder)
 
 
 class BandpowerForeground(Foreground):
@@ -488,7 +486,6 @@ class BandpowerForeground(Foreground):
     bands: dict = None
     beams: dict = None
     beam_profile: dict = None
-    data_folder: Optional[str]
 
     def initialize(self):
         super().initialize()
@@ -499,6 +496,7 @@ class BandpowerForeground(Foreground):
         self._initialized = False
         self.init_bandpowers()
 
+        
     def init_bandpowers(self):
         self.use_top_hat_band = bool(self.top_hat_band)
         # Parameters for band integration
@@ -528,14 +526,7 @@ class BandpowerForeground(Foreground):
             # this has to be present in case bandpass shifts != 0
             self.bandsh_beams_path = self.beam_profile.get("Bandpass_shifted_beams")
             if self.bandsh_beams_path:
-                if self.data_folder is not None:
-                    self.bandpass_shifted_beams = self._read_yaml_file(self.bandsh_beams_path)
-                else:
-                    if self._initialized:
-                        self.log.info("The data path has not been found")
-
-                    
-
+                self.bandpass_shifted_beams = self._read_yaml_file(self.bandsh_beams_path)
 
         self._bandint_shift_params = [f"bandint_shift_{f}" for f in self.experiments]
         # default bandpass when shift is 0
@@ -555,9 +546,8 @@ class BandpowerForeground(Foreground):
             self.beams = req.get("beams", self.beams)
             self.top_hat_band = req.get("top_hat_band", self.top_hat_band)
             self.beam_profile = req.get("beam_profile", self.beam_profile)
-            self.data_folder = req.get("data_folder", self.data_folder)
             self.init_bandpowers()
-
+        
     def get_can_support_params(self):
         return self._bandint_shift_params
 
@@ -728,9 +718,8 @@ class BandpowerForeground(Foreground):
     def _read_yaml_file(self, file_path):
         import yaml
 
-        data_path = self.data_folder
-        filename = os.path.join(data_path, "%s.yaml" % file_path)
-        if not os.path.exists(filename):
+        filename = "%s.yaml" % file_path
+        if not os.path.exists("%s.yaml" % file_path):
             raise ValueError("File " + filename + " does not exist!")
 
         with open(filename, "r") as f:
@@ -757,13 +746,14 @@ class BandpowerForeground(Foreground):
         else:
             self.beams = self._read_yaml_file(self.beam_file)
 
-        #checking that the freq array is compatible with the bandpass one
-        for exp in self.experiments:
-            # checking nu is the same as the bandpass one
-            if not np.allclose(self.beams[f"{exp}_s0"]['nu'], self.bands[f"{exp}_s0"]['nu'], atol = 1e-5):
-                raise LoggedError(self.log, f"Frequency array for beam {exp}_s0 is not the same as the bandpass one!")
-            if not np.allclose(self.beams[f"{exp}_s2"]['nu'], self.bands[f"{exp}_s2"]['nu'], atol = 1e-5):
-                raise LoggedError(self.log, f"Frequency array for beam {exp}_s2 is not the same as the bandpass one!")
+        if self._initialized:
+            #checking that the freq array is compatible with the bandpass one
+            for exp in self.experiments:
+                # checking nu is the same as the bandpass one
+                if not np.allclose(self.beams[f"{exp}_s0"]['nu'], self.bands[f"{exp}_s0"]['nu'], atol = 1e-5):
+                    raise LoggedError(self.log, f"Frequency array for beam {exp}_s0 is not the same as the bandpass one!")
+                if not np.allclose(self.beams[f"{exp}_s2"]['nu'], self.bands[f"{exp}_s2"]['nu'], atol = 1e-5):
+                    raise LoggedError(self.log, f"Frequency array for beam {exp}_s2 is not the same as the bandpass one!")
 
     def _init_gauss_beams(self):
         """

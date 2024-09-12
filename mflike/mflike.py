@@ -110,8 +110,7 @@ class _MFLike(InstallableLikelihood):
                 "requested_cls": self.requested_cls,
                 "experiments": self.experiments,
                 "bands": self.bands,
-                "beams": self.beams,
-                "data_folder": self.data_folder}
+                "beams": self.beams}
 
     def get_requirements(self):
         r"""

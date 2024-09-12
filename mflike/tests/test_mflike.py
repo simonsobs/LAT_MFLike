@@ -389,8 +389,9 @@ class MFLikeTest(unittest.TestCase):
             },
             "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
                        "mflike.BandpowerForeground":{
-                           "beam_profile": {"Gaussian_beam": beam_params,
-                          "Bandpass_shifted_beams": "LAT_beam_bandshift"},
+                          "beam_profile": {"Gaussian_beam": beam_params,
+                          "Bandpass_shifted_beams": packages_path + 
+                                 "/data/MFLike/v0.8/LAT_beam_bandshift"},
                     },
                 },
                 "params": cosmo_params | params,
