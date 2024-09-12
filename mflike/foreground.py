@@ -545,7 +545,6 @@ class BandpowerForeground(Foreground):
             self.bands = req.get("bands", self.bands)
             self.beams = req.get("beams", self.beams)
             self.top_hat_band = req.get("top_hat_band", self.top_hat_band)
-            self.beam_profile = req.get("beam_profile", self.beam_profile)
             self.init_bandpowers()
         
     def get_can_support_params(self):
