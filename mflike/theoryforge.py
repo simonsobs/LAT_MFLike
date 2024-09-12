@@ -346,7 +346,9 @@ class TheoryForge:
                         self.bandint_freqs_T.append([nub, tranb / tranb_norm])
                         self.bandint_freqs_P.append([nub, tranb / tranb_norm])
                     else:
-                        blT, blP = self.return_beams(exp, nu_ghz, params[bandpar])
+                        # fixing beams to case with Delta^nu = 0
+                        blT, blP = self.return_beams(exp, nu_ghz, 0)  
+                       # blT, blP = self.return_beams(exp, nu_ghz, params[bandpar])
 
                         tranb_normT = np.trapz(_cmb2bb(nub)[..., np.newaxis] * blT, nub, axis=0)
                         ratioT = _cmb2bb(nub)[..., np.newaxis] * blT / tranb_normT
@@ -377,7 +379,9 @@ class TheoryForge:
                         self.bandint_freqs_T.append([nub, trans])
                         self.bandint_freqs_P.append([nub, trans])
                     else:
-                        blT, blP = self.return_beams(exp, nu_ghz, params[bandpar])
+                        # fixing beams to case with Delta^nu = 0
+                        blT, blP = self.return_beams(exp, nu_ghz, 0)
+                        #blT, blP = self.return_beams(exp, nu_ghz, params[bandpar])
 
                         trans_normT = np.trapz(
                             bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blT, nub, axis=0
@@ -1007,6 +1011,7 @@ class TheoryForge:
             alpha = np.asarray(bandsh_beams["alpha"])
             blP = self.beam_interpolation(b[:self.l_bpws[-1]+1], np.ones(self.l_bpws[-1]+1), np.arange(self.l_bpws[-1]+1), nu, nu0, alpha)
         else:
+            #print("using beams with bandpass shift = 0")
             blT = self.beams[f"{exp}_s0"]["beams"]
             blP = self.beams[f"{exp}_s2"]["beams"]
 
