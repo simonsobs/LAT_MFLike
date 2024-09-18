@@ -106,10 +106,12 @@ Once computed/read, the beam profiles are saved in
 
 The beams are appropriately normalized, then we select the bandpowers used in the rest of the code.
 
-In case of bandpass shift, the chromatic beams are derived as: :math:`b^{T/P}_{\ell}(\nu + \Delta \nu) =  b^{T/P}_{\ell (\nu / \nu_0)^{-\alpha / 2}}(\nu_0 + \Delta \nu)`, starting from a monochromatic beam :math:`b^{T/P}_{\ell}(\nu_0 + \Delta \nu)`. This monochromatic beam is derived from measurements of the planet beam and assuming a certain bandpass shift :math:`\Delta \nu`. So we need a dictionary of these :math:`b^{T/P}_{\ell}(\nu_0 + \Delta \nu)` for the several values of :math:`\Delta \nu` that could be sampled in the MCMC. To apply the scaling :math:`b^{T/P}_{\ell (\nu / \nu_0)^{-\alpha / 2}}(\nu_0 + \Delta \nu)` we also need :math:`\nu_0` and :math:`\alpha` for each experiment/array. 
+In case of bandpass shifts :math:`\Delta \nu \neq 0`, you can decide whether to propagate the bandpass shift effect to :math:`b_{\ell}(\nu)` or not. If you want to leave :math:`b_{\ell}(\nu)` unchanged even if :math:`\Delta \nu \neq 0` (assuming this modification is a second order effect), you just need to leave the ``beam_profile`` block as it is, i.e. ``Bandpass_shifted_beams: null``. 
+
+In case you want to propagate this effect, the chromatic beams are derived as: :math:`b^{T/P}_{\ell}(\nu + \Delta \nu) =  b^{T/P}_{\ell (\nu / \nu_0)^{-\alpha / 2}}(\nu_0 + \Delta \nu)`, starting from a monochromatic beam :math:`b^{T/P}_{\ell}(\nu_0 + \Delta \nu)`. This monochromatic beam is derived from measurements of the planet beam and assuming a certain bandpass shift :math:`\Delta \nu`. So we need a dictionary of these :math:`b^{T/P}_{\ell}(\nu_0 + \Delta \nu)` for the several values of :math:`\Delta \nu` that could be sampled in the MCMC. To apply the scaling :math:`b^{T/P}_{\ell (\nu / \nu_0)^{-\alpha / 2}}(\nu_0 + \Delta \nu)` we also need :math:`\nu_0` and :math:`\alpha` for each experiment/array. 
 The array of frequencies :math:`\nu` for each experiment/array is derived from the corresponding bandpass file. 
 
-This means that, when bandpass shifts are different from 0, we need to provide a yaml file under the key ``Bandpass_shifted_beams``:
+This means that, to propagate the bandpass shifts to :math:`b_{\ell}(\nu)`, we need to provide a yaml file under the key ``Bandpass_shifted_beams``:
     
 .. code-block:: yaml
 
@@ -523,7 +525,8 @@ class BandpowerForeground(Foreground):
                 self.gaussian_params = self.beam_profile.get("Gaussian_beam")
                 self._init_gauss_beams()
             # reading the possible dictionary with beam profiles associated to bandpass shifts
-            # this has to be present in case bandpass shifts != 0
+            # this has to be present if we want to propagate bandpass shifts to the chromatic beams
+            # otherwise they are left unchanged 
             self.bandsh_beams_path = self.beam_profile.get("Bandpass_shifted_beams")
             if self.bandsh_beams_path:
                 self.bandpass_shifted_beams = self._read_yaml_file(self.bandsh_beams_path)
@@ -640,7 +643,11 @@ class BandpowerForeground(Foreground):
                         if "te" in self.requested_cls or "ee" in self.requested_cls:
                             self.bandint_freqs_P.append([nub, tranb / tranb_norm])
                     else:
-                        blT, blP = self.return_beams(exp, nu_ghz, shift)
+                        if self.bandsh_beams_path:
+                            blT, blP = self.return_beams(exp, nu_ghz, shift)
+                        else: 
+                            # not propagating bandpass shifts to the chromatic beams
+                            blT, blP = self.return_beams(exp, nu_ghz, 0.)
 
                         if "tt" in self.requested_cls or "te" in self.requested_cls:
                             tranb_normT = trapezoid(_cmb2bb(nub)[..., np.newaxis] * blT, nub, axis=0)
@@ -679,7 +686,11 @@ class BandpowerForeground(Foreground):
                         if "te" in self.requested_cls or "ee" in self.requested_cls:
                             self.bandint_freqs_P.append([nub, trans])
                     else:
-                        blT, blP = self.return_beams(exp, nu_ghz, shift)
+                        if self.bandsh_beams_path:
+                            blT, blP = self.return_beams(exp, nu_ghz, shift)
+                        else:
+                            # not propagating bandpass shifts to the chromatic beams
+                            blT, blP = self.return_beams(exp, nu_ghz, 0.)
 
                         if "tt" in self.requested_cls or "te" in self.requested_cls:
                             trans_normT = trapezoid(
