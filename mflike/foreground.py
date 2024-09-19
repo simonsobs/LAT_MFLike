@@ -658,15 +658,15 @@ class BandpowerForeground(Foreground):
                             blT, blP = self.return_beams(exp, nu_ghz, 0.)
 
                         if "tt" in self.requested_cls or "te" in self.requested_cls:
-                            tranb_normT = trapezoid(_cmb2bb(nub)[..., np.newaxis] * blT, nub, axis=0)
-                            ratioT = _cmb2bb(nub)[..., np.newaxis] * blT / tranb_normT
-                            self.bandint_freqs_T.append([nub, ratioT])
 
+                            bpT = _cmb2bb(nub)[..., np.newaxis] * blT
+                            self.bandint_freqs_T.append([nub, bpT / trapezoid(bpT, nub, axis=0)])
+                            
                         if "te" in self.requested_cls or "ee" in self.requested_cls:
-                            tranb_normP = trapezoid(_cmb2bb(nub)[..., np.newaxis] * blP, nub, axis=0)
-                            ratioP = _cmb2bb(nub)[..., np.newaxis] * blP / tranb_normP
-                            self.bandint_freqs_P.append([nub, ratioP])
-               
+                            
+                            bpP =  _cmb2bb(nub)[..., np.newaxis] * blP
+                            self.bandint_freqs_P.append([nub, bpP / trapezoid(bpP, nub, axis=0)])
+
                # in case we don't want to do band integration, e.g. when we have multifreq bandpass in sacc file
                 if self.bandint_nsteps == 1:
                     nub = fr + shift
@@ -701,23 +701,15 @@ class BandpowerForeground(Foreground):
                             blT, blP = self.return_beams(exp, nu_ghz, 0.)
 
                         if "tt" in self.requested_cls or "te" in self.requested_cls:
-                            trans_normT = trapezoid(
-                                bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blT, nub, axis=0
-                            )
-                            ratioT = (
-                                bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blT / trans_normT
-                            )
-                            self.bandint_freqs_T.append([nub, ratioT])
+                            
+                            bpT = bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blT
+                            self.bandint_freqs_T.append([nub, bpT / trapezoid(bpT, nub, axis=0)])
 
                         if "te" in self.requested_cls or "ee" in self.requested_cls:
-                            trans_normP = trapezoid(
-                                bp[..., np.newaxis] *  _cmb2bb(nub)[..., np.newaxis] * blP, nub, axis=0
-                            )
-                            ratioP = (
-                                bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blP / trans_normP
-                            )
-                            self.bandint_freqs_P.append([nub, ratioP])
-
+                            
+                            bpP = bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blP
+                            self.bandint_freqs_P.append([nub, bpP / trapezoid(bpP, nub, axis=0)])
+                            
         # fgspectra can't mix monofrequency with [nu, bp]. If one channel is mono-frequency then we
         # assume all of them and pass to fgspectra an array (not list!!) of frequencies
         if data_are_monofreq:
