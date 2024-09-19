@@ -596,13 +596,17 @@ class BandpowerForeground(Foreground):
 
         When the chromatic beam is considered, we compute
         :math:`r_{\ell}^T(\nu+\Delta \nu) = \frac{\frac{\partial B_{\nu+\Delta \nu}}{\partial T}
-        \tau(\nu+\Delta \nu) b^T_{\ell}(\nu + \Delta \nu)}
+        \tau(\nu+\Delta \nu) b^T_{\ell}(\nu)}
         {\int d\nu
         \frac{\partial B_{\nu+\Delta \nu}}{\partial T} \tau(\nu+\Delta \nu)
-        b^T_{\ell}(\nu + \Delta \nu)}`
+        b^T_{\ell}(\nu)}`
         for the temperature field, and a corresponding expression for the polarization field,
         replacing the temperature beam with the polarization one
-        :math:`b^P_{\ell}(\nu + \Delta \nu)`.
+        :math:`b^P_{\ell}(\nu)`. If we want to propagate the bandpass shifts to the beam, we
+        compute instead :math:`r_{\ell}^T(\nu+\Delta \nu) = \frac{\frac{\partial B_{\nu+\Delta \nu}}{
+        \partial T} \tau(\nu+\Delta \nu) b^T_{\ell}(\nu + \Delta \nu)}
+        {\int d\nu \frac{\partial B_{\nu+\Delta \nu}}{\partial T} \tau(\nu+\Delta \nu)
+        b^T_{\ell}(\nu + \Delta \nu)}`.
 
         :param \**params: dictionary of nuisance parameters
         :return: the list of [nu, transmission] in the multifrequency case
@@ -855,11 +859,12 @@ class BandpowerForeground(Foreground):
         to normalize them in the correct way (temperature beam = 1 for :math:`\ell = 0`).
         The polarization beam is normalized by the temperature one (as in ``hp.gauss_beam``).
 
-        In the presence of bandpass shift, we have to select the monochromatic beam :math:`b_{\ell}`
-        computed from the planet beam assuming that bandpass shift. This has to be present in the 
-        ``self.bandpass_shifted_beams`` dictionary. From each of these :math:`b_{\ell}`, the 
-        chromatic beam is computed with the scaling :math:`b_{\ell (\nu / \nu_0)^{-\alpha / 2}}`,
-        where :math:`\nu_0` and :math:`\alpha` are also found in the same dictionary.
+        If we want to propagate bandpass shifts to the beams, we have to select the 
+        monochromatic beam :math:`b_{\ell}` computed from the planet beam assuming 
+        that bandpass shift. This has to be present in the ``self.bandpass_shifted_beams`` 
+        dictionary. From each of these :math:`b_{\ell}`, the chromatic beam is computed 
+        with the scaling :math:`b_{\ell (\nu / \nu_0)^{-\alpha / 2}}`, where :math:`\nu_0` 
+        and :math:`\alpha` are also found in the same dictionary.
 
         :param nu: the frequency array in GHz (for now, the math:`\nu` array is the same
                    between bandpass file and beam file for the same experiment/array.
