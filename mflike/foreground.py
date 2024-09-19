@@ -734,14 +734,11 @@ class BandpowerForeground(Foreground):
     ## that should be applied to any beam profile
     ###########################################################################
     def _read_yaml_file(self, file_path):
-        import yaml
-
+        
+        from cobaya.yaml import yaml_load_file
+        
         filename = "%s.yaml" % file_path
-        if not os.path.exists("%s.yaml" % file_path):
-            raise ValueError("File " + filename + " does not exist!")
-
-        with open(filename, "r") as f:
-            file = yaml.load(f, Loader=yaml.Loader)
+        file = yaml_load_file(file_name = filename)
 
         return file
 
