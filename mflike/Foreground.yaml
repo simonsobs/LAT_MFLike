@@ -34,7 +34,7 @@ top_hat_band:
 # or be read from a file (either from external file with name "rootname" or from sacc)
 # - if Gaussian_beam = False/empty and beam_from_file = False/empty, it will be read from the sacc file (currently not working)
 # - if Gaussian_beam = False/empty and beam_from_file is specified, it will be read from this file
-#   the file name has to be its absolute path without the yaml extension
+#   the file name has to be its absolute path, with the yaml extension
 #   it has to be a yaml with keys = experiments and items = array((freqs, ells))
 #   i.e. numpy arrays of beam profiles for each frequency in the passband of that array
 # - If we want to compute Gaussian beams, fill the Gaussian_beam entry with dictionaries
@@ -42,7 +42,7 @@ top_hat_band:
 # - If bandpass shifts are != 0 and you want to propagate them to the beams, you have to fill 
 #   the Bandpass_shifted_beams key with the name of the file containing the dictionary 
 #   with beam profiles for different values of Delta nu. As before, the file should be a yaml, 
-#   and you should provide its absolute path without the ".yaml" extension. 
+#   and you should provide its absolute path with the ".yaml" extension. 
 #   The dictionary should contain a key for each experiment/array, and for each of these keys 
 #   there should be a "nu_0", "alpha" and "beams" keys. The "beams" item would be a 
 #   dictionary {"nu_0 + Delta nu": b_ell, "nu_0 + 2Delta nu": b'_ell,...}   

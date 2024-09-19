@@ -391,7 +391,7 @@ class MFLikeTest(unittest.TestCase):
                        "mflike.BandpowerForeground":{
                           "beam_profile": {"Gaussian_beam": beam_params,
                           "Bandpass_shifted_beams": packages_path + 
-                                 "/data/MFLike/v0.8/LAT_beam_bandshift"},
+                                 "/data/MFLike/v0.8/LAT_beam_bandshift.yaml"},
                     },
                 },
                 "params": cosmo_params | params,

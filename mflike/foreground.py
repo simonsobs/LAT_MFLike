@@ -71,7 +71,7 @@ There are several options:
     * reading the beams from the sacc file (``Gaussian_beam: False/null``, ``beam_from_file: False/null``). 
       The beams have to be stored in the ``sacc.tracers[exp].beam`` tracer 
       (this is not working so far, since the sacc beam tracer doesn't like an array(freq, ell))
-    * reading the beams from an external yaml file (``Gaussian_beam: False/null``, ``beam_from_file: filename``). ``filename`` has to be the absolute path for the file, without the ``.yaml`` extension, 
+    * reading the beams from an external yaml file (``Gaussian_beam: False/null``, ``beam_from_file: filename``). ``filename`` has to be the absolute path for the file, with the ``.yaml/.yml`` extension, 
       which is automatically added by the code. The yaml file has to be a dictionary 
       ``{"{exp}_s0": {"nu": nu, "beams": array(freqs, ells+2)}, "{exp}_s2": {"nu": nu, "beams": array(freqs, ells+2)},...}``
     * computing the beams as Gaussian beams (``Gaussian_beam: dict``, ``beam_from_file: ...``). When 
@@ -142,7 +142,7 @@ where the ``bandpass_shifted_beams.yaml`` file is structured as:
       alpha: ...
     ...
 
-``bandpass_shifted_beams`` has to be an absolute path, without the ``.yaml`` extension, which is added by the code. 
+``bandpass_shifted_beams`` has to be an absolute path, with the ``.yaml/.yml`` extension, which is added by the code. 
 
 It is important the keys of ``beam_profile["Bandpass_shifted_beams"]["{exp}_s0/2"]["beams"]`` are strings of floats representing the value of :math:`\Delta \nu` (if they are strings of int the code to read the associated beams would not work).
 """
@@ -151,10 +151,10 @@ import os
 import numpy as np
 from cobaya.log import LoggedError
 from cobaya.theory import Theory
-from cobaya.yaml import yaml_load
+from cobaya.yaml import yaml_load, yaml_load_file
 from cobaya.typing import empty_dict
-from typing import Optional
 from scipy import constants
+from itertools import product
 
 try:
     from numpy import trapezoid
@@ -533,7 +533,7 @@ class BandpowerForeground(Foreground):
 
             self.bandsh_beams_path = self.beam_profile.get("Bandpass_shifted_beams")
             if self.bandsh_beams_path:
-                self.bandpass_shifted_beams = self._read_yaml_file(self.bandsh_beams_path)
+                self.bandpass_shifted_beams = yaml_load_file(file_name = self.bandsh_beams_path)
 
         self._bandint_shift_params = [f"bandint_shift_{f}" for f in self.experiments]
         # default bandpass when shift is 0
@@ -725,14 +725,6 @@ class BandpowerForeground(Foreground):
     ## the correction expected for a Gaussian beam in case of bandpass shift
     ## that should be applied to any beam profile
     ###########################################################################
-    def _read_yaml_file(self, file_path):
-        
-        from cobaya.yaml import yaml_load_file
-        
-        filename = "%s.yaml" % file_path
-        file = yaml_load_file(file_name = filename)
-
-        return file
 
     def _init_beam_from_file(self):
         """
@@ -747,10 +739,9 @@ class BandpowerForeground(Foreground):
             if not bool(self.beams):
                 raise ValueError("Beams not stored in sacc files!")
         else:
-            self.beams = self._read_yaml_file(self.beam_file)
+            self.beams = yaml_load_file(file_name = self.beam_file)
         
         #checking that the freq array is compatible with the bandpass one
-        from itertools import product
         for exp, spin in product(self.experiments, ["s0", "s2"]):
             key =  f"{exp}_{spin}"
             # checking nu is the same as the bandpass one
@@ -767,7 +758,6 @@ class BandpowerForeground(Foreground):
         Computes the dictionary of beams for each frequency of self.experiments
         """
         self.beams = {}
-        from itertools import product
         for exp, spin in product(self.experiments, ["s0", "s2"]):
             key = f"{exp}_{spin}"
             gauss_pars = self.gaussian_params[key]
