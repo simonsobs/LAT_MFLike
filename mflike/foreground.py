@@ -736,7 +736,7 @@ class BandpowerForeground(Foreground):
 
         if not self.beam_file:
             # option to read beam from sacc
-            if not bool(self.beams):
+            if not self.beams:
                 raise ValueError("Beams not stored in sacc files!")
         else:
             self.beams = yaml_load_file(file_name = self.beam_file)
