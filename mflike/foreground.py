@@ -493,8 +493,8 @@ class BandpowerForeground(Foreground):
         super().initialize()
         if self.bands is None:
             self.bands = {
-                f"{exp}_s0": {"nu": [self.bandint_freqs_T[iexp]], "bandpass": [1.0]}
-                for iexp, exp in enumerate(self.experiments)}
+                f"{exp}_{spin}": {"nu": [self.bandint_freqs_T[iexp]], "bandpass": [1.0]}
+                for spin in ["s0","s2"] for iexp, exp in enumerate(self.experiments)}
         self._initialized = False
         self.init_bandpowers()
 
@@ -516,7 +516,10 @@ class BandpowerForeground(Foreground):
                     self.log, "One band has width = 0, set a positive width and run again"
                 )
         
-        self.use_beam_profile = bool(self.beam_profile)
+        if not self._initialized:
+            self.use_beam_profile = False
+        else:
+            self.use_beam_profile = bool(self.beam_profile)
         if self.use_beam_profile:
             if not self.beam_profile.get("Gaussian_beam"):
                 self.beam_file = self.beam_profile.get("beam_from_file")
@@ -527,6 +530,7 @@ class BandpowerForeground(Foreground):
             # reading the possible dictionary with beam profiles associated to bandpass shifts
             # this has to be present if we want to propagate bandpass shifts to the chromatic beams
             # otherwise they are left unchanged 
+
             self.bandsh_beams_path = self.beam_profile.get("Bandpass_shifted_beams")
             if self.bandsh_beams_path:
                 self.bandpass_shifted_beams = self._read_yaml_file(self.bandsh_beams_path)
@@ -750,48 +754,40 @@ class BandpowerForeground(Foreground):
         """
 
         if not self.beam_file:
-            # option to read beam from sacc.
-            try:
-                bool(mflike.beams)
-            except:
+            # option to read beam from sacc
+            if not bool(self.beams):
                 raise ValueError("Beams not stored in sacc files!")
-            else:
-                self.beams = mflike.beams
         else:
             self.beams = self._read_yaml_file(self.beam_file)
-
-        if self._initialized:
-            #checking that the freq array is compatible with the bandpass one
-            for exp in self.experiments:
-                # checking nu is the same as the bandpass one
-                if not np.allclose(self.beams[f"{exp}_s0"]['nu'], self.bands[f"{exp}_s0"]['nu'], atol = 1e-5):
-                    raise LoggedError(self.log, f"Frequency array for beam {exp}_s0 is not the same as the bandpass one!")
-                if not np.allclose(self.beams[f"{exp}_s2"]['nu'], self.bands[f"{exp}_s2"]['nu'], atol = 1e-5):
-                    raise LoggedError(self.log, f"Frequency array for beam {exp}_s2 is not the same as the bandpass one!")
+        
+        #checking that the freq array is compatible with the bandpass one
+        from itertools import product
+        for exp, spin in product(self.experiments, ["s0", "s2"]):
+            key =  f"{exp}_{spin}"
+            # checking nu is the same as the bandpass one
+            if not np.allclose(self.beams[key]['nu'], self.bands[key]['nu'], atol = 1e-5):
+                raise LoggedError(self.log, f"Frequency array for beam {key} is not the same as the bandpass one!")
+            # checking beam shape is correct
+            if not self.beams[key]["beams"].shape[0] == self.bands[key]['nu'].size:
+                shape_b = self.beams[key]["beams"].shape[0]
+                shape_n = self.bands[key]['nu'].size
+                raise LoggedError(self.log, f"beam {key} has a wrong shape! It is shape ({shape_b}, ells), but shoule be ({shape_n}, ells)")
 
     def _init_gauss_beams(self):
         """
         Computes the dictionary of beams for each frequency of self.experiments
         """
         self.beams = {}
-        for iexp, exp in enumerate(self.experiments):
-            gauss_pars = self.gaussian_params[f"{exp}_s0"]
+        from itertools import product
+        for exp, spin in product(self.experiments, ["s0", "s2"]):
+            key = f"{exp}_{spin}"
+            gauss_pars = self.gaussian_params[key]
             FWHM0 = np.asarray(gauss_pars["FWHM_0"])
-            #using the same freq array as the bandpass one
-            nu = np.asarray(self.bands[f"{exp}_s0"]['nu'])
-            nu0 = np.asarray(gauss_pars["nu_0"])
-            alpha = np.asarray(gauss_pars["alpha"])
-            # computing temperature beam for exp
-            self.beams[f"{exp}_s0"] = {"nu": nu, "beams": self.gauss_beams(FWHM0, nu, nu0, alpha, False)}
-            # doing the same for polarization
-            gauss_pars = self.gaussian_params[f"{exp}_s2"]
-            FWHM0 = np.asarray(gauss_pars["FWHM_0"])
-            # nu pol should be the same as the T one, I'll comment it for now
-            #nu = np.asarray(self.bands[f"{exp}_s2"]['nu'])
+            nu = np.asarray(self.bands[key]['nu'])
             nu0 = np.asarray(gauss_pars["nu_0"])
             alpha = np.asarray(gauss_pars["alpha"])
             # checking nu is the same as the bandpass one
-            self.beams[f"{exp}_s2"] = {"nu": nu, "beams": self.gauss_beams(FWHM0, nu, nu0, alpha, True)}
+            self.beams[key] = {"nu": nu, "beams": self.gauss_beams(FWHM0, nu, nu0, alpha, pol=spin=="s2")} 
 
     def gauss_beams(self, fwhm0, nu, nu0, alpha, pol):
         r"""
@@ -810,7 +806,6 @@ class BandpowerForeground(Foreground):
         :return: a :math:`b^{Gauss.}_{\ell}(\nu)` = ``array(freqs, lmax +2)`` with Gaussian beam
                  profiles for each frequency in :math:`\nu` (from :math:`\ell = 0`)
         """
-        from astropy import constants, units
         import healpy as hp
 
         fwhm = fwhm0 * (nu / nu0)**(-alpha/2.)

@@ -364,7 +364,7 @@ class MFLikeTest(unittest.TestCase):
         # generating the dictionary needed for the bandpass shift case
         test_path = os.path.dirname(__file__)
         import subprocess
-        subprocess.run("python "+os.path.join(test_path, "../../mflike_utils/utils.py"), shell=True, check=True) 
+        subprocess.run("python "+os.path.join(test_path, "../../scripts/generate_beams_w_bandpass_shifts.py"), shell=True, check=True) 
 
         model.close()
         

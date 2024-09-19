@@ -1,5 +1,5 @@
 r"""
-Simple code to generate the bandpass shift dictionary needed in the presence of bandpass shifts different from 0.
+Simple code to generate the beam dictionary needed in the presence of bandpass shifts different from 0.
 We compute simple gaussian beams for :math:`\nu_0 + \Delta \nu`, assuming a diffraction limited experiment.
 This is thought to be used in the absence of data coming from the planets beams measurements.
 """
