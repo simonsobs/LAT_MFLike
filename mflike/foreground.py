@@ -57,54 +57,35 @@ The effective frequencies, used as central frequencies to build the bandpasses, 
         nsteps: 1
         bandwidth: 0
 
-If we want to consider the beam chromaticity effect, we have several options on how to compute/read the beam profiles. Notice that we need arrays(freqs, ells+2) (computed from :math:`\ell = 0`), since we want a beam window function for each freq in the bandpasses. We should use this block under ``mflike.BandpowerForeground``:
+If we don't want to include the beam chromaticity effect, just leave the ``beam_profile`` key empty:
 
 .. code-block:: yaml
 
   theory:
     mflike.BandpowerForeground:
       beam_profile:
-        Gaussian_beam: dict/False/null
-        beam_from_file: filename/False/null
-    
-There are several options: 
-    * reading the beams from the sacc file (``Gaussian_beam: False/null``, ``beam_from_file: False/null``). 
-      The beams have to be stored in the ``sacc.tracers[exp].beam`` tracer 
-      (this is not working so far, since the sacc beam tracer doesn't like an array(freq, ell))
-    * reading the beams from an external yaml file (``Gaussian_beam: False/null``, ``beam_from_file: filename``). ``filename`` has to be the absolute path for the file, with the ``.yaml/.yml`` extension, 
-      which is automatically added by the code. The yaml file has to be a dictionary 
-      ``{"{exp}_s0": {"nu": nu, "beams": array(freqs, ells+2)}, "{exp}_s2": {"nu": nu, "beams": array(freqs, ells+2)},...}``
-    * computing the beams as Gaussian beams (``Gaussian_beam: dict``, ``beam_from_file: ...``). When 
-      ``Gaussian_beam`` is not empty, the beam is automatically computed within the code. Both T and 
-      polarization Gaussian beams are computed through ``healpy.gauss_beam``. We need to pass a
-      dictionary with the ``FWHM_0``, ``nu_0``, ``alpha`` parameters for each array/experiment (both in T and pol),
-      in order to parametrize the Gaussian FWHM as :math:`FWHM(\nu) = FWHM(\nu_0) \left( \frac{\nu}{\nu_0} \right)^{-\alpha/2}`:
+
+If we want to consider it, we have several options on how to compute/read the beam profiles. Notice that we need arrays(freqs, ells+2) (computed from :math:`\ell = 0`), since we want a beam window function for each freq in the bandpasses. We should use this block under ``mflike.BandpowerForeground``:
 
 .. code-block:: yaml
 
-  beam_profile:
-    Gaussian_beam: 
-      LAT_93_s0:
-        FWHM_0: ...
-        nu_0: ...
-        alpha: ...
-      LAT_93_s2:
-        FWHM_0: ...
-        nu_0: ...
-        alpha: ...
-      LAT_145_s0:
-        FWHM_0: ...
-        nu_0: ...
-        alpha: ...
-      ...
-    beam_from_file: null
+  theory:
+    mflike.BandpowerForeground:
+      beam_profile:
+        beam_from_file: filename/False/null
+    
+There are two options: 
+    * reading the beams from the sacc file (``beam_from_file: False/null``). 
+      The beams have to be stored in the ``sacc.tracers[exp].beam`` tracer 
+    * reading the beams from an external yaml file (``beam_from_file: filename``). ``filename`` has to be the absolute path for the file, with the ``.yaml/.yml`` extension. The yaml file has to be a dictionary ``{"{exp}_s0": {"nu": nu, "beams": array(freqs, ells+2)}, "{exp}_s2": {"nu": nu, "beams": array(freqs, ells+2)},...}``
+
 Once computed/read, the beam profiles are saved in 
 
 .. code-block:: python
 
    self.beams = {"{exp}_s0": {"nu": nu, "beams": array(freqs, ells+2)}, "{exp}_s2": {"nu": nu, "beams": array(freqs, ells+2)},...}. 
 
-The beams are appropriately normalized, then we select the bandpowers used in the rest of the code.
+The beams are appropriately normalized, then we select the :math:`\ell` range used in the rest of the code.
 
 In case of bandpass shifts :math:`\Delta \nu \neq 0`, you can decide whether to propagate the bandpass shift effect to :math:`b_{\ell}(\nu)` or not. If you want to leave :math:`b_{\ell}(\nu)` unchanged even if :math:`\Delta \nu \neq 0` (assuming this modification is a second order effect), you just need to leave the ``beam_profile`` block as it is, i.e. ``Bandpass_shifted_beams: null``. 
 
@@ -117,7 +98,6 @@ This means that, to propagate the bandpass shifts to :math:`b_{\ell}(\nu)`, we n
 
   beam_profile:
     Bandpass_shifted_beams: bandpass_shifted_beams
-    Gaussian_beam: dict/False/null
     beam_from_file: filename/False/null
 
 where the ``bandpass_shifted_beams.yaml`` file is structured as:
@@ -516,21 +496,20 @@ class BandpowerForeground(Foreground):
                     self.log, "One band has width = 0, set a positive width and run again"
                 )
         
+        # initialize beam params after mflike initialization
         if not self._initialized:
             self.use_beam_profile = False
         else:
             self.use_beam_profile = bool(self.beam_profile)
         if self.use_beam_profile:
-            if not self.beam_profile.get("Gaussian_beam"):
-                self.beam_file = self.beam_profile.get("beam_from_file")
-                self._init_beam_from_file()
-            else:
-                self.gaussian_params = self.beam_profile.get("Gaussian_beam")
-                self._init_gauss_beams()
+            # reading the beams either from an external file or
+            # from the sacc file
+            self.beam_file = self.beam_profile.get("beam_from_file")
+            self._init_beam_from_file()
+            
             # reading the possible dictionary with beam profiles associated to bandpass shifts
             # this has to be present if we want to propagate bandpass shifts to the chromatic beams
             # otherwise they are left unchanged 
-
             self.bandsh_beams_path = self.beam_profile.get("Bandpass_shifted_beams")
             if self.bandsh_beams_path:
                 self.bandpass_shifted_beams = yaml_load_file(file_name = self.bandsh_beams_path)
@@ -583,7 +562,7 @@ class BandpowerForeground(Foreground):
     # This factor is already included in the _cmb2bb function
     def _bandpass_construction(self, _initialize=False, **params):
         r"""
-                Builds the bandpass transmission with or without beam.
+        Builds the bandpass transmission with or without beam.
         When chromatic beam is not considered, we compute:
         :math:`\frac{\frac{\partial B_{\nu+\Delta \nu}}{\partial T}
         \tau(\nu+\Delta \nu)}{\int d\nu
@@ -720,10 +699,9 @@ class BandpowerForeground(Foreground):
         self._initialized = True
 
     ###########################################################################
-    ## This part deals with beam functions, i.e. reading beam from file or
-    ## computing it as a Gaussian beam. We also have a function to compute
-    ## the correction expected for a Gaussian beam in case of bandpass shift
-    ## that should be applied to any beam profile
+    ## This part deals with beam functions, i.e. reading beam from file. 
+    ## We also have a function to compute
+    ## the correction to the beams in case of bandpass shifts
     ###########################################################################
 
     def _init_beam_from_file(self):
@@ -752,53 +730,7 @@ class BandpowerForeground(Foreground):
                 shape_b = self.beams[key]["beams"].shape[0]
                 shape_n = self.bands[key]['nu'].size
                 raise LoggedError(self.log, f"beam {key} has a wrong shape! It is shape ({shape_b}, ells), but shoule be ({shape_n}, ells)")
-
-    def _init_gauss_beams(self):
-        """
-        Computes the dictionary of beams for each frequency of self.experiments
-        """
-        self.beams = {}
-        for exp, spin in product(self.experiments, ["s0", "s2"]):
-            key = f"{exp}_{spin}"
-            gauss_pars = self.gaussian_params[key]
-            FWHM0 = np.asarray(gauss_pars["FWHM_0"])
-            nu = np.asarray(self.bands[key]['nu'])
-            nu0 = np.asarray(gauss_pars["nu_0"])
-            alpha = np.asarray(gauss_pars["alpha"])
-            # checking nu is the same as the bandpass one
-            self.beams[key] = {"nu": nu, "beams": self.gauss_beams(FWHM0, nu, nu0, alpha, pol=spin=="s2")} 
-
-    def gauss_beams(self, fwhm0, nu, nu0, alpha, pol):
-        r"""
-        Computes the Gaussian beam (either for T or pol) for each frequency of a
-        frequency array according to eqs. 54/55 of arXiv:astro-ph/0008228. We assume a more general
-        scaling for the FWHM: :math:`FWHM(\nu) = FWHM(\nu_0) \left( \frac{\nu}{\nu_0} \right)^{-\alpha}`.
-
-        :param fwhm0: the FWHM for the pivot frequency
-        :param nu: the frequency array in GHz
-        :param nu0: the pivot frequency in GHz
-        :param alpha: the exponent of the frequency scaling 
-                      :math:`\left( \frac{\nu}{\nu_0} \right)^{-\alpha/2}`
-        :param pol: (Bool) False to compute temperature Gaussian beam,
-                    True for the polarization one
-
-        :return: a :math:`b^{Gauss.}_{\ell}(\nu)` = ``array(freqs, lmax +2)`` with Gaussian beam
-                 profiles for each frequency in :math:`\nu` (from :math:`\ell = 0`)
-        """
-        import healpy as hp
-
-        fwhm = fwhm0 * (nu / nu0)**(-alpha/2.)
-        bls = np.empty((len(nu), self.ells[-1] + 1))
-        for ifw, fw in enumerate(fwhm):
-            # saving the beam from ell = 2 to ell max of self.ells
-            if not pol:
-                bls[ifw, :] = hp.gauss_beam(fw, lmax=self.ells[-1])
-            else:
-                # selecting the polarized gaussian beam
-                bls[ifw, :] = hp.gauss_beam(fw, lmax=self.ells[-1], pol=True)[:, 1]
-
-        return bls
-
+    
     def beam_interpolation(self, b_ell_template, f_ell, ells, freqs, freq_ref, alpha):
         r'''
         Computing :math:`b_{\ell}(\nu)` from monochromatic beam :math:`b_{\ell}` using the 

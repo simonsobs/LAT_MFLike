@@ -319,24 +319,12 @@ class MFLikeTest(unittest.TestCase):
     def test_Gaussian_chromatic_beams(self):
 
         nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
-
-        def compute_FWHM(nu):
-            from astropy import constants, units
-
-            mirror_size = 6 * units.m
-            wavelenght = constants.c / (nu * 1e9 / units.s)
-            fwhm = 1.22 * wavelenght / mirror_size
-            return fwhm
-
-        beam_params = {}
-        for f in [93, 145, 225]:
-            beam_params[f"LAT_{f}_s0"] = {
-                    "FWHM_0": compute_FWHM(f),
-                    "nu_0": f,
-                    "alpha": 2
-                    }
-            beam_params[f"LAT_{f}_s2"] = beam_params[f"LAT_{f}_s0"]
-
+        
+        # generating the data products needed 
+        test_path = os.path.dirname(__file__)
+        import subprocess
+        subprocess.run("python "+os.path.join(test_path, "../../scripts/generate_beams_w_bandpass_shifts.py"), shell=True, check=True)
+        
         info = {
             "likelihood": {
                 "mflike.TTTEEE": {
@@ -346,7 +334,8 @@ class MFLikeTest(unittest.TestCase):
             },
             "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
                        "mflike.BandpowerForeground":{
-                           "beam_profile": {"Gaussian_beam": beam_params},
+                           "beam_profile": {"beam_from_file": packages_path +
+                                 "/data/MFLike/v0.8/LAT_gauss_beams.yaml"},
                 }},
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
@@ -359,12 +348,6 @@ class MFLikeTest(unittest.TestCase):
         chi2s_beam = {"tt-te-et-ee": 4272.842504438564}
         self.assertAlmostEqual(chi2, chi2s_beam["tt-te-et-ee"], 2)
 
-
-        # testing the bandpass shift case
-        # generating the dictionary needed for the bandpass shift case
-        test_path = os.path.dirname(__file__)
-        import subprocess
-        subprocess.run("python "+os.path.join(test_path, "../../scripts/generate_beams_w_bandpass_shifts.py"), shell=True, check=True) 
 
         model.close()
         
@@ -389,7 +372,8 @@ class MFLikeTest(unittest.TestCase):
             },
             "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
                        "mflike.BandpowerForeground":{
-                          "beam_profile": {"Gaussian_beam": beam_params,
+                          "beam_profile": {"beam_from_file": packages_path +
+                                 "/data/MFLike/v0.8/LAT_gauss_beams.yaml",
                           "Bandpass_shifted_beams": packages_path + 
                                  "/data/MFLike/v0.8/LAT_beam_bandshift.yaml"},
                     },

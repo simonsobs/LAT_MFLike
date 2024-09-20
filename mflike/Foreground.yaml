@@ -30,15 +30,12 @@ top_hat_band:
 #  bandwidth: 0
 
 
-# specify if the beam profile has to be computed as a Gaussian beam
-# or be read from a file (either from external file with name "rootname" or from sacc)
-# - if Gaussian_beam = False/empty and beam_from_file = False/empty, it will be read from the sacc file (currently not working)
-# - if Gaussian_beam = False/empty and beam_from_file is specified, it will be read from this file
+# specify if the beam profile has to be from an external file or from sacc
+# - if beam_from_file: "filename", the code will read the beams from this external file
 #   the file name has to be its absolute path, with the yaml extension
 #   it has to be a yaml with keys = experiments and items = array((freqs, ells))
 #   i.e. numpy arrays of beam profiles for each frequency in the passband of that array
-# - If we want to compute Gaussian beams, fill the Gaussian_beam entry with dictionaries
-#   containing the parametrization for FWHM for each experiment/array in T and pol
+#   if beam_from_file: null, the code will read the beams from the sacc file
 # - If bandpass shifts are != 0 and you want to propagate them to the beams, you have to fill 
 #   the Bandpass_shifted_beams key with the name of the file containing the dictionary 
 #   with beam profiles for different values of Delta nu. As before, the file should be a yaml, 
@@ -47,23 +44,10 @@ top_hat_band:
 #   there should be a "nu_0", "alpha" and "beams" keys. The "beams" item would be a 
 #   dictionary {"nu_0 + Delta nu": b_ell, "nu_0 + 2Delta nu": b'_ell,...}   
 # default is the beam_profile to be a null dict and chromatic beam not 
-# taken into account
+# taken into account. To include this effect and read beams from sacc, just use "beam_profile: // beam_from_file: null".
 beam_profile:
-# Gaussian has to be either empty or filled with params needed for each experiment 
-#  Gaussian_beam: 
-#    LAT_93_s0:
-#      FWHM_0: ...
-#      nu_0: ...
-#      alpha: ...
-#    LAT_93_s2:
-#      FWHM_0: ...
-#      nu_0: ...
-#      alpha: ...
-#    LAT_145_s0:
-#      ...
-#    ...
-#  Bandpass_shifted_beams: "filename"/null
 #  beam_from_file: "filename"/null
+#  Bandpass_shifted_beams: "filename"/null
 
 
 normalisation:

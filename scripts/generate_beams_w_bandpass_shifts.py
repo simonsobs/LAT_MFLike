@@ -1,6 +1,6 @@
 r"""
-Simple code to generate the beam dictionary needed in the presence of bandpass shifts different from 0.
-We compute simple gaussian beams for :math:`\nu_0 + \Delta \nu`, assuming a diffraction limited experiment.
+Simple code to generate a yaml file with Gaussian beams and the beam dictionary needed in the presence of bandpass shifts different from 0. Both are needed for one of the tests.
+We compute simple gaussian beams for :math:`\nu` and :math:`\nu_0 + \Delta \nu`, assuming a diffraction limited experiment.
 This is thought to be used in the absence of data coming from the planets beams measurements.
 """
 
@@ -10,6 +10,8 @@ import os
 import tempfile
 import yaml
 from cobaya.install import install
+from cobaya.model import get_model
+from itertools import product
 
 packages_path = os.environ.get("COBAYA_PACKAGES_PATH") or os.path.join(
     tempfile.gettempdir(), "LAT_packages"
@@ -18,6 +20,74 @@ packages_path = os.environ.get("COBAYA_PACKAGES_PATH") or os.path.join(
 data_path = packages_path + "/data/MFLike/v0.8"
 
 install({"likelihood": {"mflike.TTTEEE": None}}, path=packages_path)
+
+cosmo_params = {
+    "cosmomc_theta": 0.0104092,
+    "As": 2.0989031673191437e-09,
+    "ombh2": 0.02237,
+    "omch2": 0.1200,
+    "ns": 0.9649,
+    "Alens": 1.0,
+    "tau": 0.0544,
+}
+
+nuis_params = {
+    "T_effd": 19.6,
+    "beta_d": 1.5,
+    "beta_s": -2.5,
+    "alpha_s": 1,
+    "bandint_shift_LAT_93": 0,
+    "bandint_shift_LAT_145": 0,
+    "bandint_shift_LAT_225": 0,
+    "cal_LAT_93": 1,
+    "cal_LAT_145": 1,
+    "cal_LAT_225": 1,
+    "calG_all": 1,
+    "alpha_LAT_93": 0,
+    "alpha_LAT_145": 0,
+    "alpha_LAT_225": 0,
+    "a_tSZ": 3.30,
+    "a_kSZ": 1.60,
+    "a_p": 6.90,
+    "beta_p": 2.20,
+    "a_c": 4.90,
+    "beta_c": 2.20,
+    "a_s": 3.10,
+    "T_d": 9.60,
+    "a_gtt": 2.80,
+    "xi": 0.10,
+    "alpha_dT": -0.6,
+    "alpha_p": 1,
+    "alpha_tSZ": 0.,
+    "calT_LAT_93": 1,
+    "calT_LAT_145": 1,
+    "calT_LAT_225": 1,
+    "a_gte": 0.10,
+    "a_pste": 0,
+    "alpha_dE": -0.4,
+    "a_gee": 0.10,
+    "a_psee": 0,
+    "alpha_dE": -0.4,
+    "calE_LAT_93": 1,
+    "calE_LAT_145": 1,
+    "calE_LAT_225": 1,
+}
+
+info = {
+    "likelihood": {
+        "mflike.TTTEEE": {
+            "input_file": "LAT_simu_sacc_00000.fits",
+            "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+        },
+    },
+    "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
+               "mflike.BandpowerForeground": None},
+    "params": cosmo_params | nuis_params,
+    "packages_path": packages_path,
+}
+
+model = get_model(info)
+my_mflike = model.likelihood["mflike.TTTEEE"]
 
 def compute_FWHM(nu):
     """
@@ -65,28 +135,34 @@ def gauss_beams(fwhm0, nu, nu0, alpha, lmax, pol):
 
     return bls
 
+#first generating Gaussian beams for the frequencies in our arrays
+beam_dict = {}
+#generating the dictionary with (gaussian) beams for each nu+dnu
 beam_dnu_dict = {}
-# express delta nu as floats for the correct behavior of the code that will read this dictionary
 dnu = np.arange(-20, 21, dtype = float)
-for f in [93, 145, 225]:
-    fwhm = compute_FWHM(f)
-    gbeamT = gauss_beams(fwhm, f+dnu, f, 2, 10000, False)
-    gbeamP = gauss_beams(fwhm, f+dnu, f, 2, 10000, True)
-    beam_dnu_dict[f"LAT_{f}_s0"] = {
-            "beams": {f"{dn}": gbeamT[idn] for idn, dn in enumerate(dnu)},
-            "nu_0": f,
-            "alpha": 2
-            }
-    beam_dnu_dict[f"LAT_{f}_s2"] = {
-            "beams": {f"{dn}": gbeamP[idn] for idn, dn in enumerate(dnu)},
-            "nu_0": f,
-            "alpha": 2
-            }
 
+for exp, spin in product(my_mflike.experiments, ["s0", "s2"]):
+    nu0 = int(exp[4:])
+    fwhm = compute_FWHM(nu0)
+    key = f"{exp}_{spin}"
+    nu = my_mflike.bands[key]['nu']
+    
+    beam_dict[key] = {"nu": nu, "beams": gauss_beams(fwhm, nu, nu0, 2, 10000, pol=spin=="s2")} 
+
+
+    gbeambsh = gauss_beams(fwhm, nu0+dnu, nu0, 2, 10000, pol=spin=="s2")
+    beam_dnu_dict[key] = {
+            "beams": {f"{dn}": gbeambsh[idn] for idn, dn in enumerate(dnu)},
+            "nu_0": nu0,
+            "alpha": 2
+            }
 
 # saving the yaml file
+with open(data_path + '/LAT_gauss_beams.yaml', 'w') as file:
+    yaml.dump(beam_dict, file, default_flow_style=False)
+    print("saving "+data_path + '/LAT_gauss_beams.yaml')
+
+
 with open(data_path + '/LAT_beam_bandshift.yaml', 'w') as file:
     yaml.dump(beam_dnu_dict, file, default_flow_style=False)
     print("saving "+data_path + '/LAT_beam_bandshift.yaml')
-
-
