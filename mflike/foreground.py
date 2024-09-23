@@ -817,7 +817,8 @@ class BandpowerForeground(Foreground):
         # normalizing the beam profile such that it has a max at 1 at ell = 0
         blT /= blT[:, 0][..., np.newaxis]
 
-        return blT[:,2:self.ells[-1] + 1], blP[:,2:self.ells[-1] + 1]
+        # selecting the ell range from the data, since bl start from ell = 0
+        return blT[:, self.ells], blP[:, self.ells]
 
 
 class TTForeground(BandpowerForeground):
