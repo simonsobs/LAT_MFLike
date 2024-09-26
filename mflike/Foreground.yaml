@@ -1,10 +1,11 @@
-requested_cls: [ "tt", "te", "ee" ]
+requested_cls: ["tt", "te", "ee"]
 lmin: 2
 lmax: 6001
 # ells set automatically from above if not set directly
 ells:
-experiments: [ "LAT_93", "LAT_145", "LAT_225" ]
-bandint_freqs: [ 93.0, 145.0, 225.0 ]
+experiments: ["LAT_93", "LAT_145", "LAT_225"]
+bandint_freqs: [93.0, 145.0, 225.0]
+
 # Parameters to build a top-hat band:
 # - nsteps sets the number of frequencies used in the band integration
 # - bandwidth sets the relative width of the band wrt the central frequency
@@ -27,6 +28,27 @@ bandint_freqs: [ 93.0, 145.0, 225.0 ]
 top_hat_band:
 #  nsteps: 1
 #  bandwidth: 0
+
+
+# specify if the beam profile has to be from an external file or from sacc
+# - if beam_from_file: "filename", the code will read the beams from this external file
+#   the file name has to be its absolute path, with the yaml extension
+#   it has to be a yaml with keys = experiments and items = array((freqs, ells))
+#   i.e. numpy arrays of beam profiles for each frequency in the passband of that array
+#   if beam_from_file: null, the code will read the beams from the sacc file
+# - If bandpass shifts are != 0 and you want to propagate them to the beams, you have to fill 
+#   the Bandpass_shifted_beams key with the name of the file containing the dictionary 
+#   with beam profiles for different values of Delta nu. As before, the file should be a yaml, 
+#   and you should provide its absolute path with the ".yaml" extension. 
+#   The dictionary should contain a key for each experiment/array, and for each of these keys 
+#   there should be a "nu_0", "alpha" and "beams" keys. The "beams" item would be a 
+#   dictionary {"nu_0 + Delta nu": b_ell, "nu_0 + 2Delta nu": b'_ell,...}   
+# default is the beam_profile to be a null dict and chromatic beam not 
+# taken into account. To include this effect and read beams from sacc, just use "beam_profile: // beam_from_file: null".
+beam_profile:
+#  beam_from_file: "filename"/null
+#  Bandpass_shifted_beams: "filename"/null
+
 
 normalisation:
   nu_0: 150.0

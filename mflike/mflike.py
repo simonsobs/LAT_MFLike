@@ -18,10 +18,12 @@ and modified by systematic effects and calibrations.
 The underlying foreground spectra are computed through ``fgspectra``.
 
 
-This class applies three kinds of systematic effects to the CMB + foreground power spectrum:
+This class applies four kinds of systematic effects to the CMB + foreground power spectrum:
     * calibrations (global ``calG_all``, per channel ``cal_exp``, per field
       ``calT_exp``, ``calE_exp``)
     * polarization angles effect (``alpha_exp``)
+    * beam chromaticity (i.e. integrating the foreground SEDs with frequency dependent
+      beams)
     * systematic templates (e.g. T --> P leakage). In this case the dictionary
       ``systematics_template`` has to be filled with the correct path
       ``rootname``:
@@ -45,7 +47,6 @@ import sacc
 from cobaya.conventions import data_path, packages_path_input
 from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
-
 
 class _MFLike(InstallableLikelihood):
     _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
@@ -108,7 +109,8 @@ class _MFLike(InstallableLikelihood):
         return {"ells": self.l_bpws,
                 "requested_cls": self.requested_cls,
                 "experiments": self.experiments,
-                "bands": self.bands}
+                "bands": self.bands,
+                "beams": self.beams}
 
     def get_requirements(self):
         r"""
@@ -404,11 +406,15 @@ class _MFLike(InstallableLikelihood):
         self.logp_const -= 0.5 * np.linalg.slogdet(self.cov)[1]
 
         self.experiments = data["experiments"]
-        self.bands = {
-            name: {"nu": tracer.nu, "bandpass": tracer.bandpass}
-            for name, tracer in s.tracers.items()
-        }
-
+        self.bands = {}
+        self.beams = {}
+        for name, tracer in s.tracers.items():
+            self.bands[name] = {"nu": tracer.nu, "bandpass": tracer.bandpass}
+            # trying to read beams, if present, and check if it is empty
+            if hasattr(tracer, "beam") and np.size(tracer.beam) != 0:
+                # transposing the beam since it is (nells, nfreqs) in sacc
+                self.beams[name] = {"nu": tracer.nu, "beams": tracer.beam.T }
+        
         # Put lcuts in a format that is recognisable by CAMB.
         self.lcuts = {k.lower(): c for k, c in self.lcuts.items()}
         if "et" in self.lcuts:

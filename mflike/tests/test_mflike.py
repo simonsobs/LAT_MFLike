@@ -315,3 +315,83 @@ class MFLikeTest(unittest.TestCase):
                 chi2_mflike = -2 * (getattr(self, model).loglike(
                     new_params, return_derived=False) - logp_const)
                 self.assertAlmostEqual(chi2_mflike, chi2[i], 1)
+
+    def test_Gaussian_chromatic_beams(self):
+
+        nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
+        
+        # generating the data products needed 
+        test_path = os.path.dirname(__file__)
+        import subprocess
+        subprocess.run("python "+os.path.join(test_path, "../../scripts/generate_beams_w_bandpass_shifts.py"), shell=True, check=True)
+        
+        info = {
+            "likelihood": {
+                "mflike.TTTEEE": {
+                    "input_file": pre + "00000.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                },
+            },
+            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                       "mflike.BandpowerForeground":{
+                           "beam_profile": {"beam_from_file": packages_path +
+                                 "/data/MFLike/v0.8/LAT_gauss_beams.yaml"},
+                }},
+            "params": cosmo_params | nuis_params,
+            "packages_path": packages_path,
+        }
+        from cobaya.model import get_model
+
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.TTTEEE"]
+        chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        chi2s_beam = {"tt-te-et-ee": 4272.842504438564}
+        self.assertAlmostEqual(chi2, chi2s_beam["tt-te-et-ee"], 2)
+
+
+        model.close()
+        
+        from copy import deepcopy
+
+        # Let's vary values of bandint_shift parameters
+        params = deepcopy(nuis_params)
+        params.update(
+            {
+                k: {"prior": dict(min=0.9 * v, max=1.1 * v)}
+                for k, v in params.items()
+                if k.startswith("bandint_shift")
+            }
+        )
+
+        info = {
+                "likelihood": {
+                    "mflike.TTTEEE": {
+                        "input_file": pre + "00000.fits",
+                        "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                       },
+            },
+            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                       "mflike.BandpowerForeground":{
+                          "beam_profile": {"beam_from_file": packages_path +
+                                 "/data/MFLike/v0.8/LAT_gauss_beams.yaml",
+                          "Bandpass_shifted_beams": packages_path + 
+                                 "/data/MFLike/v0.8/LAT_beam_bandshift.yaml"},
+                    },
+                },
+                "params": cosmo_params | params,
+                "packages_path": packages_path,
+            }
+
+        model = get_model(info)
+        logp_const = model.likelihood["mflike.TTTEEE"].logp_const
+
+        chi2 = [4272.84250444, 10987.36734122, 127166.75296958]
+
+        for i, bandshift in enumerate([0.0, 1.0, 5.0]):
+            new_params = {
+                    **params,
+                    **{par: bandshift for par in params.keys() if par.startswith("bandint_shift")},
+                }
+
+            chi2_mflike = -2 * (model.loglike(new_params, return_derived=False) - logp_const)
+            self.assertAlmostEqual(chi2_mflike, chi2[i], 2)
