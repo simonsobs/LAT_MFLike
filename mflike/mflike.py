@@ -143,7 +143,7 @@ class _MFLike(InstallableLikelihood):
         # logp = -0.5 * (delta @ self.inv_cov @ delta)
         chi2 = self._fast_chi_squared(self.inv_cov, delta)
         logp = -0.5 * chi2 + self.logp_const
-        self.log.debug(f"Log-likelihood value computed = {logp} (Χ² = {-2 * chi2})")
+        self.log.debug(f"Log-likelihood value computed = {logp} (Χ² = {chi2})")
         return logp
 
     def loglike(self, cl, fg_totals, **params_values):
