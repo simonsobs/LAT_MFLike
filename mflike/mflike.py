@@ -550,17 +550,17 @@ class _MFLike(InstallableLikelihood):
         .. math::
 
            D^{{\rm cal}, TT, \nu_1 \nu_2}_{\ell} &= \frac{1}{
-           {\rm cal}_{G}\, {\rm cal}^{\nu_1} \, {\rm cal}^{\nu_2}\,
+           {\rm cal}^2_{G}\, {\rm cal}^{\nu_1} \, {\rm cal}^{\nu_2}\,
            {\rm cal}^{\nu_1}_{\rm T}\,
            {\rm cal}^{\nu_2}_{\rm T}}\, D^{TT, \nu_1 \nu_2}_{\ell}
 
            D^{{\rm cal}, TE, \nu_1 \nu_2}_{\ell} &= \frac{1}{
-           {\rm cal}_{G}\,{\rm cal}^{\nu_1} \, {\rm cal}^{\nu_2}\,
+           {\rm cal}^2_{G}\,{\rm cal}^{\nu_1} \, {\rm cal}^{\nu_2}\,
            {\rm cal}^{\nu_1}_{\rm T}\,
            {\rm cal}^{\nu_2}_{\rm E}}\, D^{TT, \nu_1 \nu_2}_{\ell}
 
            D^{{\rm cal}, EE, \nu_1 \nu_2}_{\ell} &= \frac{1}{
-           {\rm cal}_{G}\,{\rm cal}^{\nu_1} \, {\rm cal}^{\nu_2}\,
+           {\rm cal}^2_{G}\,{\rm cal}^{\nu_1} \, {\rm cal}^{\nu_2}\,
            {\rm cal}^{\nu_1}_{\rm E}\,
            {\rm cal}^{\nu_2}_{\rm E}}\, D^{EE, \nu_1 \nu_2}_{\ell}
 
