@@ -51,6 +51,7 @@ html_theme_options = {
         "alt_text": "LAT_MFLike - Home",
         "text": html_title,
         "image_light": "_static/logo.png",
+        "image_dark": "_static/logo.png",
     },
     "path_to_docs": "docs",
     "repository_url": "https://github.com/simonsobs/LAT_MFLike",
