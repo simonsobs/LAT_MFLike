@@ -46,6 +46,9 @@ html_title = "Multifrequency Likelihood for SO Large Aperture Telescope"
 html_favicon = "_static/logo.png"
 html_static_path = ["_static"]
 html_css_files = ["css/custom.css"]
+html_context = {
+   "default_mode": "light",
+}
 html_theme_options = {
     "logo": {
         "alt_text": "LAT_MFLike - Home",
