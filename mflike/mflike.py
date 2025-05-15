@@ -529,7 +529,7 @@ class _MFLike(InstallableLikelihood):
         ell_vec = np.zeros_like(self.data_vec)
         for m in self.spec_meta:
             ell_vec[m["ids"]] = m["leff"]
-        return GaussianData("mflike", ell_vec, self.data_vec, self.cov, indices = self.indices_soliket)
+        return GaussianData("mflike", ell_vec, self.data_vec, self.cov, indices=self.indices_soliket)
 
     def _get_theory(self, **params_values):
         """
