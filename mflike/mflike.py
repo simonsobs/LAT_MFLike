@@ -310,6 +310,14 @@ class _MFLike(InstallableLikelihood):
 
                 self.log.debug(f"{tname_1} {tname_2} {dtype} {ind.shape} {lmin} {lmax}")
 
+        #The following is needed for soliket to trim cross-covariance
+        if cbbl_extra:
+            self.indices_soliket = np.zeros(s_b.mean.size, dtype=bool)
+            self.indices_soliket[indices_b] = True
+        else:
+            self.indices_soliket = np.zeros(s.mean.size, dtype=bool)
+            self.indices_soliket[indices] = True
+
         # Get rid of all the unselected power spectra.
         # Sacc takes care of performing the same cuts in the
         # covariance matrix, window functions etc.
@@ -521,7 +529,7 @@ class _MFLike(InstallableLikelihood):
         ell_vec = np.zeros_like(self.data_vec)
         for m in self.spec_meta:
             ell_vec[m["ids"]] = m["leff"]
-        return GaussianData("mflike", ell_vec, self.data_vec, self.cov)
+        return GaussianData("mflike", ell_vec, self.data_vec, self.cov, indices=self.indices_soliket)
 
     def _get_theory(self, **params_values):
         """
