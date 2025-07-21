@@ -28,10 +28,11 @@ jobs:
         uv python install ${{ matrix.python-version }}
         uv python pin ${{ matrix.python-version }}
         uv sync --locked --extra all
+        cobaya-install mflike.TTTEEE
 
     - name: Unit tests
       run: |
-        uv run pytest -vv --nbval-lax --nbval-current-env --cov=mflike --cov-report=xml:coverage.xml
+        uv run pytest -vv --nbval-lax --nbval-current-env --cov=mflike --cov-report=xml:coverage.xml */*.ipynb
 
     - name: Report Coverage (codecov)
       uses: codecov/codecov-action@v5
