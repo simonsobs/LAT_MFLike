@@ -31,7 +31,7 @@ jobs:
 
     - name: Unit tests
       run: |
-        python -m pytest -vv --nbval-lax --nbval-current-env --cov=mflike --cov-report=xml:coverage.xml
+        uv run pytest -vv --nbval-lax --nbval-current-env --cov=mflike --cov-report=xml:coverage.xml
 
     - name: Report Coverage (codecov)
       uses: codecov/codecov-action@v5
