@@ -1,7 +1,16 @@
 from importlib.metadata import PackageNotFoundError, version
 
-from .foreground import BandpowerForeground, Foreground, EEForeground, TEForeground, TTForeground, TTEEForeground, TTTEForeground, TEEEForeground
-from .mflike import TT, TE, EE, TTEE, TTTE, TEEE, TTTEEE
+from .foreground import (
+    BandpowerForeground,
+    EEForeground,
+    Foreground,
+    TEEEForeground,
+    TEForeground,
+    TTEEForeground,
+    TTForeground,
+    TTTEForeground,
+)
+from .mflike import EE, TE, TEEE, TT, TTEE, TTTE, TTTEEE
 
 try:
     __version__ = version("mflike")
