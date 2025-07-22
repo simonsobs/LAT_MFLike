@@ -52,9 +52,9 @@ from cobaya.log import LoggedError
 
 
 class _MFLike(InstallableLikelihood):
-    _url = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
-    _release = "v0.8"
-    install_options = {
+    _url: str = "https://portal.nersc.gov/cfs/sobs/users/MFLike_data"
+    _release: str = "v0.8"
+    install_options: dict = {
         "download_url": f"{_url}/{_release}.tar.gz",
         "data_path": "MFLike",
     }
@@ -108,7 +108,7 @@ class _MFLike(InstallableLikelihood):
         self._constant_nuisance: dict | None = None
         self.log.info("Initialized!")
 
-    def get_fg_requirements(self):
+    def get_fg_requirements(self) -> dict:
         return {
             "ells": self.l_bpws,
             "requested_cls": self.requested_cls,
@@ -117,7 +117,7 @@ class _MFLike(InstallableLikelihood):
             "beams": self.beams,
         }
 
-    def get_requirements(self):
+    def get_requirements(self) -> dict:
         r"""
         Gets the foreground dictionary and theory :math:`D_{\ell}` from the
         Boltzmann solver code used, for the :math:`\ell` range up to the
@@ -131,12 +131,12 @@ class _MFLike(InstallableLikelihood):
             "Cl": {k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()},
         }
 
-    def logp(self, **params_values):
+    def logp(self, **params_values) -> float:
         cl = self.provider.get_Cl(ell_factor=True)
         fg_totals = self.provider.get_fg_totals()
         return self._loglike(cl, fg_totals, params_values)
 
-    def _loglike(self, cl, fg_totals, params_values):
+    def _loglike(self, cl: dict, fg_totals: list, params_values: dict) -> float:
         r"""
         Computes the gaussian log-likelihood
 
@@ -154,7 +154,7 @@ class _MFLike(InstallableLikelihood):
         self.log.debug(f"Log-likelihood value computed = {logp} (Χ² = {chi2})")
         return logp
 
-    def loglike(self, cl, fg_totals, **params_values):
+    def loglike(self, cl: dict, fg_totals: list, **params_values) -> float:
         r"""
         Computes the gaussian log-likelihood, callable independent of Cobaya.
 
@@ -225,7 +225,7 @@ class _MFLike(InstallableLikelihood):
             "BT": "tb",
         }
 
-        def get_cl_meta(spec):
+        def get_cl_meta(spec: dict) -> tuple:
             """
             Lower-level function of `prepare_data`.
             For each of the entries of the `spectra` section of the
@@ -258,7 +258,7 @@ class _MFLike(InstallableLikelihood):
 
             return exp_1, exp_2, pols, scls, symm
 
-        def get_sacc_names(pol, exp_1, exp_2):
+        def get_sacc_names(pol: str, exp_1: str, exp_2: str) -> tuple:
             r"""
             Lower-level function of `prepare_data`.
             Translates the polarization combination and channel
@@ -446,7 +446,7 @@ class _MFLike(InstallableLikelihood):
 
         self.log.info(f"Number of bins used: {self.data_vec.size}")
 
-    def _get_power_spectra(self, cl, fg_totals, **params_values):
+    def _get_power_spectra(self, cl: dict, fg_totals: list, **params_values) -> np.ndarray:
         r"""
         Gets the theory :math:`D_{\ell}`, adds foregrounds :math:`D_{\ell}`
         and applies possible systematic effects through the ``get_modified_theory``
@@ -465,7 +465,7 @@ class _MFLike(InstallableLikelihood):
 
         return self._get_ps_vec(dls_obs)
 
-    def _get_ps_vec(self, DlsObs):
+    def _get_ps_vec(self, DlsObs: dict) -> np.ndarray:
         ps_vec = np.zeros_like(self.data_vec)
         for m in self.spec_meta:
             p = m["pol"]
@@ -483,7 +483,7 @@ class _MFLike(InstallableLikelihood):
             # assert np.allclose(ps_vec[m["ids"]], np.dot(w.weight.T, dls_obs))
         return ps_vec
 
-    def get_modified_theory(self, Dls, fg_totals, **nuis_params):
+    def get_modified_theory(self, Dls: dict, fg_totals: list, **nuis_params) -> dict:
         r"""
         Takes the theory :math:`D_{\ell}`, sums it to the total
         foreground power spectrum (possibly computed with bandpass
@@ -538,7 +538,7 @@ class _MFLike(InstallableLikelihood):
 
         return dls_dict
 
-    def _get_gauss_data(self):
+    def _get_gauss_data(self):  # pragma: no cover
         """
         Get Gaussian likelihood data for use with SoLiket
         :return: GaussianData instance
@@ -552,7 +552,7 @@ class _MFLike(InstallableLikelihood):
             "mflike", ell_vec, self.data_vec, self.cov, indices=self.indices_soliket
         )
 
-    def _get_theory(self, **params_values):
+    def _get_theory(self, **params_values) -> np.ndarray:
         """
         Get theory vector (e.g. for use with SoLiket)
 
@@ -571,7 +571,7 @@ class _MFLike(InstallableLikelihood):
     ## A global calibration factor calG_all is also considered.
     ###########################################################################
 
-    def _calibrate_spectra(self, dls_dict, **nuis_params):
+    def _calibrate_spectra(self, dls_dict: dict, **nuis_params) -> None:
         r"""
         Calibrates the spectra in place through calibration factors at
         the map level:
@@ -617,7 +617,7 @@ class _MFLike(InstallableLikelihood):
 
         self._mul_calibrations(dls_dict, cal1=cal_pars, cal2=cal_pars)
 
-    def _mul_calibrations(self, dls_dict, cal1, cal2):
+    def _mul_calibrations(self, dls_dict: dict, cal1: dict, cal2: dict) -> None:
         for (spec, freq1, freq2), cl in dls_dict.items():
             if (cal := (cal1[spec[0]][freq1] * cal2[spec[1]][freq2])) != 1:
                 cl *= cal
@@ -627,7 +627,7 @@ class _MFLike(InstallableLikelihood):
     ## Each freq {freq1,freq2,...,freqn} gets a rotation angle alpha_93, alpha_145, etc..
     ###########################################################################
 
-    def _get_rotated_spectra(self, dls_dict, **nuis_params):
+    def _get_rotated_spectra(self, dls_dict: dict, **nuis_params) -> dict:
         r"""
         Rotates the polarization spectra through polarization angles:
 
@@ -666,7 +666,7 @@ class _MFLike(InstallableLikelihood):
     ###########################################################################
 
     # This is slow, but should be done only once
-    def _init_template_from_file(self):
+    def _init_template_from_file(self) -> None:
         """
         Reads the systematics template from file, using
         the ``syslibrary.syslib.ReadTemplateFromFile``
@@ -682,7 +682,7 @@ class _MFLike(InstallableLikelihood):
         templ_from_file = syslib.ReadTemplateFromFile(rootname=root)
         self.dltempl_from_file = templ_from_file(ell=self.l_bpws)
 
-    def _get_template_from_file(self, dls_dict, **nuis_params):
+    def _get_template_from_file(self, dls_dict: dict, **nuis_params) -> dict:
         r"""
         Adds the systematics template, modulated by ``nuis_params['templ_freq']``
         parameters, to the :math:`D_{\ell}`.

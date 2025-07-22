@@ -94,7 +94,7 @@ model = get_model(info)
 my_mflike = model.likelihood["mflike.TTTEEE"]
 
 
-def compute_FWHM(nu):
+def compute_FWHM(nu: float | np.ndarray) -> float | np.ndarray:
     """
     Simple function to compute FWHM for the LAT assuming a diffraction limited experiment.
 
@@ -108,7 +108,14 @@ def compute_FWHM(nu):
     return fwhm
 
 
-def gauss_beams(fwhm0, nu, nu0, alpha, lmax, pol):
+def gauss_beams(
+    fwhm0: float | np.ndarray,
+    nu: float | np.ndarray,
+    nu0: float,
+    alpha: float,
+    lmax: int,
+    pol: bool,
+) -> np.ndarray:
     r"""
     Computes the Gaussian beam (either for T or pol) for each frequency of a
     frequency array according to eqs. 54/55 of arXiv:astro-ph/0008228. We assume a more

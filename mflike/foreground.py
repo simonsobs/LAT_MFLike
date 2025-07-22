@@ -183,7 +183,7 @@ except ImportError:
 # The bandpass transmission needs to be divided by
 # nu^2 if measured with respect to a RJ source.
 # This factor is already included here.
-def _cmb2bb(nu):
+def _cmb2bb(nu: np.ndarray) -> np.ndarray:
     r"""
     Computes the conversion factor :math:`\frac{\partial B_{\nu}}{\partial T}`
     from CMB thermodynamic units to differential source intensity.
@@ -209,11 +209,11 @@ class Foreground(Theory):
     lmin: int
     lmax: int
     requested_cls: list[str]
-    bandint_freqs: list
+    bandint_freqs: list[float]
     ells: np.ndarray
 
     @classmethod
-    def get_modified_defaults(cls, defaults, input_options=empty_dict):
+    def get_modified_defaults(cls, defaults: dict, input_options: dict = empty_dict) -> dict:
         """
         Adds the appropriate foreground parameters based on the requested_cls
         """
@@ -283,7 +283,7 @@ class Foreground(Theory):
             self.ells = np.arange(self.lmin, self.lmax + 1)
 
     # Gets the actual power spectrum of foregrounds given the passed parameters
-    def _get_foreground_model_arrays(self, fg_params, ell=None):
+    def _get_foreground_model_arrays(self, fg_params: dict, ell: np.ndarray | None = None) -> dict:
         r"""
         Gets the foreground power spectra for each component computed by ``fgspectra``.
         Integration over frequency is performed using bandint_freqs.
@@ -416,7 +416,9 @@ class Foreground(Theory):
 
         return model
 
-    def get_foreground_model(self, ell=None, freqs_order=None, **fg_params):
+    def get_foreground_model(
+        self, ell: np.ndarray | None = None, freqs_order: list[str] | None = None, **fg_params
+    ) -> dict:
         r"""
         Gets the foreground power spectra for each component computed by ``fgspectra``.
         Integration over frequency is performed using bandint_freqs.
@@ -487,7 +489,7 @@ class Foreground(Theory):
             for s in (requested_cl if requested_cl else self.requested_cls)
         ]
 
-    def get_fg_totals(self):
+    def get_fg_totals(self) -> dict:
         """
         Returns the ``state`` dictionary of foreground spectra, when used with Cobaya.
         Should only be called after the model is calculated by Cobaya.
@@ -505,10 +507,10 @@ class Foreground(Theory):
 class BandpowerForeground(Foreground):
     # foregrounds integrated over bandpass windows
 
-    top_hat_band: dict = None
-    bands: dict = None
-    beams: dict = None
-    beam_profile: dict = None
+    top_hat_band: dict | None = None
+    bands: dict | None = None
+    beams: dict | None = None
+    beam_profile: dict | None = None
 
     def initialize(self):
         super().initialize()
@@ -573,10 +575,10 @@ class BandpowerForeground(Foreground):
             self.top_hat_band = req.get("top_hat_band", self.top_hat_band)
             self.init_bandpowers()
 
-    def get_can_support_params(self):
+    def get_can_support_params(self) -> list[str]:
         return self._bandint_shift_params
 
-    def _get_foreground_model_arrays(self, fg_params, ell=None):
+    def _get_foreground_model_arrays(self, fg_params: dict, ell: np.ndarray | None = None) -> dict:
         r"""
         Gets the foreground power spectra for each component computed by ``fgspectra``.
         The computation assumes the bandpass transmissions computed in ``_bandpass_construction``
@@ -600,7 +602,7 @@ class BandpowerForeground(Foreground):
     # bandpasses saved in the sacc file have to be divided by nu^2
     # if measured with respect to a RJ source.
     # This factor is already included in the _cmb2bb function
-    def _bandpass_construction(self, _initialize=False, **params):
+    def _bandpass_construction(self, _initialize: bool = False, **params):
         r"""
         Builds the bandpass transmission with or without beam.
         When chromatic beam is not considered, we compute:
@@ -776,7 +778,15 @@ class BandpowerForeground(Foreground):
                     + f"but shoule be ({shape_n}, ells)",
                 )
 
-    def beam_interpolation(self, b_ell_template, f_ell, ells, freqs, freq_ref, alpha):
+    def beam_interpolation(
+        self,
+        b_ell_template: np.ndarray,
+        f_ell: np.ndarray,
+        ells: np.ndarray,
+        freqs: np.ndarray,
+        freq_ref: float,
+        alpha: float,
+    ) -> np.ndarray:
         r"""
         Computing :math:`b_{\ell}(\nu)` from monochromatic beam :math:`b_{\ell}` using the
         frequency scaling: :math:`(b \cdot f)_{\ell \cdot (\nu / \nu_0)^{-\alpha / 2}}`
@@ -803,7 +813,7 @@ class BandpowerForeground(Foreground):
         # transposing to have an object (nfreq, nell)
         return bnu.T
 
-    def return_beams(self, exp, nu, dnu):
+    def return_beams(self, exp: str, nu: np.ndarray, dnu: float) -> tuple[np.ndarray, np.ndarray]:
         r"""
         Returns the temperature and polarization beams, properly normalized and from
         :math:`\ell = 2` (same ell range as ``self.ells``). We compute them from :math:`\ell = 0`
