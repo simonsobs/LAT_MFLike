@@ -22,13 +22,13 @@ jobs:
         run: |
           pip install uv
           uv build
-      
+
       - name: Upload to PyPI
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+        env:
+          UV_PUBLISH_USERNAME: __token__
+          UV_PUBLISH_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         # To test: 
         # export UV_PUBLISH_URL=https://test.pypi.org/legacy/
         run: |
           uv publish
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
