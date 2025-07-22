@@ -9,13 +9,27 @@ env:
   COBAYA_PACKAGES_PATH: ./cobaya_packages
 
 jobs:
-  build:
+  check-skip:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
+      - name: Run skip-check
+        id: check
+        uses: ./.github/actions/check-skip
+
+  test:
+    needs: check-skip
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
         python-version: ["3.10", "3.11", "3.12"]
+
+    if: ${{ needs.check-skip.outputs.skip != 'true' }}
 
     steps:
     - uses: actions/checkout@v4
