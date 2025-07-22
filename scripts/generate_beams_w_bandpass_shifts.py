@@ -15,10 +15,9 @@ import yaml
 from astropy import constants, units
 from cobaya.install import install
 from cobaya.model import get_model
+from cobaya.tools import resolve_packages_path
 
-packages_path = os.environ.get("COBAYA_PACKAGES_PATH") or os.path.join(
-    tempfile.gettempdir(), "LAT_packages"
-)
+packages_path = resolve_packages_path() or os.path.join(tempfile.gettempdir(), "LAT_packages")
 
 data_path = packages_path + "/data/MFLike/v0.8"
 
