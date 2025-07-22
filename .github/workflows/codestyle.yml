@@ -1,0 +1,35 @@
+name: Code Style
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        run: |
+          pip install uv
+          uv python install '3.11'
+          uv python pin '3.11'
+
+      - name: Install dev dependencies
+        run: |
+          uv sync --locked --extra test
+
+      - name: Check code style with ruff
+        run: |
+          set -o errexit
+          uv run ruff check --fix . --config ./pyproject.toml
+          uv run ruff format . --config ./pyproject.toml
