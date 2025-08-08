@@ -78,7 +78,7 @@ params:
 
   # Fixed values of nuisance
   T_d:
-    value: 9.60
+    value: 9.70
     latex: T_d
 
 
