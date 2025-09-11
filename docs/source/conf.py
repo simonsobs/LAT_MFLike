@@ -65,5 +65,6 @@ html_theme_options = {
     "use_repository_button": True,
     "use_download_button": True,
 }
-nb_execution_mode = "off"
+nb_execution_mode = "cache"
 nb_execution_timeout = -1
+nb_merge_streams = True
