@@ -66,7 +66,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.ruff]
-exclude = ["build", ".eggs", "cobaya_packages"]
+exclude = ["build", ".eggs", "cobaya_packages", "*.ipynb"]
 line-length = 100
 
 [tool.coverage.run]
