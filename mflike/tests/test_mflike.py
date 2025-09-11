@@ -1,12 +1,12 @@
 import os
 import tempfile
 import unittest
-from cobaya.model import get_model
-from cobaya.install import install
 
-packages_path = os.environ.get("COBAYA_PACKAGES_PATH") or os.path.join(
-    tempfile.gettempdir(), "LAT_packages"
-)
+from cobaya.install import install
+from cobaya.model import get_model
+from cobaya.tools import resolve_packages_path
+
+packages_path = resolve_packages_path() or os.path.join(tempfile.gettempdir(), "LAT_packages")
 
 cosmo_params = {
     "cosmomc_theta": 0.0104092,
@@ -48,7 +48,7 @@ TT_nuis_params = {
     "xi": 0.10,
     "alpha_dT": -0.6,
     "alpha_p": 1,
-    "alpha_tSZ": 0.,
+    "alpha_tSZ": 0.0,
     "calT_LAT_93": 1,
     "calT_LAT_145": 1,
     "calT_LAT_225": 1,
@@ -86,8 +86,9 @@ class MFLikeTest(unittest.TestCase):
         install({"likelihood": {"mflike.TTTEEE": None}}, path=packages_path)
 
     def test_mflike(self):
-        from mflike import TTTEEE, BandpowerForeground
         import camb
+
+        from mflike import TTTEEE, BandpowerForeground
 
         # using camb low accuracy parameters for the test
         camb_cosmo = cosmo_params | {"lmax": 9001, "lens_potential_accuracy": 1}
@@ -130,8 +131,10 @@ class MFLikeTest(unittest.TestCase):
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                 },
             },
-            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                       "mflike.BandpowerForeground": {'requested_cls': ['tt']}},
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {"requested_cls": ["tt"]},
+            },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
         }
@@ -150,8 +153,10 @@ class MFLikeTest(unittest.TestCase):
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                 },
             },
-            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                       "mflike.BandpowerForeground": {'requested_cls': ['te']}},
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {"requested_cls": ["te"]},
+            },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
         }
@@ -170,8 +175,10 @@ class MFLikeTest(unittest.TestCase):
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                 },
             },
-            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                       "mflike.BandpowerForeground": {'requested_cls': ['ee']}},
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {"requested_cls": ["ee"]},
+            },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
             "debug": True,
@@ -193,8 +200,10 @@ class MFLikeTest(unittest.TestCase):
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                 },
             },
-            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                       "mflike.BandpowerForeground": {'requested_cls': ['tt', 'ee']}},
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {"requested_cls": ["tt", "ee"]},
+            },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
         }
@@ -213,8 +222,10 @@ class MFLikeTest(unittest.TestCase):
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                 },
             },
-            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                       "mflike.BandpowerForeground": {'requested_cls': ['tt', 'te']}},
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {"requested_cls": ["tt", "te"]},
+            },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
         }
@@ -233,8 +244,10 @@ class MFLikeTest(unittest.TestCase):
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                 },
             },
-            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                       "mflike.BandpowerForeground": {'requested_cls': ['te', 'ee']}},
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {"requested_cls": ["te", "ee"]},
+            },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
         }
@@ -253,8 +266,10 @@ class MFLikeTest(unittest.TestCase):
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                 },
             },
-            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                       "mflike.BandpowerForeground": None},
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": None,
+            },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
         }
@@ -279,14 +294,17 @@ class MFLikeTest(unittest.TestCase):
                     "mflike.TTTEEE": {
                         "input_file": pre + "00000.fits",
                         "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
-
                     }
                 },
-                "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                           "mflike.BandpowerForeground": {"top_hat_band": {
-                               "nsteps": nsteps,
-                               "bandwidth": bandwidth,
-                           }}},
+                "theory": {
+                    "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                    "mflike.BandpowerForeground": {
+                        "top_hat_band": {
+                            "nsteps": nsteps,
+                            "bandwidth": bandwidth,
+                        }
+                    },
+                },
                 "params": {**cosmo_params, **params},
                 "packages_path": packages_path,
             }
@@ -312,19 +330,25 @@ class MFLikeTest(unittest.TestCase):
                     **params,
                     **{par: bandshift for par in params.keys() if par.startswith("bandint_shift")},
                 }
-                chi2_mflike = -2 * (getattr(self, model).loglike(
-                    new_params, return_derived=False) - logp_const)
+                chi2_mflike = -2 * (
+                    getattr(self, model).loglike(new_params, return_derived=False) - logp_const
+                )
                 self.assertAlmostEqual(chi2_mflike, chi2[i], 1)
 
     def test_Gaussian_chromatic_beams(self):
-
         nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
-        
-        # generating the data products needed 
+
+        # generating the data products needed
         test_path = os.path.dirname(__file__)
         import subprocess
-        subprocess.run("python "+os.path.join(test_path, "../../scripts/generate_beams_w_bandpass_shifts.py"), shell=True, check=True)
-        
+
+        subprocess.run(
+            "python "
+            + os.path.join(test_path, "../../scripts/generate_beams_w_bandpass_shifts.py"),
+            shell=True,
+            check=True,
+        )
+
         info = {
             "likelihood": {
                 "mflike.TTTEEE": {
@@ -332,11 +356,14 @@ class MFLikeTest(unittest.TestCase):
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
                 },
             },
-            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                       "mflike.BandpowerForeground":{
-                           "beam_profile": {"beam_from_file": packages_path +
-                                 "/data/MFLike/v0.8/LAT_gauss_beams.yaml"},
-                }},
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {
+                    "beam_profile": {
+                        "beam_from_file": packages_path + "/data/MFLike/v0.8/LAT_gauss_beams.yaml"
+                    },
+                },
+            },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
         }
@@ -348,9 +375,8 @@ class MFLikeTest(unittest.TestCase):
         chi2s_beam = {"tt-te-et-ee": 4272.842504438564}
         self.assertAlmostEqual(chi2, chi2s_beam["tt-te-et-ee"], 2)
 
-
         model.close()
-        
+
         from copy import deepcopy
 
         # Let's vary values of bandint_shift parameters
@@ -364,23 +390,25 @@ class MFLikeTest(unittest.TestCase):
         )
 
         info = {
-                "likelihood": {
-                    "mflike.TTTEEE": {
-                        "input_file": pre + "00000.fits",
-                        "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
-                       },
+            "likelihood": {
+                "mflike.TTTEEE": {
+                    "input_file": pre + "00000.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                },
             },
-            "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                       "mflike.BandpowerForeground":{
-                          "beam_profile": {"beam_from_file": packages_path +
-                                 "/data/MFLike/v0.8/LAT_gauss_beams.yaml",
-                          "Bandpass_shifted_beams": packages_path + 
-                                 "/data/MFLike/v0.8/LAT_beam_bandshift.yaml"},
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {
+                    "beam_profile": {
+                        "beam_from_file": packages_path + "/data/MFLike/v0.8/LAT_gauss_beams.yaml",
+                        "Bandpass_shifted_beams": packages_path
+                        + "/data/MFLike/v0.8/LAT_beam_bandshift.yaml",
                     },
                 },
-                "params": cosmo_params | params,
-                "packages_path": packages_path,
-            }
+            },
+            "params": cosmo_params | params,
+            "packages_path": packages_path,
+        }
 
         model = get_model(info)
         logp_const = model.likelihood["mflike.TTTEEE"].logp_const
@@ -389,9 +417,9 @@ class MFLikeTest(unittest.TestCase):
 
         for i, bandshift in enumerate([0.0, 1.0, 5.0]):
             new_params = {
-                    **params,
-                    **{par: bandshift for par in params.keys() if par.startswith("bandint_shift")},
-                }
+                **params,
+                **{par: bandshift for par in params.keys() if par.startswith("bandint_shift")},
+            }
 
             chi2_mflike = -2 * (model.loglike(new_params, return_derived=False) - logp_const)
             self.assertAlmostEqual(chi2_mflike, chi2[i], 2)

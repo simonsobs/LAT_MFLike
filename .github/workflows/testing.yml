@@ -5,14 +5,31 @@ on:
   push:
     branches: [master]
 
-jobs:
-  build:
+env:
+  COBAYA_PACKAGES_PATH: ./cobaya_packages
 
+jobs:
+  check-skip:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Run skip-check
+        id: check
+        uses: ./.github/actions/check-skip
+
+  test:
+    needs: check-skip
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
+
+    if: ${{ needs.check-skip.outputs.skip != 'true' }}
 
     steps:
     - uses: actions/checkout@v5
@@ -31,12 +48,14 @@ jobs:
 
     - name: Install dependencies via pip
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install .[test]
+        pip install uv
+        uv python install ${{ matrix.python-version }}
+        uv python pin ${{ matrix.python-version }}
+        uv sync --locked --extra test
 
     - name: Unit tests
       run: |
-        python -m pytest -vv mflike --cov=mflike --cov-report=xml:coverage.xml
+        uv run pytest --cov=mflike --cov-branch --cov-report=xml:coverage.xml -vv
 
     - name: Report Coverage (codecov)
       if: matrix.os == 'ubuntu-latest'
