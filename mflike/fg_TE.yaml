@@ -1,14 +1,13 @@
 a_gte:
   prior:
-    dist: norm
-    loc: 0.36
-    scale: 0.04
-  proposal: 0.04
+    max: 11
+    min: 0
+  proposal: 0.007
   latex: a_\mathrm{dust}^\mathrm{TE}
 a_pste:
   prior:
     min: -1
-    max: 1
+    max: +1
   proposal: 0.05
   latex: a_\mathrm{ps}^\mathrm{TE}
 alpha_dE:             #galactic dust ell slope for E

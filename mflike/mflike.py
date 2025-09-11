@@ -425,7 +425,9 @@ class _MFLike(InstallableLikelihood):
         # Put data and covariance in the right order.
         self.data_vec = np.dot(mat_compress, s.mean)
         self.cov = np.dot(mat_compress_b, s_b.covariance.covmat.dot(mat_compress_b.T))
-        self.inv_cov = np.linalg.inv(self.cov)
+        d = np.diag(self.cov) ** 0.5
+        corr = ((self.cov / d).T / d).T 
+        self.inv_cov = ((np.linalg.inv(corr) / d).T / d).T
         self.logp_const = np.log(2 * np.pi) * (-len(self.data_vec) / 2)
         self.logp_const -= 0.5 * np.linalg.slogdet(self.cov)[1]
 
