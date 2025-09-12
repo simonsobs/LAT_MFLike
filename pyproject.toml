@@ -31,8 +31,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-cov", "nbval", "camb", "healpy", "ruff", "pre-commit"]
-docs = ["camb", "seaborn", "latex2mathml"]
-notebook = ["jupyter", "mflike[docs]"]
+notebook = ["jupyter", "camb", "seaborn", "latex2mathml"]
 all = ["mflike[test]", "mflike[notebook]"]
 
 [project.urls]
