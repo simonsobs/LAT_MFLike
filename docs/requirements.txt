@@ -1,5 +1,4 @@
 sphinx-book-theme
 sphinx-copybutton
 myst-nb
-cobaya
-sacc
+ipywidgets
