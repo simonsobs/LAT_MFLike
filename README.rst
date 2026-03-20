@@ -78,7 +78,7 @@ directory.
 Simulation releases
 -------------------
 
-- ``v0.8`` release has spectra produced with high accuracy camb parameters up to ``ell = 9000``, the foreground components are integrated in frequency using top-hat bandpasses, stored in the ``sacc`` files
+- ``v0.8`` release has spectra produced with high accuracy camb parameters up to ``ell = 9000``, the foreground components are integrated in frequency using top-hat bandpasses, stored in the ``sacc`` files. The simulations are produced with SO baseline noise level.
 
 - ``v0.7.1`` is a bugfix release of ``v0.7`` release where the mono-frequency and dirac bandpasses
   have been correctly set with the ``sacc`` files
