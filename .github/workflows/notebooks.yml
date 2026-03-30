@@ -52,6 +52,6 @@ jobs:
         uv run pytest -vv --nbval-lax --nbval-current-env --cov=mflike --cov-report=xml:coverage.xml docs/source/notebooks/*.ipynb
 
     - name: Report Coverage (codecov)
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v6
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
