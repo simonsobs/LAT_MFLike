@@ -423,3 +423,42 @@ class MFLikeTest(unittest.TestCase):
 
             chi2_mflike = -2 * (model.loglike(new_params, return_derived=False) - logp_const)
             self.assertAlmostEqual(chi2_mflike, chi2[i], 2)
+
+    def test_calibration_correlation(self):
+        import camb
+
+        from mflike import TTTEEE, BandpowerForeground
+
+        # using camb low accuracy parameters for the test
+        camb_cosmo = cosmo_params | {"lmax": 9001, "lens_potential_accuracy": 1}
+        pars = camb.set_params(**camb_cosmo)
+        nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
+        results = camb.get_results(pars)
+        powers = results.get_cmb_power_spectra(pars, CMB_unit="muK")
+        cl_dict = {k: powers["total"][:, v] for k, v in {"tt": 0, "ee": 1, "te": 3}.items()}
+        my_mflike = TTTEEE(
+            {
+                "packages_path": packages_path,
+                "input_file": pre + "00000.fits",
+                "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                "defaults": {
+                    "polarizations": ["TT", "TE", "ET", "EE"],
+                    "scales": {
+                        "TT": [30, 9000],
+                        "TE": [30, 9000],
+                        "ET": [30, 9000],
+                        "EE": [30, 9000],
+                    },
+                    "symmetrize": False,
+                },
+                "parameter_covariance": {
+                    "mean": 1,
+                    "cov": "calib_cov.txt"
+                }
+            }
+        )
+        fg = BandpowerForeground(my_mflike.get_fg_requirements())
+        fg_totals = fg.get_foreground_model_totals(**nuis_params)
+
+        loglike = my_mflike.loglike(cl_dict, fg_totals, **nuis_params)
+        self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2s['tt-te-et-ee'], 2)
