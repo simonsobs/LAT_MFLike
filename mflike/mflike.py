@@ -42,6 +42,7 @@ The values of the systematic parameters are set in the
 """
 
 import os
+from typing import Optional
 from numbers import Real
 
 import numpy as np
@@ -60,15 +61,16 @@ class _MFLike(InstallableLikelihood):
     }
 
     # attributes set from .yaml
-    input_file: str | None
-    cov_Bbl_file: str | None
+    input_file: Optional[str]
+    cov_Bbl_file: Optional[str]
     data_folder: str
     data: dict
     defaults: dict
     systematics_template: dict
     supported_params: dict
-    lmax_theory: int | None
+    lmax_theory: Optional[int]
     requested_cls: list[str]
+    parameter_covariance: Optional[dict]
 
     def initialize(self):
         # Set default values to data member not initialized via yaml file
@@ -105,6 +107,9 @@ class _MFLike(InstallableLikelihood):
             # Initialize template for marginalization, if needed
             self._init_template_from_file()
 
+        if self.parameter_covariance:
+            self._init_parameter_covariance()
+
         self._constant_nuisance: dict | None = None
         self.log.info("Initialized!")
 
@@ -134,6 +139,7 @@ class _MFLike(InstallableLikelihood):
     def logp(self, **params_values) -> float:
         cl = self.provider.get_Cl(ell_factor=True)
         fg_totals = self.provider.get_fg_totals()
+
         return self._loglike(cl, fg_totals, params_values)
 
     def _loglike(self, cl: dict, fg_totals: list, params_values: dict) -> float:
@@ -152,6 +158,15 @@ class _MFLike(InstallableLikelihood):
         chi2 = self._fast_chi_squared(self.inv_cov, delta)
         logp = -0.5 * chi2 + self.logp_const
         self.log.debug(f"Log-likelihood value computed = {logp} (Χ² = {chi2})")
+
+        if self.parameter_covariance:
+            par_vec = np.array([ params_values[p] for p in self.parameter_covariance["params"] ])
+            delta = self.parameter_covariance["mean"] - par_vec
+            par_logp = self._fast_chi_squared(self.parameter_covariance["inv_cov"], delta)
+            chi2 = -0.5 * par_logp
+            self.log.debug(f"Parameter log-likelihood = {par_logp} (Χ² = {chi2})")
+            logp += par_logp
+
         return logp
 
     def loglike(self, cl: dict, fg_totals: list, **params_values) -> float:
@@ -683,6 +698,48 @@ class _MFLike(InstallableLikelihood):
         # Currently stored inside syslibrary package
         templ_from_file = syslib.ReadTemplateFromFile(rootname=root)
         self.dltempl_from_file = templ_from_file(ell=self.l_bpws)
+
+    def _init_parameter_covariance(self):
+        meanfile, covfile = self.parameter_covariance["mean"], self.parameter_covariance["cov"]
+
+        if not os.path.exists(covfile):
+            covfile = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   covfile)
+
+            if not os.path.exists(covfile):
+                raise IOError(f"Parameter covariance file {covfile} does not exist.")
+
+        with open(covfile, "r") as fp:
+            parameters = fp.readline().strip().split(" ")[1:]
+
+        cov = np.loadtxt(covfile)
+        assert cov.shape[0] == cov.shape[1], \
+               "Parameter covariance matrix not square."
+        assert cov.shape[0] == len(parameters), \
+               "Number of parameters does not match covmat size."
+
+        inv_cov = np.linalg.inv(cov)
+
+        if type(meanfile) in [int, float, np.ndarray]:
+            means = np.array(meanfile) * np.ones_like(np.diag(cov))
+        elif not os.path.exists(meanfile):
+            meanfile = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                    meanfile)
+
+            if not os.path.exists(meanfile):
+                raise IOError(f"Cannot load means from {meanfile}: does not exist.")
+
+            means = np.loadtxt(meanfile)
+            assert len(means) == len(parameters), \
+                   "Number of parameters in means file does not match covmat size."
+
+        self.parameter_covariance = {
+            "params": parameters,
+            "mean": means,
+            "inv_cov": inv_cov
+        }
+
+        self.log.debug(f"Loaded parameter covariance for parameters {parameters}.")
 
     def _get_template_from_file(self, dls_dict: dict, **nuis_params) -> dict:
         r"""

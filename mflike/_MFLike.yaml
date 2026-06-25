@@ -45,3 +45,8 @@ data:
 systematics_template:
 #  rootname: "test_template"
 
+# If you want to have some parameters be correlated, include the path to a 
+# parameter covmat here. You can uncomment the example lines to try it out.
+parameter_covariance:
+#  mean: calib_mean.txt
+#  cov: calib_cov.txt
