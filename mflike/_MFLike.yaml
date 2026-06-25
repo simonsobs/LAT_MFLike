@@ -48,5 +48,14 @@ systematics_template:
 # If you want to have some parameters be correlated, include the path to a 
 # parameter covmat here. You can uncomment the example lines to try it out.
 parameter_covariance:
-#  mean: calib_mean.txt
+# The covmat can either be provided as a full path, or as the name of a file
+# found in the same directory as mflike.py. It should have one comment line at
+# the start that lists the names of the parameters, followed by a dense covariance
+# matrix.
 #  cov: calib_cov.txt
+
+# For the mean, you can either provide a file in a similar format as the covariance
+# matrix (being only one line of means for each of the values), or you can provide
+# a numeric value that will be used for all the means of the parameters listed
+# in the covmat file.
+#  mean: calib_mean.txt

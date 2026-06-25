@@ -39,6 +39,22 @@ The values of the systematic parameters are set in the
 ``TTTEEE/TTTE/TT/EE/TE/etc.yaml`` files corresponding to the classes that inherit the
 ``_MFLike`` one.  They have to be named as
 ``cal/calT/calE/alpha`` + ``_`` + experiment_channel string (e.g. ``LAT_93/dr6_pa4_f150``).
+
+If these parameters are expected to be correlated, you can add a joint multivariate
+Gaussian likelihood on these parameters with the settings block:
+
+.. code-block:: yaml
+
+  parameter_covariance:
+    cov: param_cov.txt
+    mean: param_mean.txt
+
+where the `cov` and `mean` files contain a single commented line with the names of
+the parameters that are to be included in this likelihood. You can also set the
+`mean` to a single value, for example `mean: 1`, which will set the mean for all
+these parameters to this value.
+
+If you do this, do take care not to set the prior on these parameters in cobaya twice.
 """
 
 import os
