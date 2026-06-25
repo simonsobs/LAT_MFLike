@@ -162,8 +162,8 @@ class _MFLike(InstallableLikelihood):
         if self.parameter_covariance:
             par_vec = np.array([ params_values[p] for p in self.parameter_covariance["params"] ])
             delta = self.parameter_covariance["mean"] - par_vec
-            par_logp = self._fast_chi_squared(self.parameter_covariance["inv_cov"], delta)
-            chi2 = -0.5 * par_logp
+            chi2 = self._fast_chi_squared(self.parameter_covariance["inv_cov"], delta)
+            par_logp = -0.5 * chi2
             self.log.debug(f"Parameter log-likelihood = {par_logp} (Χ² = {chi2})")
             logp += par_logp
 
