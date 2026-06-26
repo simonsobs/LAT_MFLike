@@ -738,9 +738,10 @@ class _MFLike(InstallableLikelihood):
 
         if type(meanfile) in [int, float, np.ndarray]:
             means = np.array(meanfile) * np.ones_like(np.diag(cov))
-        elif not os.path.exists(meanfile):
-            meanfile = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                    meanfile)
+        else:
+            if not os.path.exists(meanfile):
+                meanfile = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                        meanfile)
 
             if not os.path.exists(meanfile):
                 raise IOError(f"Cannot load means from {meanfile}: does not exist.")
