@@ -750,10 +750,14 @@ class _MFLike(InstallableLikelihood):
             assert len(means) == len(parameters), \
                    "Number of parameters in means file does not match covmat size."
 
+        logp_const = np.log(2 * np.pi) * (-len(means) / 2) - 0.5 * np.linalg.slogdet(cov)[1]
+        self.logp_const += logp_const
+
         self.parameter_covariance = {
             "params": parameters,
             "mean": means,
-            "inv_cov": inv_cov
+            "inv_cov": inv_cov,
+            "logp_const": logp_const,
         }
 
         self.log.debug(f"Loaded parameter covariance for parameters {parameters}.")

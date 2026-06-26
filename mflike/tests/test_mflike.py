@@ -462,3 +462,64 @@ class MFLikeTest(unittest.TestCase):
 
         loglike = my_mflike.loglike(cl_dict, fg_totals, **nuis_params)
         self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2s['tt-te-et-ee'], 2)
+
+    def test_calibration_correlation_priors(self):
+        nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
+        nuis_params = {k: v for k, v in nuis_params.items() if "calE" not in k}
+        nuis_params["cal_LAT_93"] = 0.95
+        nuis_params["cal_LAT_145"] = 1.0
+        nuis_params["cal_LAT_225"] = 1.05
+
+        info_cov = {
+            "likelihood": {
+                "mflike.TTTEEE": {
+                    "input_file": pre + "00000.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                    "parameter_covariance": {
+                        "mean": 1,
+                        "cov": os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                            "example_cov.txt")
+                    }
+                },
+            },
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {"requested_cls": ["tt", "te", "ee"]},
+            },
+            "params": cosmo_params | nuis_params,
+            "packages_path": packages_path,
+        }
+
+        model = get_model(info_cov)
+        cov_mflike = model.likelihood["mflike.TTTEEE"]
+        chi2_cov = -2 * (model.logpost(nuis_params) - cov_mflike.logp_const)
+
+        nuis_info = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
+        for param in ["cal_LAT_93", "cal_LAT_145", "cal_LAT_225"]:
+            nuis_info[param] = {
+                "prior": {
+                    "dist": "norm",
+                    "loc": 1.0,
+                    "scale": 1e-2
+                },
+            }
+        info_priors = {
+            "likelihood": {
+                "mflike.TTTEEE": {
+                    "input_file": pre + "00000.fits",
+                    "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                },
+            },
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {"requested_cls": ["tt", "te", "ee"]},
+            },
+            "params": cosmo_params | nuis_info,
+            "packages_path": packages_path,
+        }
+
+        model = get_model(info_priors)
+        my_mflike = model.likelihood["mflike.TTTEEE"]
+        chi2_priors = -2 * (model.logpost(nuis_params) - my_mflike.logp_const)
+
+        self.assertAlmostEqual(chi2_cov - chi2_priors, 2. * cov_mflike.parameter_covariance["logp_const"], 2)
