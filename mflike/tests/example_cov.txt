@@ -1,0 +1,4 @@
+# cal_LAT_93 cal_LAT_145 cal_LAT_225
+1e-4 0 0
+0 1e-4 0
+0 0 1e-4
