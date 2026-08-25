@@ -16,6 +16,11 @@ cov_Bbl_file: null
 # If set to null i.e. None, the program will set the value to 9000
 lmax_theory: null
 
+# whether the mode coupling matrix needs to be binned
+# yes if the mask is small enough and of course the data
+# in the sacc file have been generated with binned_mcm = True
+binned_mcm: False
+
 data:
   # List the names and frequencies of all the
   # relevant experiments.

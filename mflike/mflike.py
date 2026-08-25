@@ -69,6 +69,7 @@ class _MFLike(InstallableLikelihood):
     supported_params: dict
     lmax_theory: int | None
     requested_cls: list[str]
+    binned_mcm: bool
 
     def initialize(self):
         # Set default values to data member not initialized via yaml file
@@ -107,6 +108,10 @@ class _MFLike(InstallableLikelihood):
 
         self._constant_nuisance: dict | None = None
         self.log.info("Initialized!")
+
+        # adding "eb" and "bb" to requested cls for binned_mcm
+        if self.binned_mcm:
+            self.requested_cls += ["eb", "bb"] 
 
     def get_fg_requirements(self) -> dict:
         return {
@@ -289,6 +294,9 @@ class _MFLike(InstallableLikelihood):
                 dtype = "cl_" + pol_dict[p2] + pol_dict[p1]
             else:
                 dtype = "cl_" + pol_dict[p1] + pol_dict[p2]
+            
+            if self.binned_mcm and p1 in ["E", "B"] and p2 in ["E", "B"]:
+                dtype = "cl_22"
             return tname_1, tname_2, dtype
 
         # First we trim the SACC file so it only contains
@@ -301,27 +309,32 @@ class _MFLike(InstallableLikelihood):
         for spectrum in data["spectra"]:
             exp_1, exp_2, pols, scls, symm = get_cl_meta(spectrum)
             for pol in pols:
-                tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2)
-                lmin, lmax = scls[pol]
-                ind = s.indices(
-                    dtype,  # Power spectrum type
-                    (tname_1, tname_2),  # Channel combinations
-                    ell__gt=lmin,
-                    ell__lt=lmax,
-                )  # Scale cuts
-                indices += list(ind)
+                # if binned_mcm, pols in ["EE", "EB", "BE", "BB"] correspond to the same dtype = "cl_22"
+                # only reading the spectra/indices/etc for the "EE" case
+                if not self.binned_mcm or (self.binned_mcm and pol not in ["EB", "BE", "BB"]):
+                    tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2)
+                    lmin, lmax = scls[pol]
+                    ind = s.indices(
+                        dtype,  # Power spectrum type
+                        (tname_1, tname_2),  # Channel combinations
+                        ell__gt=lmin,
+                        ell__lt=lmax,
+                    )  # Scale cuts
+                    indices += list(ind)
 
-                # Note that data in the cov_Bbl file may be in different order.
-                if cbbl_extra:
-                    ind_b = s_b.indices(dtype, (tname_1, tname_2), ell__gt=lmin, ell__lt=lmax)
-                    indices_b += list(ind_b)
+                    # Note that data in the cov_Bbl file may be in different order.
+                    if cbbl_extra:
+                        ind_b = s_b.indices(dtype, (tname_1, tname_2), ell__gt=lmin, ell__lt=lmax)
+                        indices_b += list(ind_b)
 
-                if symm and pol == "ET":
-                    pass
+                    if symm and pol in ["ET", "BE", "BT"]:
+                        pass
+                    else:
+                        len_compressed += ind.size
+
+                    self.log.debug(f"{tname_1} {tname_2} {dtype} {ind.shape} {lmin} {lmax}")
                 else:
-                    len_compressed += ind.size
-
-                self.log.debug(f"{tname_1} {tname_2} {dtype} {ind.shape} {lmin} {lmax}")
+                    pass
 
         # The following is needed for soliket to trim cross-covariance
         if cbbl_extra:
@@ -355,71 +368,74 @@ class _MFLike(InstallableLikelihood):
             for k in scls.keys():
                 self.lcuts[k] = max(self.lcuts[k], scls[k][1])
             for pol in pols:
-                tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2)
-                # The only reason why we need indices is the symmetrization.
-                # Otherwise all of this could have been done in the previous
-                # loop over data["spectra"].
-                ls, cls, ind = s.get_ell_cl(dtype, tname_1, tname_2, return_ind=True)
-                if cbbl_extra:
-                    ind_b = s_b.indices(dtype, (tname_1, tname_2))
-                    ws = s_b.get_bandpower_windows(ind_b)
-                else:
-                    ws = s.get_bandpower_windows(ind)
-                # pre-compute the actual slices of the weights that are needed
-                nonzeros = np.array(
-                    [np.nonzero(ws.weight[:, i])[0][[0, -1]] for i in range(ws.weight.shape[1])]
-                )
-                ws.nonzeros = [slice(i[0], i[1] + 1) for i in nonzeros]
-                ws.sliced_weights = [
-                    np.ascontiguousarray(ws.weight[ws.nonzeros[i], i]) for i in range(len(nonzeros))
-                ]
-
-                if self.l_bpws is None:
-                    # The assumption here is that bandpower windows
-                    # will all be sampled at the same ells.
-                    self.l_bpws = ws.values
-
-                # Symmetrize if needed. If symmetrize = True, the "ET" polarization
-                # is eliminated by the polarization list and the TE spectrum becomes
-                # (TE + ET)/2. The associated spec_meta dict will have "hasYX_xsp": False
-                if (pol in ["TE", "ET"]) and symm:
-                    pol2 = pol[::-1]
-                    pols.remove(pol2)
-                    tname_1, tname_2, dtype = get_sacc_names(pol2, exp_1, exp_2)
-                    ind2 = s.indices(dtype, (tname_1, tname_2))
-                    cls2 = s.get_ell_cl(dtype, tname_1, tname_2)[1]
-                    cls = 0.5 * (cls + cls2)
-
-                    for i, (j1, j2) in enumerate(zip(ind, ind2)):
-                        mat_compress[index_sofar + i, j1] = 0.5
-                        mat_compress[index_sofar + i, j2] = 0.5
+                if not self.binned_mcm or (self.binned_mcm and pol not in ["EB", "BE", "BB"]):
+                    tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2)
+                    # The only reason why we need indices is the symmetrization.
+                    # Otherwise all of this could have been done in the previous
+                    # loop over data["spectra"].
+                    ls, cls, ind = s.get_ell_cl(dtype, tname_1, tname_2, return_ind=True)
                     if cbbl_extra:
-                        ind2_b = s_b.indices(dtype, (tname_1, tname_2))
-                        for i, (j1, j2) in enumerate(zip(ind_b, ind2_b)):
-                            mat_compress_b[index_sofar + i, j1] = 0.5
-                            mat_compress_b[index_sofar + i, j2] = 0.5
+                        ind_b = s_b.indices(dtype, (tname_1, tname_2))
+                        ws = s_b.get_bandpower_windows(ind_b)
+                    else:
+                        ws = s.get_bandpower_windows(ind)
+                    # pre-compute the actual slices of the weights that are needed
+                    nonzeros = np.array(
+                        [np.nonzero(ws.weight[:, i])[0][[0, -1]] for i in range(ws.weight.shape[1])]
+                    )
+                    ws.nonzeros = [slice(i[0], i[1] + 1) for i in nonzeros]
+                    ws.sliced_weights = [
+                        np.ascontiguousarray(ws.weight[ws.nonzeros[i], i]) for i in range(len(nonzeros))
+                    ]
+
+                    if self.l_bpws is None:
+                        # The assumption here is that bandpower windows
+                        # will all be sampled at the same ells.
+                        self.l_bpws = ws.values
+
+                    # Symmetrize if needed. If symmetrize = True, the "ET" polarization
+                    # is eliminated by the polarization list and the TE spectrum becomes
+                    # (TE + ET)/2. The associated spec_meta dict will have "hasYX_xsp": False
+                    if (pol in ["TE", "ET", "BE", "EB", "TB", "BT"]) and symm:
+                        pol2 = pol[::-1]
+                        pols.remove(pol2)
+                        tname_1, tname_2, dtype = get_sacc_names(pol2, exp_1, exp_2)
+                        ind2 = s.indices(dtype, (tname_1, tname_2))
+                        cls2 = s.get_ell_cl(dtype, tname_1, tname_2)[1]
+                        cls = 0.5 * (cls + cls2)
+
+                        for i, (j1, j2) in enumerate(zip(ind, ind2)):
+                            mat_compress[index_sofar + i, j1] = 0.5
+                            mat_compress[index_sofar + i, j2] = 0.5
+                        if cbbl_extra:
+                            ind2_b = s_b.indices(dtype, (tname_1, tname_2))
+                            for i, (j1, j2) in enumerate(zip(ind_b, ind2_b)):
+                                mat_compress_b[index_sofar + i, j1] = 0.5
+                                mat_compress_b[index_sofar + i, j2] = 0.5
+                    else:
+                        for i, j1 in enumerate(ind):
+                            mat_compress[index_sofar + i, j1] = 1
+                        if cbbl_extra:
+                            for i, j1 in enumerate(ind_b):
+                                mat_compress_b[index_sofar + i, j1] = 1
+                    # The fields marked with # below aren't really used, but
+                    # we store them just in case.
+                    self.spec_meta.append(
+                        {
+                            "ids": (index_sofar + np.arange(cls.size, dtype=int)),
+                            "pol": ppol_dict[pol],
+                            # this flag is true for pol = ET, BE, BT
+                            "hasYX_xsp": pol in ["ET", "BE", "BT"],
+                            "t1": exp_1,
+                            "t2": exp_2,
+                            "leff": ls,  #
+                            "cl_data": cls,  #
+                            "bpw": ws,
+                        }
+                    )
+                    index_sofar += cls.size
                 else:
-                    for i, j1 in enumerate(ind):
-                        mat_compress[index_sofar + i, j1] = 1
-                    if cbbl_extra:
-                        for i, j1 in enumerate(ind_b):
-                            mat_compress_b[index_sofar + i, j1] = 1
-                # The fields marked with # below aren't really used, but
-                # we store them just in case.
-                self.spec_meta.append(
-                    {
-                        "ids": (index_sofar + np.arange(cls.size, dtype=int)),
-                        "pol": ppol_dict[pol],
-                        # this flag is true for pol = ET, BE, BT
-                        "hasYX_xsp": pol in ["ET", "BE", "BT"],
-                        "t1": exp_1,
-                        "t2": exp_2,
-                        "leff": ls,  #
-                        "cl_data": cls,  #
-                        "bpw": ws,
-                    }
-                )
-                index_sofar += cls.size
+                    pass
         if not cbbl_extra:
             mat_compress_b = mat_compress
         # Put data and covariance in the right order.
@@ -443,8 +459,10 @@ class _MFLike(InstallableLikelihood):
 
         # Put lcuts in a format that is recognisable by CAMB.
         self.lcuts = {k.lower(): c for k, c in self.lcuts.items()}
-        if "et" in self.lcuts:
-            del self.lcuts["et"]
+        # eliminate keys not present in CAMB dictionary
+        for p in ["et", "be", "bt"]:
+            if p in self.lcuts:
+                del self.lcuts[p]
 
         self.log.info(f"Number of bins used: {self.data_vec.size}")
 
@@ -463,6 +481,11 @@ class _MFLike(InstallableLikelihood):
         :return: the binned data vector
         """
         dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
+        # fill the eb and bb key of the theory cl dictionary
+        if self.binned_mcm:
+            dls["eb"] = dls["tt"] * 0
+            dls["bb"] = cl["bb"][self.l_bpws]
+
         dls_obs = self.get_modified_theory(dls, fg_totals, **params_values)
 
         return self._get_ps_vec(dls_obs)
@@ -472,12 +495,24 @@ class _MFLike(InstallableLikelihood):
         for m in self.spec_meta:
             p = m["pol"]
             w = m["bpw"]
-            # If symmetrize = False, the (ET, exp1, exp2) spectrum
-            # will have the flag m["hasYX_xsp"] = True.
-            # In this case, the power spectrum
-            # is computed as DlsObs["te", m["t2"], m["t1"]], to associate
-            # T --> exp2, E --> exp1
-            dls_obs = DlsObs[p, m["t2"], m["t1"]] if m["hasYX_xsp"] else DlsObs[p, m["t1"], m["t2"]]
+
+            if self.binned_mcm and m["pol"] == "ee":
+                # build the [ee, eb, be, bb] array (or [ee, eb, bb] if t1 = t2)
+                dls_obs = np.zeros_like(w.values)
+                dls_obs[:self.l_bpws] = DlsObs["ee", m["t1"], m["t2"]]
+                dls_obs[self.l_bpws : 2*self.l_bpws] = DlsObs["eb", m["t1"], m["t2"]]
+                if m["t1"] == m["t2"]:
+                    dls_obs[2*self.l_bpws : 3*self.l_bpws] = DlsObs["bb", m["t1"], m["t2"]]
+                else:
+                    dls_obs[2*self.l_bpws : 3*self.l_bpws] = DlsObs["eb", m["t2"], m["t1"]]
+                    dls_obs[3*self.l_bpws : 4*self.l_bpws] = DlsObs["bb", m["t1"], m["t2"]]
+            else:
+                # If symmetrize = False, the (ET, exp1, exp2) spectrum
+                # will have the flag m["hasYX_xsp"] = True.
+                # In this case, the power spectrum
+                # is computed as DlsObs["te", m["t2"], m["t1"]], to associate
+                # T --> exp2, E --> exp1
+                dls_obs = DlsObs[p, m["t2"], m["t1"]] if m["hasYX_xsp"] else DlsObs[p, m["t1"], m["t2"]]
 
             for i, nonzero, weights in zip(m["ids"], w.nonzeros, w.sliced_weights):
                 ps_vec[i] = weights @ dls_obs[nonzero]
@@ -525,9 +560,9 @@ class _MFLike(InstallableLikelihood):
             if p in ["tt", "ee", "bb"]:
                 dls_dict[p, m["t1"], m["t2"]] = cmbfg_dict[p, m["t1"], m["t2"]]
             else:  # ['te','tb','eb']
-                if m["hasYX_xsp"]:  # case with symmetrize = False and ET/BT/BE spectra
+                if m["hasYX_xsp"]:  # case of ET/BT/BE spectra
                     dls_dict[p, m["t2"], m["t1"]] = cmbfg_dict[p, m["t2"], m["t1"]]
-                else:  # case of TE/TB/EB spectra, or symmetrize = True
+                else:  # case of TE/TB/EB spectra
                     dls_dict[p, m["t1"], m["t2"]] = cmbfg_dict[p, m["t1"], m["t2"]]
 
                 # if symmetrize = True, dls_dict has already been set
@@ -537,6 +572,14 @@ class _MFLike(InstallableLikelihood):
                 if self.defaults["symmetrize"]:
                     dls_dict[p, m["t1"], m["t2"]] += cmbfg_dict[p, m["t2"], m["t1"]]
                     dls_dict[p, m["t1"], m["t2"]] *= 0.5
+            
+            if self.binned_mcm and p == "ee":
+                # read also the "eb" and "bb" theory spectra
+                # "eb" and "bb" would not be in self.spec_meta so we need to fill the dict by hand
+                dls_dict["eb", m["t1"], m["t2"]] = cmbfg_dict["eb", m["t1"], m["t2"]]
+                dls_dict["bb", m["t1"], m["t2"]] = cmbfg_dict["bb", m["t1"], m["t2"]]
+                if m["t1"] != m["t2"]:
+                    dls_dict["eb", m["t2"], m["t1"]] = cmbfg_dict["eb", m["t2"], m["t1"]]
 
         return dls_dict
 
@@ -605,15 +648,21 @@ class _MFLike(InstallableLikelihood):
 
         cal_pars = {}
         calG_all = 1 / nuis_params["calG_all"]
-        if "tt" in self.requested_cls or "te" in self.requested_cls:
+        if "tt" in self.requested_cls or "te" in self.requested_cls or "tb" in self.requested_cls:
             cal_pars["t"] = {
                 exp: calG_all / (nuis_params[f"cal_{exp}"] * nuis_params.get(f"calT_{exp}", 1))
                 for exp in self.experiments
             }
 
-        if "ee" in self.requested_cls or "te" in self.requested_cls:
+        if "ee" in self.requested_cls or "te" in self.requested_cls or "eb" in self.requested_cls:
             cal_pars["e"] = {
                 exp: calG_all / (nuis_params[f"cal_{exp}"] * nuis_params[f"calE_{exp}"])
+                for exp in self.experiments
+            }
+
+        if "bb" in self.requested_cls or "eb" in self.requested_cls or "tb" in self.requested_cls:
+            cal_pars["b"] = {
+                exp: calG_all / (nuis_params[f"cal_{exp}"] * nuis_params[f"calB_{exp}"])
                 for exp in self.experiments
             }
 
