@@ -111,7 +111,8 @@ class _MFLike(InstallableLikelihood):
 
         # adding "eb" and "bb" to requested cls for binned_mcm
         if self.binned_mcm:
-            self.requested_cls += ["eb", "bb"] 
+            if "eb" not in self.requested_cls and "bb" not in self.requested_cls:
+                self.requested_cls += ["eb", "bb"] 
 
     def get_fg_requirements(self) -> dict:
         return {
@@ -236,7 +237,7 @@ class _MFLike(InstallableLikelihood):
             For each of the entries of the `spectra` section of the
             yaml file, extracts the relevant information: channel,
             polarization combinations, scale cuts and
-            whether TE should be symmetrized.
+            whether TE/BE/BT should be symmetrized.
 
             :param spec: the dictionary ``data["spectra"]``
             """
@@ -248,18 +249,20 @@ class _MFLike(InstallableLikelihood):
 
             # For the same two channels, do not include ET and TE, only TE
             if exp_1 == exp_2:
-                if "ET" in pols:
-                    pols.remove("ET")
-                    if "TE" not in pols:
-                        pols.append("TE")
-                        scls["TE"] = scls["ET"]
+                for p in ["ET", "BE", "BT"]:
+                    if p in pols:
+                        pols.remove(p)
+                        if p[::-1] not in pols:
+                            pols.append(p[::-1])
+                            scls[p[::-1]] = scls[p]
                 symm = False
             else:
                 # Symmetrization
-                if ("TE" in pols) and ("ET" in pols):
-                    symm = spec.get("symmetrize", default_cuts["symmetrize"])
-                else:
-                    symm = False
+                for p in ["ET", "BE", "BT"]:
+                    if (p[::-1] in pols) and (p in pols):
+                        symm = spec.get("symmetrize", default_cuts["symmetrize"])
+                    else:
+                        symm = False
 
             return exp_1, exp_2, pols, scls, symm
 
@@ -396,6 +399,7 @@ class _MFLike(InstallableLikelihood):
                     # Symmetrize if needed. If symmetrize = True, the "ET" polarization
                     # is eliminated by the polarization list and the TE spectrum becomes
                     # (TE + ET)/2. The associated spec_meta dict will have "hasYX_xsp": False
+                    # for now, in the binned_mcm case we are not symmetrizing EB/BE
                     if (pol in ["TE", "ET", "BE", "EB", "TB", "BT"]) and symm:
                         pol2 = pol[::-1]
                         pols.remove(pol2)
@@ -482,6 +486,7 @@ class _MFLike(InstallableLikelihood):
         """
         dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
         # fill the eb and bb key of the theory cl dictionary
+        # the condition could also be (if "eb", "bb" in self.requested_cls)
         if self.binned_mcm:
             dls["eb"] = dls["tt"] * 0
             dls["bb"] = cl["bb"][self.l_bpws]
@@ -498,6 +503,7 @@ class _MFLike(InstallableLikelihood):
 
             if self.binned_mcm and m["pol"] == "ee":
                 # build the [ee, eb, be, bb] array (or [ee, eb, bb] if t1 = t2)
+                # w.values has already the correct dimensions, sacc organized in the same way
                 dls_obs = np.zeros_like(w.values)
                 dls_obs[:self.l_bpws] = DlsObs["ee", m["t1"], m["t2"]]
                 dls_obs[self.l_bpws : 2*self.l_bpws] = DlsObs["eb", m["t1"], m["t2"]]

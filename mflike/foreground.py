@@ -268,7 +268,7 @@ class Foreground(Theory):
 
             self.tSZ_and_CIB = fgc.CorrelatedFactorizedCrossSpectrum(tsz_cib_sed, tsz_cib_cl)
 
-        if "te" in self.requested_cls:
+        if "te" in self.requested_cls or "tb" in self.requested_cls:
             self.radioTE = fgc.FactorizedCrossSpectrumTE(
                 fgf.PowerLaw(), fgf.PowerLaw(), fgp.PowerLaw()
             )
@@ -413,6 +413,36 @@ class Foreground(Theory):
                 },
                 {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
             )
+        
+        if "bb" in self.requested_cls:
+            model["bb", "radio"] = fg_params["a_psbb"] * self.radio(
+                {"nu": self.bandint_freqs_P, "nu_0": nu_0, "beta": fg_params["beta_s"]},
+                {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
+            )
+
+            model["bb", "dust"] = fg_params["a_gbb"] * self.dust(
+                {"nu": self.bandint_freqs_P, "nu_0": nu_0, "temp": fg_params["T_effd"],
+                    "beta": fg_params["beta_d"]},
+                {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
+            )
+
+        if "tb" in self.requested_cls:
+            model["tb", "radio"] = fg_params["a_pstb"] * self.radioTE(
+                {"nu": self.bandint_freqs_T, "nu_0": nu_0, "beta": fg_params["beta_s"]},
+                {"nu": self.bandint_freqs_P, "nu_0": nu_0, "beta": fg_params["beta_s"]},
+                {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
+            )
+
+            model["tb", "dust"] = fg_params["a_gtb"] * self.dustTE(
+                {"nu": self.bandint_freqs_T, "nu_0": nu_0, "temp": fg_params["T_effd"],
+                    "beta": fg_params["beta_d"]},
+                {"nu": self.bandint_freqs_P, "nu_0": nu_0, "temp": fg_params["T_effd"],
+                    "beta": fg_params["beta_d"]},
+                {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
+            )
+
+        #if "eb" in self.requested_cls:
+        #    ... no model for now
 
         return model
 
@@ -444,20 +474,24 @@ class Foreground(Theory):
         fg_dict = {}
         for c1, exp1 in enumerate(experiments):
             for c2, exp2 in enumerate(experiments):
-                for s in self.requested_cls:
-                    sum_all = np.zeros(len(ell))
-                    for comp in self.fg_component_list[s]:
-                        term = model[s, comp][c1, c2]
-                        if comp == "tSZ_and_CIB":
-                            fg_dict[s, "tSZ", exp1, exp2] = model[s, "tSZ"][c1, c2]
-                            fg_dict[s, "cibc", exp1, exp2] = model[s, "cibc"][c1, c2]
-                            fg_dict[s, "tSZxCIB", exp1, exp2] = (
-                                term - model[s, "tSZ"][c1, c2] - model[s, "cibc"][c1, c2]
-                            )
-                        else:
-                            fg_dict[s, comp, exp1, exp2] = term
-                        sum_all += term
-                    fg_dict[s, "all", exp1, exp2] = sum_all
+                for s in self.requested_cls:    
+                    if s == "eb":
+                        # modeling it as no FG as done in PSpipe for now
+                        fg_dict["eb", "all", exp1, exp2] = np.zeros(len(ell))
+                    else:
+                        sum_all = np.zeros(len(ell))
+                        for comp in self.fg_component_list[s]:
+                            term = model[s, comp][c1, c2]
+                            if comp == "tSZ_and_CIB":
+                                fg_dict[s, "tSZ", exp1, exp2] = model[s, "tSZ"][c1, c2]
+                                fg_dict[s, "cibc", exp1, exp2] = model[s, "cibc"][c1, c2]
+                                fg_dict[s, "tSZxCIB", exp1, exp2] = (
+                                    term - model[s, "tSZ"][c1, c2] - model[s, "cibc"][c1, c2]
+                                )
+                            else:
+                                fg_dict[s, comp, exp1, exp2] = term
+                            sum_all += term
+                        fg_dict[s, "all", exp1, exp2] = sum_all
         return fg_dict
 
     def calculate(self, state, want_derived=False, **params_values_dict):
@@ -668,9 +702,9 @@ class BandpowerForeground(Foreground):
                         # normalization integral to be evaluated at the shifted freqs
                         # in order to have cmb component calibrated to 1
                         tranb_norm = trapezoid(_cmb2bb(nub), nub)
-                        if "tt" in self.requested_cls or "te" in self.requested_cls:
+                        if "tt" in self.requested_cls or "te" in self.requested_cls or "tb" in self.requested_cls:
                             self.bandint_freqs_T.append([nub, tranb / tranb_norm])
-                        if "te" in self.requested_cls or "ee" in self.requested_cls:
+                        if "te" in self.requested_cls or "ee" in self.requested_cls or "eb" in self.requested_cls or "bb" in self.requested_cls:
                             self.bandint_freqs_P.append([nub, tranb / tranb_norm])
                     else:
                         if self.bandsh_beams_path:
@@ -679,11 +713,11 @@ class BandpowerForeground(Foreground):
                             # not propagating bandpass shifts to the chromatic beams
                             blT, blP = self.return_beams(exp, nu_ghz, 0.0)
 
-                        if "tt" in self.requested_cls or "te" in self.requested_cls:
+                        if "tt" in self.requested_cls or "te" in self.requested_cls or "tb" in self.requested_cls:
                             bpT = _cmb2bb(nub)[..., np.newaxis] * blT
                             self.bandint_freqs_T.append([nub, bpT / trapezoid(bpT, nub, axis=0)])
 
-                        if "te" in self.requested_cls or "ee" in self.requested_cls:
+                        if "te" in self.requested_cls or "ee" in self.requested_cls or "eb" in self.requested_cls or "bb" in self.requested_cls:
                             bpP = _cmb2bb(nub)[..., np.newaxis] * blP
                             self.bandint_freqs_P.append([nub, bpP / trapezoid(bpP, nub, axis=0)])
 
@@ -692,9 +726,9 @@ class BandpowerForeground(Foreground):
                 if self.bandint_nsteps == 1:
                     nub = fr + shift
                     data_are_monofreq = True
-                    if "tt" in self.requested_cls or "te" in self.requested_cls:
+                    if "tt" in self.requested_cls or "te" in self.requested_cls or "tb" in self.requested_cls:
                         self.bandint_freqs_T.append(nub)
-                    if "te" in self.requested_cls or "ee" in self.requested_cls:
+                    if "te" in self.requested_cls or "ee" in self.requested_cls or "eb" in self.requested_cls or "bb" in self.requested_cls:
                         self.bandint_freqs_P.append(nub)
             # using the bandpass from sacc file
             else:
@@ -702,17 +736,17 @@ class BandpowerForeground(Foreground):
                 if len(bp) == 1:
                     # Monofrequency channel
                     data_are_monofreq = True
-                    if "tt" in self.requested_cls or "te" in self.requested_cls:
+                    if "tt" in self.requested_cls or "te" in self.requested_cls or "tb" in self.requested_cls:
                         self.bandint_freqs_T.append(nub[0])
-                    if "te" in self.requested_cls or "ee" in self.requested_cls:
+                    if "te" in self.requested_cls or "ee" in self.requested_cls or "eb" in self.requested_cls or "bb" in self.requested_cls:
                         self.bandint_freqs_P.append(nub[0])
                 else:
                     if not self.use_beam_profile:
                         trans_norm = trapezoid(bp * _cmb2bb(nub), nub)
                         trans = bp / trans_norm * _cmb2bb(nub)
-                        if "tt" in self.requested_cls or "te" in self.requested_cls:
+                        if "tt" in self.requested_cls or "te" in self.requested_cls or "tb" in self.requested_cls:
                             self.bandint_freqs_T.append([nub, trans])
-                        if "te" in self.requested_cls or "ee" in self.requested_cls:
+                        if "te" in self.requested_cls or "ee" in self.requested_cls or "eb" in self.requested_cls or "bb" in self.requested_cls:
                             self.bandint_freqs_P.append([nub, trans])
                     else:
                         if self.bandsh_beams_path:
@@ -721,11 +755,11 @@ class BandpowerForeground(Foreground):
                             # not propagating bandpass shifts to the chromatic beams
                             blT, blP = self.return_beams(exp, nu_ghz, 0.0)
 
-                        if "tt" in self.requested_cls or "te" in self.requested_cls:
+                        if "tt" in self.requested_cls or "te" in self.requested_cls or "tb" in self.requested_cls:
                             bpT = bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blT
                             self.bandint_freqs_T.append([nub, bpT / trapezoid(bpT, nub, axis=0)])
 
-                        if "te" in self.requested_cls or "ee" in self.requested_cls:
+                        if "te" in self.requested_cls or "ee" in self.requested_cls or "eb" in self.requested_cls or "bb" in self.requested_cls:
                             bpP = bp[..., np.newaxis] * _cmb2bb(nub)[..., np.newaxis] * blP
                             self.bandint_freqs_P.append([nub, bpP / trapezoid(bpP, nub, axis=0)])
 
