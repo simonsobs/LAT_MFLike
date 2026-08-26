@@ -220,8 +220,14 @@ class Foreground(Theory):
         requested_cls = input_options.get("requested_cls") or defaults.get(
             "requested_cls", ["tt", "te", "ee"]
         )
+        binned_mcm = input_options.get("binned_mcm", False) or defaults.get("binned_mcm", False)
+        if binned_mcm:
+            requested_cls += ["eb", "bb"]
+
         for spec in requested_cls:
-            defaults["params"] |= yaml_load(cls.get_text_file_content("fg_%s.yaml" % spec.upper()))
+            # not modeling eb fg so far
+            if spec != "eb":
+                defaults["params"] |= yaml_load(cls.get_text_file_content("fg_%s.yaml" % spec.upper()))
         return defaults
 
     # Initializes the foreground model. It sets the SED and reads the templates
@@ -234,6 +240,10 @@ class Foreground(Theory):
         from fgspectra import cross as fgc
         from fgspectra import frequency as fgf
         from fgspectra import power as fgp
+
+        if self.binned_mcm:
+            self.components["bb"] = ["radio", "dust"]
+            self.components["eb"] = []
 
         self.fg_component_list = {s: self.components[s] for s in self.requested_cls}
         self.bandint_freqs_T = self.bandint_freqs
@@ -423,7 +433,7 @@ class Foreground(Theory):
             model["bb", "dust"] = fg_params["a_gbb"] * self.dust(
                 {"nu": self.bandint_freqs_P, "nu_0": nu_0, "temp": fg_params["T_effd"],
                     "beta": fg_params["beta_d"]},
-                {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
+                {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dB"]},
             )
 
         if "tb" in self.requested_cls:
@@ -438,7 +448,7 @@ class Foreground(Theory):
                     "beta": fg_params["beta_d"]},
                 {"nu": self.bandint_freqs_P, "nu_0": nu_0, "temp": fg_params["T_effd"],
                     "beta": fg_params["beta_d"]},
-                {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
+                {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dB"]},
             )
 
         #if "eb" in self.requested_cls:
@@ -518,10 +528,13 @@ class Foreground(Theory):
         """
         # get total foregrounds; model is dictionary of arrays for each frequency combo
         model = self._get_foreground_model_arrays(params_values_dict)
-        return [
-            np.sum([model[s, comp] for comp in self.fg_component_list[s]], axis=0)
-            for s in (requested_cl if requested_cl else self.requested_cls)
-        ]
+        fg_tot = []
+        for s in (requested_cl if requested_cl else self.requested_cls):
+            if s != "eb":
+                fg_tot.append(np.sum([model[s, comp] for comp in self.fg_component_list[s]], axis=0))
+            else:
+                fg_tot.append(np.zeros((len(self.experiments), len(self.experiments), len(self.ells))))
+        return fg_tot
 
     def get_fg_totals(self) -> dict:
         """

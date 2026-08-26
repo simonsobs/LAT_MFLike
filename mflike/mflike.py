@@ -20,7 +20,7 @@ The underlying foreground spectra are computed through ``fgspectra``.
 
 This class applies four kinds of systematic effects to the CMB + foreground power spectrum:
     * calibrations (global ``calG_all``, per channel ``cal_exp``, per field
-      ``calT_exp``, ``calE_exp``)
+      ``calT_exp``, ``poleff_exp``)
     * polarization angles effect (``alpha_exp``)
     * beam chromaticity (i.e. integrating the foreground SEDs with frequency dependent
       beams)
@@ -38,7 +38,7 @@ If left ``null``, no systematic template is applied.
 The values of the systematic parameters are set in the
 ``TTTEEE/TTTE/TT/EE/TE/etc.yaml`` files corresponding to the classes that inherit the
 ``_MFLike`` one.  They have to be named as
-``cal/calT/calE/alpha`` + ``_`` + experiment_channel string (e.g. ``LAT_93/dr6_pa4_f150``).
+``cal/calT/poleff/alpha`` + ``_`` + experiment_channel string (e.g. ``LAT_93/dr6_pa4_f150``).
 """
 
 import os
@@ -307,6 +307,11 @@ class _MFLike(InstallableLikelihood):
         # Indices to be kept
         indices = []
         indices_b = []
+        if self.binned_mcm:
+            # we also select the indices that keep the spin-2 block intact,
+            # so that we can read the whole bbl matrix below
+            indices_22 = []
+            indicesb_22 = []
         # Length of the final data vector
         len_compressed = 0
         for spectrum in data["spectra"]:
@@ -323,11 +328,27 @@ class _MFLike(InstallableLikelihood):
                         ell__gt=lmin,
                         ell__lt=lmax,
                     )  # Scale cuts
+                    if self.binned_mcm:
+                        indices_22 += list(ind)
+                        if pol == "EE" and "EB" not in pols and "BB" not in pols:
+                            # selecting only the indices for EE, it's the spectrum we are going to use
+                            if tname_1 == tname_2:
+                                ind = ind[:int(len(ind)/3)]
+                            else:
+                                ind = ind[:int(len(ind)/4)]
                     indices += list(ind)
 
                     # Note that data in the cov_Bbl file may be in different order.
                     if cbbl_extra:
                         ind_b = s_b.indices(dtype, (tname_1, tname_2), ell__gt=lmin, ell__lt=lmax)
+                        if self.binned_mcm:
+                            indicesb_22 += list(ind_b)
+                            if pol == "EE" and "EB" not in pols and "BB" not in pols:
+                                # selecting only the indices for EE, it's the spectrum we are going to use
+                                if tname_1 == tname_2:
+                                    ind_b = ind_b[:int(len(ind_b)/3)]
+                                else:
+                                    ind_b = ind_b[:int(len(ind_b)/4)]
                         indices_b += list(ind_b)
 
                     if symm and pol in ["ET", "BE", "BT"]:
@@ -350,9 +371,14 @@ class _MFLike(InstallableLikelihood):
         # Get rid of all the unselected power spectra.
         # Sacc takes care of performing the same cuts in the
         # covariance matrix, window functions etc.
-        s.keep_indices(np.array(indices))
-        if cbbl_extra:
-            s_b.keep_indices(np.array(indices_b))
+        if not self.binned_mcm:
+            s.keep_indices(np.array(indices))
+            if cbbl_extra:
+                s_b.keep_indices(np.array(indices_b))
+        else:
+            s.keep_indices(np.array(indices_22))
+            if cbbl_extra:
+                s_b.keep_indices(np.array(indicesb_22))
 
         # Now create metadata for each spectrum
         len_full = s.mean.size
@@ -366,6 +392,10 @@ class _MFLike(InstallableLikelihood):
         self.lcuts = {k: c[1] for k, c in default_cuts["scales"].items()}
         index_sofar = 0
 
+        if self.binned_mcm:
+            # get new indices to re-cut the sacc and exclude the EB-BE-BB spectra
+            indices = []
+            indices_b = []
         for spectrum in data["spectra"]:
             exp_1, exp_2, pols, scls, symm = get_cl_meta(spectrum)
             for k in scls.keys():
@@ -395,6 +425,29 @@ class _MFLike(InstallableLikelihood):
                         # The assumption here is that bandpower windows
                         # will all be sampled at the same ells.
                         self.l_bpws = ws.values
+
+                    if self.binned_mcm:
+                        if pol == "EE" and "EB" not in pols and "BB" not in pols:
+                            # selecting only the indices for EE, it's the spectrum we are going to use
+                            if tname_1 == tname_2:
+                                ind = ind[:int(len(ind)/3)]
+                                ls = ls[:int(len(ls)/3)]
+                                cls = cls[:int(len(cls)/3)]
+                                if cbbl_extra:
+                                    ind_b = ind_b[:int(len(ind_b)/3)]
+                            else:
+                                ind = ind[:int(len(ind)/4)]
+                                ls = ls[:int(len(ls)/4)]
+                                cls = cls[:int(len(cls)/4)]
+                                if cbbl_extra:
+                                    ind_b = ind_b[:int(len(ind_b)/4)]
+
+                        indices += list(ind)
+                        if cbbl_extra:
+                            indices_b += list(ind_b)
+
+                        # mat_compress should be resized here according to the new indices
+                        ...............
 
                     # Symmetrize if needed. If symmetrize = True, the "ET" polarization
                     # is eliminated by the polarization list and the TE spectrum becomes
@@ -617,7 +670,7 @@ class _MFLike(InstallableLikelihood):
     ## This part deals with calibration factors
     ## Here we implement an alm based calibration
     ## Each field {T,E,B}{freq1,freq2,...,freqn} gets an independent
-    ## calibration factor, e.g. calT_145, calE_154, calT_225, etc..
+    ## calibration factor, e.g. calT_145, poleff_154, calT_225, etc..
     ## plus a calibration factor per channel, e.g. cal_145, etc...
     ## A global calibration factor calG_all is also considered.
     ###########################################################################
@@ -637,12 +690,12 @@ class _MFLike(InstallableLikelihood):
            D^{{\rm cal}, TE, \nu_1 \nu_2}_{\ell} &= \frac{1}{
            {\rm cal}^2_{G}\,{\rm cal}^{\nu_1} \, {\rm cal}^{\nu_2}\,
            {\rm cal}^{\nu_1}_{\rm T}\,
-           {\rm cal}^{\nu_2}_{\rm E}}\, D^{TT, \nu_1 \nu_2}_{\ell}
+           {\rm poleff}^{\nu_2}}\, D^{TT, \nu_1 \nu_2}_{\ell}
 
            D^{{\rm cal}, EE, \nu_1 \nu_2}_{\ell} &= \frac{1}{
            {\rm cal}^2_{G}\,{\rm cal}^{\nu_1} \, {\rm cal}^{\nu_2}\,
-           {\rm cal}^{\nu_1}_{\rm E}\,
-           {\rm cal}^{\nu_2}_{\rm E}}\, D^{EE, \nu_1 \nu_2}_{\ell}
+           {\rm poleff}^{\nu_1}\,
+           {\rm poleff}^{\nu_2}}\, D^{EE, \nu_1 \nu_2}_{\ell}
 
 
         :param dls_dict: the CMB+foregrounds :math:`D_{\ell}` dictionary, calibrated in place
@@ -662,13 +715,13 @@ class _MFLike(InstallableLikelihood):
 
         if "ee" in self.requested_cls or "te" in self.requested_cls or "eb" in self.requested_cls:
             cal_pars["e"] = {
-                exp: calG_all / (nuis_params[f"cal_{exp}"] * nuis_params[f"calE_{exp}"])
+                exp: calG_all / (nuis_params[f"cal_{exp}"] * nuis_params[f"poleff_{exp}"])
                 for exp in self.experiments
             }
 
         if "bb" in self.requested_cls or "eb" in self.requested_cls or "tb" in self.requested_cls:
             cal_pars["b"] = {
-                exp: calG_all / (nuis_params[f"cal_{exp}"] * nuis_params[f"calB_{exp}"])
+                exp: calG_all / (nuis_params[f"cal_{exp}"] * nuis_params[f"poleff_{exp}"])
                 for exp in self.experiments
             }
 
