@@ -131,11 +131,20 @@ class _MFLike(InstallableLikelihood):
 
         :return: the dictionary of theory :math:`D_{\ell}` and foregrounds
         """
+        if not self.binned_mcm:
+            return {
+                "fg_totals": self.get_fg_requirements(),
+                "Cl": {k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()},
+            }
+        else:
+            cl_dict = {k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()}
+            # Boltzmann solver has to return "bb" too, even if not in self.lcuts
+            cl_dict["bb"] = max(self.lcuts["ee"], self.lmax_theory + 1)
+            return {
+                "fg_totals": self.get_fg_requirements(),
+                "Cl": cl_dict,
+            }
 
-        return {
-            "fg_totals": self.get_fg_requirements(),
-            "Cl": {k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()},
-        }
 
     def logp(self, **params_values) -> float:
         cl = self.provider.get_Cl(ell_factor=True)
