@@ -308,7 +308,7 @@ class _MFLike(InstallableLikelihood):
         indices = []
         indices_b = []
         if self.binned_mcm:
-            # we also select the indices that keep the spin-2 block intact,
+            # we also select the indices that keep the spin-2 block intact for now,
             # so that we can read the whole bbl matrix below
             indices_22 = []
             indicesb_22 = []
@@ -376,6 +376,8 @@ class _MFLike(InstallableLikelihood):
             if cbbl_extra:
                 s_b.keep_indices(np.array(indices_b))
         else:
+            # keep the spin-2 block for now, to read the bbl below,
+            # the EB/BE/BB blocks will be removed with mat_compressed later
             s.keep_indices(np.array(indices_22))
             if cbbl_extra:
                 s_b.keep_indices(np.array(indicesb_22))
@@ -392,10 +394,6 @@ class _MFLike(InstallableLikelihood):
         self.lcuts = {k: c[1] for k, c in default_cuts["scales"].items()}
         index_sofar = 0
 
-        if self.binned_mcm:
-            # get new indices to re-cut the sacc and exclude the EB-BE-BB spectra
-            indices = []
-            indices_b = []
         for spectrum in data["spectra"]:
             exp_1, exp_2, pols, scls, symm = get_cl_meta(spectrum)
             for k in scls.keys():
@@ -429,25 +427,16 @@ class _MFLike(InstallableLikelihood):
                     if self.binned_mcm:
                         if pol == "EE" and "EB" not in pols and "BB" not in pols:
                             # selecting only the indices for EE, it's the spectrum we are going to use
+                            # mat_compressed below has already a shape accounting for the EE only case
                             if tname_1 == tname_2:
-                                ind = ind[:int(len(ind)/3)]
-                                ls = ls[:int(len(ls)/3)]
-                                cls = cls[:int(len(cls)/3)]
-                                if cbbl_extra:
-                                    ind_b = ind_b[:int(len(ind_b)/3)]
+                                bin_max = int(len(ind)/3)
                             else:
-                                ind = ind[:int(len(ind)/4)]
-                                ls = ls[:int(len(ls)/4)]
-                                cls = cls[:int(len(cls)/4)]
-                                if cbbl_extra:
-                                    ind_b = ind_b[:int(len(ind_b)/4)]
-
-                        indices += list(ind)
-                        if cbbl_extra:
-                            indices_b += list(ind_b)
-
-                        # mat_compress should be resized here according to the new indices
-                        ...............
+                                bin_max = int(len(ind)/4)
+                            ind = ind[:bin_max]
+                            ls = ls[:bin_max]
+                            cls = cls[:bin_max]
+                            if cbbl_extra:
+                                ind_b = ind_b[:bin_max]
 
                     # Symmetrize if needed. If symmetrize = True, the "ET" polarization
                     # is eliminated by the polarization list and the TE spectrum becomes
@@ -554,17 +543,17 @@ class _MFLike(InstallableLikelihood):
             p = m["pol"]
             w = m["bpw"]
 
-            if self.binned_mcm and m["pol"] == "ee":
+            if self.binned_mcm and p == "ee":
                 # build the [ee, eb, be, bb] array (or [ee, eb, bb] if t1 = t2)
                 # w.values has already the correct dimensions, sacc organized in the same way
                 dls_obs = np.zeros_like(w.values)
-                dls_obs[:self.l_bpws] = DlsObs["ee", m["t1"], m["t2"]]
-                dls_obs[self.l_bpws : 2*self.l_bpws] = DlsObs["eb", m["t1"], m["t2"]]
+                dls_obs[:len(self.l_bpws)] = DlsObs["ee", m["t1"], m["t2"]]
+                dls_obs[len(self.l_bpws) : 2*len(self.l_bpws)] = DlsObs["eb", m["t1"], m["t2"]]
                 if m["t1"] == m["t2"]:
-                    dls_obs[2*self.l_bpws : 3*self.l_bpws] = DlsObs["bb", m["t1"], m["t2"]]
+                    dls_obs[2*len(self.l_bpws) : 3*len(self.l_bpws)] = DlsObs["bb", m["t1"], m["t2"]]
                 else:
-                    dls_obs[2*self.l_bpws : 3*self.l_bpws] = DlsObs["eb", m["t2"], m["t1"]]
-                    dls_obs[3*self.l_bpws : 4*self.l_bpws] = DlsObs["bb", m["t1"], m["t2"]]
+                    dls_obs[2*len(self.l_bpws) : 3*len(self.l_bpws)] = DlsObs["eb", m["t2"], m["t1"]]
+                    dls_obs[3*len(self.l_bpws) : 4*len(self.l_bpws)] = DlsObs["bb", m["t1"], m["t2"]]
             else:
                 # If symmetrize = False, the (ET, exp1, exp2) spectrum
                 # will have the flag m["hasYX_xsp"] = True.
@@ -574,7 +563,8 @@ class _MFLike(InstallableLikelihood):
                 dls_obs = DlsObs[p, m["t2"], m["t1"]] if m["hasYX_xsp"] else DlsObs[p, m["t1"], m["t2"]]
 
             for i, nonzero, weights in zip(m["ids"], w.nonzeros, w.sliced_weights):
-                ps_vec[i] = weights @ dls_obs[nonzero]
+                # this selects the correct indices (the ones corresponding to EE only) even in the binned_mcm case
+                ps_vec[i] = weights @ dls_obs[nonzero]           
             # can check against unoptimized version
             # assert np.allclose(ps_vec[m["ids"]], np.dot(w.weight.T, dls_obs))
         return ps_vec
