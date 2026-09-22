@@ -538,8 +538,8 @@ class _MFLike(InstallableLikelihood):
         dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
         # fill the eb and bb key of the theory cl dictionary
         # the condition could also be (if "eb", "bb" in self.requested_cls)
-        if self.binned_mcm:
-            dls["eb"] = dls["tt"] * 0
+        if self.binned_mcm and "ee" in self.lcuts.keys():
+            dls["eb"] = np.zeros_like(dls["ee"])
             dls["bb"] = cl["bb"][self.l_bpws]
 
         dls_obs = self.get_modified_theory(dls, fg_totals, **params_values)
