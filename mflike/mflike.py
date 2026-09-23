@@ -311,6 +311,42 @@ class _MFLike(InstallableLikelihood):
                 dtype = "cl_22"
             return tname_1, tname_2, dtype
 
+        def check_spin2_block(s, tname_1, tname_2):
+            """
+            Lower level function to check whether spin-2 blocks have spectra
+            with the same length, as assumed throughout the code
+
+            :param s: the sacc data file
+            :param tname_1: frequency array of map 1
+            :param tname_2: frequency array of map 2
+            :param lmin: ell min for index selection
+            :param lmax: ell max for index selection          
+            """
+            dtype = "cl_22"  
+
+            # full, untruncated indices for this tracer pair + dtype (optionally scale-cut)
+            ind_full = s.indices(dtype, (tname_1, tname_2))
+
+            n = len(ind_full)
+            is_auto = (tname_1 == tname_2)
+            n_blocks = 3 if is_auto else 4
+            
+            if n % n_blocks != 0:
+                raise LoggedError(self.log, f"{tname_1}x{tname_2}: n={n} % n_blocks={n_blocks} != 0 ->  block isn't evenly divisible.")
+
+            bin_max = n // n_blocks
+
+            ls_full, _, _ = s.get_ell_cl(dtype, tname_1, tname_2, return_ind=True)
+            
+            blocks = [ls_full[k*bin_max:(k+1)*bin_max] for k in range(n_blocks)]
+            labels = ["EE", "EB", "BE", "BB"] if not is_auto else ["EE", "EB", "BB"]
+
+            for lab, b in zip(labels, blocks):
+                if not np.allclose(b, blocks[0]):
+                    raise LoggedError(self.log, f"{lab} sub-block doesn't share the same ell EE"
+                    "ordering, which is assumed throughout the code.")
+
+
         # First we trim the SACC file so it only contains
         # the parts of the data we care about.
         # Indices to be kept
@@ -340,6 +376,8 @@ class _MFLike(InstallableLikelihood):
                     if self.binned_mcm:
                         indices_22 += list(ind)
                         if pol == "EE" and "EB" not in pols and "BB" not in pols:
+                            # check that all blocks have the same number of bins, as assumed later
+                            check_spin2_block(s, tname_1, tname_2)
                             # selecting only the indices for EE, it's the spectrum we are going to use
                             if tname_1 == tname_2:
                                 ind = ind[:int(len(ind)/3)]
@@ -432,6 +470,14 @@ class _MFLike(InstallableLikelihood):
                         # The assumption here is that bandpower windows
                         # will all be sampled at the same ells.
                         self.l_bpws = ws.values
+                        # if the EE block is the first one and binned_mcm = True
+                        # just get the EE ell range
+                        if pol == "EE" and binned_mcm:
+                            if tname_1 == tname_2:
+                                ellr = int(len(self.l_bpws)/3)
+                            else:
+                                ellr = int(len(self.l_bpws)/4)
+                            self.l_bpws = self.l_bpws[:ellr]
 
                     if self.binned_mcm:
                         if pol == "EE" and "EB" not in pols and "BB" not in pols:
@@ -539,7 +585,7 @@ class _MFLike(InstallableLikelihood):
         # fill the eb and bb key of the theory cl dictionary
         # the condition could also be (if "eb", "bb" in self.requested_cls)
         if self.binned_mcm and "ee" in self.lcuts.keys():
-            dls["eb"] = np.zeros_like(dls["ee"])
+            dls["eb"] = np.zeros(len(dls["ee"]))
             dls["bb"] = cl["bb"][self.l_bpws]
 
         dls_obs = self.get_modified_theory(dls, fg_totals, **params_values)
@@ -555,7 +601,7 @@ class _MFLike(InstallableLikelihood):
             if self.binned_mcm and p == "ee":
                 # build the [ee, eb, be, bb] array (or [ee, eb, bb] if t1 = t2)
                 # w.values has already the correct dimensions, sacc organized in the same way
-                dls_obs = np.zeros_like(w.values)
+                dls_obs = np.zeros(len(w.values))
                 dls_obs[:len(self.l_bpws)] = DlsObs["ee", m["t1"], m["t2"]]
                 dls_obs[len(self.l_bpws) : 2*len(self.l_bpws)] = DlsObs["eb", m["t1"], m["t2"]]
                 if m["t1"] == m["t2"]:
@@ -573,9 +619,9 @@ class _MFLike(InstallableLikelihood):
 
             for i, nonzero, weights in zip(m["ids"], w.nonzeros, w.sliced_weights):
                 # this selects the correct indices (the ones corresponding to EE only) even in the binned_mcm case
-                ps_vec[i] = weights @ dls_obs[nonzero]           
-            # can check against unoptimized version
-            # assert np.allclose(ps_vec[m["ids"]], np.dot(w.weight.T, dls_obs))
+                ps_vec[i] = weights @ dls_obs[nonzero]   
+                
+            #assert np.allclose(ps_vec[m["ids"]], np.dot(w.weight.T, dls_obs)[:len(m["ids"])])
         return ps_vec
 
     def get_modified_theory(self, Dls: dict, fg_totals: list, **nuis_params) -> dict:
@@ -628,8 +674,7 @@ class _MFLike(InstallableLikelihood):
                 # now we add cmbfg_dict[p, m["t2"], m["t1"] and we average them
                 # as we do for our data
                 if self.defaults["symmetrize"]:
-                    dls_dict[p, m["t1"], m["t2"]] += cmbfg_dict[p, m["t2"], m["t1"]]
-                    dls_dict[p, m["t1"], m["t2"]] *= 0.5
+                    dls_dict[p, m["t1"], m["t2"]] = 0.5 * (cmbfg_dict[p, m["t1"], m["t2"]] + cmbfg_dict[p, m["t2"], m["t1"]])
             
             if self.binned_mcm and p == "ee":
                 # read also the "eb" and "bb" theory spectra
