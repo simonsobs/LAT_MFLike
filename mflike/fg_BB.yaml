@@ -1,0 +1,15 @@
+a_gbb:
+  prior:
+    max: 5.
+    min: 0.0
+  proposal: 0.0006
+  latex: a_\mathrm{dust}^\mathrm{BB}
+a_psbb:
+  prior:
+    min: 0
+    max: +1
+  proposal: 0.05
+  latex: a_\mathrm{ps}^\mathrm{BB}
+alpha_dB:             #galactic dust ell slope for E
+  value: -0.4
+  latex: \alpha_{\mathrm{dust},B}
