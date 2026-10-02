@@ -109,6 +109,9 @@ class _MFLike(InstallableLikelihood):
         self._constant_nuisance: dict | None = None
         self.log.info("Initialized!")
 
+        # binned_mcm makes sense only if "ee" is in requested_cls
+        self.binned_mcm = (self.binned_mcm and "ee" in self.requested_cls)
+
         # adding "eb" and "bb" to requested cls for binned_mcm
         if self.binned_mcm:
             if "eb" not in self.requested_cls and "bb" not in self.requested_cls:
@@ -131,18 +134,18 @@ class _MFLike(InstallableLikelihood):
 
         :return: the dictionary of theory :math:`D_{\ell}` and foregrounds
         """
-        if not self.binned_mcm:
-            return {
-                "fg_totals": self.get_fg_requirements(),
-                "Cl": {k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()},
-            }
-        else:
+        if self.binned_mcm:
             cl_dict = {k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()}
             # Boltzmann solver has to return "bb" too, even if not in self.lcuts
             cl_dict["bb"] = max(self.lcuts["ee"], self.lmax_theory + 1)
             return {
                 "fg_totals": self.get_fg_requirements(),
                 "Cl": cl_dict,
+            }
+        else:
+            return {
+                "fg_totals": self.get_fg_requirements(),
+                "Cl": {k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()},
             }
 
 
@@ -361,6 +364,7 @@ class _MFLike(InstallableLikelihood):
         len_compressed = 0
         for spectrum in data["spectra"]:
             exp_1, exp_2, pols, scls, symm = get_cl_meta(spectrum)
+            check_no_EB_BB_in_pols = not any(p in pols for p in ("EB", "BB"))
             for pol in pols:
                 # if binned_mcm, pols in ["EE", "EB", "BE", "BB"] correspond to the same dtype = "cl_22"
                 # only reading the spectra/indices/etc for the "EE" case
@@ -375,7 +379,7 @@ class _MFLike(InstallableLikelihood):
                     )  # Scale cuts
                     if self.binned_mcm:
                         indices_22 += list(ind)
-                        if pol == "EE" and "EB" not in pols and "BB" not in pols:
+                        if pol == "EE" and check_no_EB_BB_in_pols:
                             # check that all blocks have the same number of bins, as assumed later
                             check_spin2_block(s, tname_1, tname_2)
                             # selecting only the indices for EE, it's the spectrum we are going to use
@@ -390,7 +394,7 @@ class _MFLike(InstallableLikelihood):
                         ind_b = s_b.indices(dtype, (tname_1, tname_2), ell__gt=lmin, ell__lt=lmax)
                         if self.binned_mcm:
                             indicesb_22 += list(ind_b)
-                            if pol == "EE" and "EB" not in pols and "BB" not in pols:
+                            if pol == "EE" and check_no_EB_BB_in_pols:
                                 # selecting only the indices for EE, it's the spectrum we are going to use
                                 if tname_1 == tname_2:
                                     ind_b = ind_b[:int(len(ind_b)/3)]
@@ -443,6 +447,7 @@ class _MFLike(InstallableLikelihood):
 
         for spectrum in data["spectra"]:
             exp_1, exp_2, pols, scls, symm = get_cl_meta(spectrum)
+            check_no_EB_BB_in_pols = not any(p in pols for p in ("EB", "BB"))
             for k in scls.keys():
                 self.lcuts[k] = max(self.lcuts[k], scls[k][1])
             for pol in pols:
@@ -472,7 +477,7 @@ class _MFLike(InstallableLikelihood):
                         self.l_bpws = ws.values
                         # if the EE block is the first one and binned_mcm = True
                         # just get the EE ell range
-                        if pol == "EE" and binned_mcm:
+                        if pol == "EE" and self.binned_mcm:
                             if tname_1 == tname_2:
                                 ellr = int(len(self.l_bpws)/3)
                             else:
@@ -480,7 +485,7 @@ class _MFLike(InstallableLikelihood):
                             self.l_bpws = self.l_bpws[:ellr]
 
                     if self.binned_mcm:
-                        if pol == "EE" and "EB" not in pols and "BB" not in pols:
+                        if pol == "EE" and check_no_EB_BB_in_pols:
                             # selecting only the indices for EE, it's the spectrum we are going to use
                             # mat_compressed below has already a shape accounting for the EE only case
                             if tname_1 == tname_2:
@@ -584,7 +589,7 @@ class _MFLike(InstallableLikelihood):
         dls = {s: cl[s][self.l_bpws] for s, _ in self.lcuts.items()}
         # fill the eb and bb key of the theory cl dictionary
         # the condition could also be (if "eb", "bb" in self.requested_cls)
-        if self.binned_mcm and "ee" in self.lcuts.keys():
+        if self.binned_mcm:
             dls["eb"] = np.zeros(len(dls["ee"]))
             dls["bb"] = cl["bb"][self.l_bpws]
 
@@ -751,19 +756,23 @@ class _MFLike(InstallableLikelihood):
 
         cal_pars = {}
         calG_all = 1 / nuis_params["calG_all"]
-        if "tt" in self.requested_cls or "te" in self.requested_cls or "tb" in self.requested_cls:
+        request_T = any(r in self.requested_cls for r in ("tt", "te", "tb"))
+        request_E = any(r in self.requested_cls for r in ("ee", "te", "eb"))
+        request_B = any(r in self.requested_cls for r in ("eb", "tb", "bb"))
+
+        if request_T:
             cal_pars["t"] = {
                 exp: calG_all / (nuis_params[f"cal_{exp}"] * nuis_params.get(f"calT_{exp}", 1))
                 for exp in self.experiments
             }
 
-        if "ee" in self.requested_cls or "te" in self.requested_cls or "eb" in self.requested_cls:
+        if request_E:
             cal_pars["e"] = {
                 exp: calG_all / (nuis_params[f"cal_{exp}"] * nuis_params[f"poleff_{exp}"])
                 for exp in self.experiments
             }
 
-        if "bb" in self.requested_cls or "eb" in self.requested_cls or "tb" in self.requested_cls:
+        if request_B:
             cal_pars["b"] = {
                 exp: calG_all / (nuis_params[f"cal_{exp}"] * nuis_params[f"poleff_{exp}"])
                 for exp in self.experiments
