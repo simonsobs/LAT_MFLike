@@ -110,12 +110,12 @@ class _MFLike(InstallableLikelihood):
         self.log.info("Initialized!")
 
         # binned_mcm makes sense only if "ee" is in requested_cls
-        self.binned_mcm = (self.binned_mcm and "ee" in self.requested_cls)
+        self.binned_mcm = self.binned_mcm and "ee" in self.requested_cls
 
         # adding "eb" and "bb" to requested cls for binned_mcm
         if self.binned_mcm:
             if "eb" not in self.requested_cls and "bb" not in self.requested_cls:
-                self.requested_cls += ["eb", "bb"] 
+                self.requested_cls += ["eb", "bb"]
 
     def get_fg_requirements(self) -> dict:
         return {
@@ -147,7 +147,6 @@ class _MFLike(InstallableLikelihood):
                 "fg_totals": self.get_fg_requirements(),
                 "Cl": {k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()},
             }
-
 
     def logp(self, **params_values) -> float:
         cl = self.provider.get_Cl(ell_factor=True)
@@ -309,7 +308,7 @@ class _MFLike(InstallableLikelihood):
                 dtype = "cl_" + pol_dict[p2] + pol_dict[p1]
             else:
                 dtype = "cl_" + pol_dict[p1] + pol_dict[p2]
-            
+
             if self.binned_mcm and p1 in ["E", "B"] and p2 in ["E", "B"]:
                 dtype = "cl_22"
             return tname_1, tname_2, dtype
@@ -323,32 +322,37 @@ class _MFLike(InstallableLikelihood):
             :param tname_1: frequency array of map 1
             :param tname_2: frequency array of map 2
             :param lmin: ell min for index selection
-            :param lmax: ell max for index selection          
+            :param lmax: ell max for index selection
             """
-            dtype = "cl_22"  
+            dtype = "cl_22"
 
             # full, untruncated indices for this tracer pair + dtype (optionally scale-cut)
             ind_full = s.indices(dtype, (tname_1, tname_2))
 
             n = len(ind_full)
-            is_auto = (tname_1 == tname_2)
+            is_auto = tname_1 == tname_2
             n_blocks = 3 if is_auto else 4
-            
+
             if n % n_blocks != 0:
-                raise LoggedError(self.log, f"{tname_1}x{tname_2}: n={n} % n_blocks={n_blocks} != 0 ->  block isn't evenly divisible.")
+                raise LoggedError(
+                    self.log,
+                    f"{tname_1}x{tname_2}: n={n} % n_blocks={n_blocks} != 0 ->  block isn't evenly divisible.",
+                )
 
             bin_max = n // n_blocks
 
             ls_full, _, _ = s.get_ell_cl(dtype, tname_1, tname_2, return_ind=True)
-            
-            blocks = [ls_full[k*bin_max:(k+1)*bin_max] for k in range(n_blocks)]
+
+            blocks = [ls_full[k * bin_max : (k + 1) * bin_max] for k in range(n_blocks)]
             labels = ["EE", "EB", "BE", "BB"] if not is_auto else ["EE", "EB", "BB"]
 
             for lab, b in zip(labels, blocks):
                 if not np.allclose(b, blocks[0]):
-                    raise LoggedError(self.log, f"{lab} sub-block doesn't share the same ell EE"
-                    "ordering, which is assumed throughout the code.")
-
+                    raise LoggedError(
+                        self.log,
+                        f"{lab} sub-block doesn't share the same ell EE"
+                        "ordering, which is assumed throughout the code.",
+                    )
 
         # First we trim the SACC file so it only contains
         # the parts of the data we care about.
@@ -384,9 +388,9 @@ class _MFLike(InstallableLikelihood):
                             check_spin2_block(s, tname_1, tname_2)
                             # selecting only the indices for EE, it's the spectrum we are going to use
                             if tname_1 == tname_2:
-                                ind = ind[:int(len(ind)/3)]
+                                ind = ind[: int(len(ind) / 3)]
                             else:
-                                ind = ind[:int(len(ind)/4)]
+                                ind = ind[: int(len(ind) / 4)]
                     indices += list(ind)
 
                     # Note that data in the cov_Bbl file may be in different order.
@@ -397,9 +401,9 @@ class _MFLike(InstallableLikelihood):
                             if pol == "EE" and check_no_EB_BB_in_pols:
                                 # selecting only the indices for EE, it's the spectrum we are going to use
                                 if tname_1 == tname_2:
-                                    ind_b = ind_b[:int(len(ind_b)/3)]
+                                    ind_b = ind_b[: int(len(ind_b) / 3)]
                                 else:
-                                    ind_b = ind_b[:int(len(ind_b)/4)]
+                                    ind_b = ind_b[: int(len(ind_b) / 4)]
                         indices_b += list(ind_b)
 
                     if symm and pol in ["ET", "BE", "BT"]:
@@ -468,7 +472,8 @@ class _MFLike(InstallableLikelihood):
                     )
                     ws.nonzeros = [slice(i[0], i[1] + 1) for i in nonzeros]
                     ws.sliced_weights = [
-                        np.ascontiguousarray(ws.weight[ws.nonzeros[i], i]) for i in range(len(nonzeros))
+                        np.ascontiguousarray(ws.weight[ws.nonzeros[i], i])
+                        for i in range(len(nonzeros))
                     ]
 
                     if self.l_bpws is None:
@@ -479,9 +484,9 @@ class _MFLike(InstallableLikelihood):
                         # just get the EE ell range
                         if pol == "EE" and self.binned_mcm:
                             if tname_1 == tname_2:
-                                ellr = int(len(self.l_bpws)/3)
+                                ellr = int(len(self.l_bpws) / 3)
                             else:
-                                ellr = int(len(self.l_bpws)/4)
+                                ellr = int(len(self.l_bpws) / 4)
                             self.l_bpws = self.l_bpws[:ellr]
 
                     if self.binned_mcm:
@@ -489,9 +494,9 @@ class _MFLike(InstallableLikelihood):
                             # selecting only the indices for EE, it's the spectrum we are going to use
                             # mat_compressed below has already a shape accounting for the EE only case
                             if tname_1 == tname_2:
-                                bin_max = int(len(ind)/3)
+                                bin_max = int(len(ind) / 3)
                             else:
-                                bin_max = int(len(ind)/4)
+                                bin_max = int(len(ind) / 4)
                             ind = ind[:bin_max]
                             ls = ls[:bin_max]
                             cls = cls[:bin_max]
@@ -607,26 +612,34 @@ class _MFLike(InstallableLikelihood):
                 # build the [ee, eb, be, bb] array (or [ee, eb, bb] if t1 = t2)
                 # w.values has already the correct dimensions, sacc organized in the same way
                 dls_obs = np.zeros(len(w.values))
-                dls_obs[:len(self.l_bpws)] = DlsObs["ee", m["t1"], m["t2"]]
-                dls_obs[len(self.l_bpws) : 2*len(self.l_bpws)] = DlsObs["eb", m["t1"], m["t2"]]
+                dls_obs[: len(self.l_bpws)] = DlsObs["ee", m["t1"], m["t2"]]
+                dls_obs[len(self.l_bpws) : 2 * len(self.l_bpws)] = DlsObs["eb", m["t1"], m["t2"]]
                 if m["t1"] == m["t2"]:
-                    dls_obs[2*len(self.l_bpws) : 3*len(self.l_bpws)] = DlsObs["bb", m["t1"], m["t2"]]
+                    dls_obs[2 * len(self.l_bpws) : 3 * len(self.l_bpws)] = DlsObs[
+                        "bb", m["t1"], m["t2"]
+                    ]
                 else:
-                    dls_obs[2*len(self.l_bpws) : 3*len(self.l_bpws)] = DlsObs["eb", m["t2"], m["t1"]]
-                    dls_obs[3*len(self.l_bpws) : 4*len(self.l_bpws)] = DlsObs["bb", m["t1"], m["t2"]]
+                    dls_obs[2 * len(self.l_bpws) : 3 * len(self.l_bpws)] = DlsObs[
+                        "eb", m["t2"], m["t1"]
+                    ]
+                    dls_obs[3 * len(self.l_bpws) : 4 * len(self.l_bpws)] = DlsObs[
+                        "bb", m["t1"], m["t2"]
+                    ]
             else:
                 # If symmetrize = False, the (ET, exp1, exp2) spectrum
                 # will have the flag m["hasYX_xsp"] = True.
                 # In this case, the power spectrum
                 # is computed as DlsObs["te", m["t2"], m["t1"]], to associate
                 # T --> exp2, E --> exp1
-                dls_obs = DlsObs[p, m["t2"], m["t1"]] if m["hasYX_xsp"] else DlsObs[p, m["t1"], m["t2"]]
+                dls_obs = (
+                    DlsObs[p, m["t2"], m["t1"]] if m["hasYX_xsp"] else DlsObs[p, m["t1"], m["t2"]]
+                )
 
             for i, nonzero, weights in zip(m["ids"], w.nonzeros, w.sliced_weights):
                 # this selects the correct indices (the ones corresponding to EE only) even in the binned_mcm case
-                ps_vec[i] = weights @ dls_obs[nonzero]   
-                
-            #assert np.allclose(ps_vec[m["ids"]], np.dot(w.weight.T, dls_obs)[:len(m["ids"])])
+                ps_vec[i] = weights @ dls_obs[nonzero]
+
+            # assert np.allclose(ps_vec[m["ids"]], np.dot(w.weight.T, dls_obs)[:len(m["ids"])])
         return ps_vec
 
     def get_modified_theory(self, Dls: dict, fg_totals: list, **nuis_params) -> dict:
@@ -679,8 +692,10 @@ class _MFLike(InstallableLikelihood):
                 # now we add cmbfg_dict[p, m["t2"], m["t1"] and we average them
                 # as we do for our data
                 if self.defaults["symmetrize"]:
-                    dls_dict[p, m["t1"], m["t2"]] = 0.5 * (cmbfg_dict[p, m["t1"], m["t2"]] + cmbfg_dict[p, m["t2"], m["t1"]])
-            
+                    dls_dict[p, m["t1"], m["t2"]] = 0.5 * (
+                        cmbfg_dict[p, m["t1"], m["t2"]] + cmbfg_dict[p, m["t2"], m["t1"]]
+                    )
+
             if self.binned_mcm and p == "ee":
                 # read also the "eb" and "bb" theory spectra
                 # "eb" and "bb" would not be in self.spec_meta so we need to fill the dict by hand

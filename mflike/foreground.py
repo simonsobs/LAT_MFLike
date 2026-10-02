@@ -222,15 +222,17 @@ class Foreground(Theory):
         )
         binned_mcm = input_options.get("binned_mcm", False) or defaults.get("binned_mcm", False)
         # binned_mcm does not make sense if "ee" not in requested_cls, imposing it to be False
-        binned_mcm = (binned_mcm and "ee" in requested_cls)
-        
+        binned_mcm = binned_mcm and "ee" in requested_cls
+
         if binned_mcm:
             requested_cls += ["eb", "bb"]
 
         for spec in requested_cls:
             # not modeling eb fg so far
             if spec != "eb":
-                defaults["params"] |= yaml_load(cls.get_text_file_content("fg_%s.yaml" % spec.upper()))
+                defaults["params"] |= yaml_load(
+                    cls.get_text_file_content("fg_%s.yaml" % spec.upper())
+                )
         return defaults
 
     # Initializes the foreground model. It sets the SED and reads the templates
@@ -426,7 +428,7 @@ class Foreground(Theory):
                 },
                 {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
             )
-        
+
         if "bb" in self.requested_cls:
             model["bb", "radio"] = fg_params["a_psbb"] * self.radio(
                 {"nu": self.bandint_freqs_P, "nu_0": nu_0, "beta": fg_params["beta_s"]},
@@ -434,8 +436,12 @@ class Foreground(Theory):
             )
 
             model["bb", "dust"] = fg_params["a_gbb"] * self.dust(
-                {"nu": self.bandint_freqs_P, "nu_0": nu_0, "temp": fg_params["T_effd"],
-                    "beta": fg_params["beta_d"]},
+                {
+                    "nu": self.bandint_freqs_P,
+                    "nu_0": nu_0,
+                    "temp": fg_params["T_effd"],
+                    "beta": fg_params["beta_d"],
+                },
                 {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dB"]},
             )
 
@@ -447,14 +453,22 @@ class Foreground(Theory):
             )
 
             model["tb", "dust"] = fg_params["a_gtb"] * self.dustTE(
-                {"nu": self.bandint_freqs_T, "nu_0": nu_0, "temp": fg_params["T_effd"],
-                    "beta": fg_params["beta_d"]},
-                {"nu": self.bandint_freqs_P, "nu_0": nu_0, "temp": fg_params["T_effd"],
-                    "beta": fg_params["beta_d"]},
+                {
+                    "nu": self.bandint_freqs_T,
+                    "nu_0": nu_0,
+                    "temp": fg_params["T_effd"],
+                    "beta": fg_params["beta_d"],
+                },
+                {
+                    "nu": self.bandint_freqs_P,
+                    "nu_0": nu_0,
+                    "temp": fg_params["T_effd"],
+                    "beta": fg_params["beta_d"],
+                },
                 {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dB"]},
             )
 
-        #if "eb" in self.requested_cls:
+        # if "eb" in self.requested_cls:
         #    ... no model for now
 
         return model
@@ -487,24 +501,20 @@ class Foreground(Theory):
         fg_dict = {}
         for c1, exp1 in enumerate(experiments):
             for c2, exp2 in enumerate(experiments):
-                for s in self.requested_cls:    
-                    if s == "eb":
-                        # modeling it as no FG as done in PSpipe for now
-                        fg_dict["eb", "all", exp1, exp2] = np.zeros(len(ell))
-                    else:
-                        sum_all = np.zeros(len(ell))
-                        for comp in self.fg_component_list[s]:
-                            term = model[s, comp][c1, c2]
-                            if comp == "tSZ_and_CIB":
-                                fg_dict[s, "tSZ", exp1, exp2] = model[s, "tSZ"][c1, c2]
-                                fg_dict[s, "cibc", exp1, exp2] = model[s, "cibc"][c1, c2]
-                                fg_dict[s, "tSZxCIB", exp1, exp2] = (
-                                    term - model[s, "tSZ"][c1, c2] - model[s, "cibc"][c1, c2]
-                                )
-                            else:
-                                fg_dict[s, comp, exp1, exp2] = term
-                            sum_all += term
-                        fg_dict[s, "all", exp1, exp2] = sum_all
+                for s in self.requested_cls:
+                    sum_all = np.zeros(len(ell))
+                    for comp in self.fg_component_list[s]:
+                        term = model[s, comp][c1, c2]
+                        if comp == "tSZ_and_CIB":
+                            fg_dict[s, "tSZ", exp1, exp2] = model[s, "tSZ"][c1, c2]
+                            fg_dict[s, "cibc", exp1, exp2] = model[s, "cibc"][c1, c2]
+                            fg_dict[s, "tSZxCIB", exp1, exp2] = (
+                                term - model[s, "tSZ"][c1, c2] - model[s, "cibc"][c1, c2]
+                            )
+                        else:
+                            fg_dict[s, comp, exp1, exp2] = term
+                        sum_all += term
+                    fg_dict[s, "all", exp1, exp2] = sum_all
         return fg_dict
 
     def calculate(self, state, want_derived=False, **params_values_dict):
@@ -532,11 +542,15 @@ class Foreground(Theory):
         # get total foregrounds; model is dictionary of arrays for each frequency combo
         model = self._get_foreground_model_arrays(params_values_dict)
         fg_tot = []
-        for s in (requested_cl if requested_cl else self.requested_cls):
+        for s in requested_cl if requested_cl else self.requested_cls:
             if s != "eb":
-                fg_tot.append(np.sum([model[s, comp] for comp in self.fg_component_list[s]], axis=0))
+                fg_tot.append(
+                    np.sum([model[s, comp] for comp in self.fg_component_list[s]], axis=0)
+                )
             else:
-                fg_tot.append(np.zeros((len(self.experiments), len(self.experiments), len(self.ells))))
+                fg_tot.append(
+                    np.zeros((len(self.experiments), len(self.experiments), len(self.ells)))
+                )
         return fg_tot
 
     def get_fg_totals(self) -> dict:
