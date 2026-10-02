@@ -336,7 +336,8 @@ class _MFLike(InstallableLikelihood):
             if n % n_blocks != 0:
                 raise LoggedError(
                     self.log,
-                    f"{tname_1}x{tname_2}: n={n} % n_blocks={n_blocks} != 0 ->  block isn't evenly divisible.",
+                    f"{tname_1}x{tname_2}: n={n} % n_blocks={n_blocks} != 0 " \
+                    "->  block isn't evenly divisible.",
                 )
 
             bin_max = n // n_blocks
@@ -370,7 +371,8 @@ class _MFLike(InstallableLikelihood):
             exp_1, exp_2, pols, scls, symm = get_cl_meta(spectrum)
             check_no_EB_BB_in_pols = not any(p in pols for p in ("EB", "BB"))
             for pol in pols:
-                # if binned_mcm, pols in ["EE", "EB", "BE", "BB"] correspond to the same dtype = "cl_22"
+                # if binned_mcm, pols in ["EE", "EB", "BE", "BB"] correspond 
+                # to the same dtype = "cl_22"
                 # only reading the spectra/indices/etc for the "EE" case
                 if not self.binned_mcm or (self.binned_mcm and pol not in ["EB", "BE", "BB"]):
                     tname_1, tname_2, dtype = get_sacc_names(pol, exp_1, exp_2)
@@ -384,9 +386,11 @@ class _MFLike(InstallableLikelihood):
                     if self.binned_mcm:
                         indices_22 += list(ind)
                         if pol == "EE" and check_no_EB_BB_in_pols:
-                            # check that all blocks have the same number of bins, as assumed later
+                            # check that all blocks have the same number of bins, 
+                            # as assumed later
                             check_spin2_block(s, tname_1, tname_2)
-                            # selecting only the indices for EE, it's the spectrum we are going to use
+                            # selecting only the indices for EE, 
+                            # it's the spectrum we are going to use
                             if tname_1 == tname_2:
                                 ind = ind[: int(len(ind) / 3)]
                             else:
@@ -399,7 +403,8 @@ class _MFLike(InstallableLikelihood):
                         if self.binned_mcm:
                             indicesb_22 += list(ind_b)
                             if pol == "EE" and check_no_EB_BB_in_pols:
-                                # selecting only the indices for EE, it's the spectrum we are going to use
+                                # selecting only the indices for EE, 
+                                # it's the spectrum we are going to use
                                 if tname_1 == tname_2:
                                     ind_b = ind_b[: int(len(ind_b) / 3)]
                                 else:
@@ -491,8 +496,8 @@ class _MFLike(InstallableLikelihood):
 
                     if self.binned_mcm:
                         if pol == "EE" and check_no_EB_BB_in_pols:
-                            # selecting only the indices for EE, it's the spectrum we are going to use
-                            # mat_compressed below has already a shape accounting for the EE only case
+                            # selecting only the indices for EE, it's the  only spectrum to use
+                            # mat_compressed has already a shape accounting for the EE only case
                             if tname_1 == tname_2:
                                 bin_max = int(len(ind) / 3)
                             else:
@@ -636,7 +641,8 @@ class _MFLike(InstallableLikelihood):
                 )
 
             for i, nonzero, weights in zip(m["ids"], w.nonzeros, w.sliced_weights):
-                # this selects the correct indices (the ones corresponding to EE only) even in the binned_mcm case
+                # this selects the correct indices (the ones corresponding to EE only) 
+                # even in the binned_mcm case
                 ps_vec[i] = weights @ dls_obs[nonzero]
 
             # assert np.allclose(ps_vec[m["ids"]], np.dot(w.weight.T, dls_obs)[:len(m["ids"])])
