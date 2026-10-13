@@ -225,8 +225,8 @@ class Foreground(Theory):
         binned_mcm = binned_mcm and "ee" in requested_cls
 
         if binned_mcm:
-            requested_cls += ["eb", "bb"]
-
+            requested_cls = list(dict.fromkeys([*requested_cls, "eb", "bb"]))
+        
         for spec in requested_cls:
             # not modeling eb fg so far
             if spec != "eb":
@@ -245,6 +245,10 @@ class Foreground(Theory):
         from fgspectra import cross as fgc
         from fgspectra import frequency as fgf
         from fgspectra import power as fgp
+
+        self.binned_mcm = self.binned_mcm and "ee" in self.requested_cls
+        if self.binned_mcm:
+            self.requested_cls = list(dict.fromkeys([*self.requested_cls, "eb", "bb"]))
 
         if self.binned_mcm:
             self.components["bb"] = ["radio", "dust"]

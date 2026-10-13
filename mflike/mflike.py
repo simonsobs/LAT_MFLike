@@ -114,9 +114,8 @@ class _MFLike(InstallableLikelihood):
 
         # adding "eb" and "bb" to requested cls for binned_mcm
         if self.binned_mcm:
-            if "eb" not in self.requested_cls and "bb" not in self.requested_cls:
-                self.requested_cls += ["eb", "bb"]
-
+            self.requested_cls = list(dict.fromkeys([*self.requested_cls, "eb", "bb"]))
+        
     def get_fg_requirements(self) -> dict:
         return {
             "ells": self.l_bpws,
@@ -336,7 +335,7 @@ class _MFLike(InstallableLikelihood):
             if n % n_blocks != 0:
                 raise LoggedError(
                     self.log,
-                    f"{tname_1}x{tname_2}: n={n} % n_blocks={n_blocks} != 0 " \
+                    f"{tname_1}x{tname_2}: n={n} % n_blocks={n_blocks} != 0 "
                     "->  block isn't evenly divisible.",
                 )
 
@@ -371,7 +370,7 @@ class _MFLike(InstallableLikelihood):
             exp_1, exp_2, pols, scls, symm = get_cl_meta(spectrum)
             check_no_EB_BB_in_pols = not any(p in pols for p in ("EB", "BB"))
             for pol in pols:
-                # if binned_mcm, pols in ["EE", "EB", "BE", "BB"] correspond 
+                # if binned_mcm, pols in ["EE", "EB", "BE", "BB"] correspond
                 # to the same dtype = "cl_22"
                 # only reading the spectra/indices/etc for the "EE" case
                 if not self.binned_mcm or (self.binned_mcm and pol not in ["EB", "BE", "BB"]):
@@ -386,10 +385,10 @@ class _MFLike(InstallableLikelihood):
                     if self.binned_mcm:
                         indices_22 += list(ind)
                         if pol == "EE" and check_no_EB_BB_in_pols:
-                            # check that all blocks have the same number of bins, 
+                            # check that all blocks have the same number of bins,
                             # as assumed later
                             check_spin2_block(s, tname_1, tname_2)
-                            # selecting only the indices for EE, 
+                            # selecting only the indices for EE,
                             # it's the spectrum we are going to use
                             if tname_1 == tname_2:
                                 ind = ind[: int(len(ind) / 3)]
@@ -403,7 +402,7 @@ class _MFLike(InstallableLikelihood):
                         if self.binned_mcm:
                             indicesb_22 += list(ind_b)
                             if pol == "EE" and check_no_EB_BB_in_pols:
-                                # selecting only the indices for EE, 
+                                # selecting only the indices for EE,
                                 # it's the spectrum we are going to use
                                 if tname_1 == tname_2:
                                     ind_b = ind_b[: int(len(ind_b) / 3)]
@@ -641,7 +640,7 @@ class _MFLike(InstallableLikelihood):
                 )
 
             for i, nonzero, weights in zip(m["ids"], w.nonzeros, w.sliced_weights):
-                # this selects the correct indices (the ones corresponding to EE only) 
+                # this selects the correct indices (the ones corresponding to EE only)
                 # even in the binned_mcm case
                 ps_vec[i] = weights @ dls_obs[nonzero]
 
