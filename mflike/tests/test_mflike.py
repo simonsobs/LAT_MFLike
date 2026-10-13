@@ -18,6 +18,82 @@ cosmo_params = {
     "tau": 0.0544,
 }
 
+nuisance_params_common = {
+    "bandint_shift_LAT_93": 0,
+    "bandint_shift_LAT_145": 0,
+    "bandint_shift_LAT_225": 0,
+    "cal_LAT_93": 1,
+    "cal_LAT_145": 1,
+    "cal_LAT_225": 1,
+    "calG_all": 1,
+    "alpha_LAT_93": 0,
+    "alpha_LAT_145": 0,
+    "alpha_LAT_225": 0,
+}
+
+TT_nuis_params = {
+    "calT_LAT_93": 1,
+    "calT_LAT_145": 1,
+    "calT_LAT_225": 1,
+}
+
+pol_nuis_params = {
+    "poleff_LAT_93": 1,
+    "poleff_LAT_145": 1,
+    "poleff_LAT_225": 1,
+}
+
+common_fg_params = {
+    "T_effd": 19.6,
+    "beta_d": 1.5,
+    "beta_s": -2.5,
+    "alpha_s": 1,
+}
+
+TT_fg_params = {
+    "a_tSZ": 3.30,
+    "a_kSZ": 1.60,
+    "a_p": 6.90,
+    "beta_p": 2.20,
+    "a_c": 4.90,
+    "beta_c": 2.20,
+    "a_s": 3.10,
+    "T_d": 9.60,
+    "a_gtt": 2.80,
+    "xi": 0.10,
+    "alpha_dT": -0.6,
+    "alpha_p": 1,
+    "alpha_tSZ": 0.0,
+}
+
+TE_fg_params = {
+    "a_gte": 0.10,
+    "a_pste": 0,
+    "alpha_dE": -0.4,
+}
+
+EE_fg_params = {
+    "a_gee": 0.10,
+    "a_psee": 0,
+    "alpha_dE": -0.4,
+}
+
+BB_fg_params = {
+    'a_gbb': 0., 
+    'a_psbb': 0, 
+    "alpha_dB": -0.4
+}
+
+cosmo_params = {
+    "cosmomc_theta": 0.0104092,
+    "As": 2.0989031673191437e-09,
+    "ombh2": 0.02237,
+    "omch2": 0.1200,
+    "ns": 0.9649,
+    "Alens": 1.0,
+    "tau": 0.0544,
+}
+
 common_nuis_params = {
     "T_effd": 19.6,
     "beta_d": 1.5,
@@ -33,40 +109,6 @@ common_nuis_params = {
     "alpha_LAT_93": 0,
     "alpha_LAT_145": 0,
     "alpha_LAT_225": 0,
-}
-
-TT_nuis_params = {
-    "a_tSZ": 3.30,
-    "a_kSZ": 1.60,
-    "a_p": 6.90,
-    "beta_p": 2.20,
-    "a_c": 4.90,
-    "beta_c": 2.20,
-    "a_s": 3.10,
-    "T_d": 9.60,
-    "a_gtt": 2.80,
-    "xi": 0.10,
-    "alpha_dT": -0.6,
-    "alpha_p": 1,
-    "alpha_tSZ": 0.0,
-    "calT_LAT_93": 1,
-    "calT_LAT_145": 1,
-    "calT_LAT_225": 1,
-}
-
-TE_nuis_params = {
-    "a_gte": 0.10,
-    "a_pste": 0,
-    "alpha_dE": -0.4,
-}
-
-EE_nuis_params = {
-    "a_gee": 0.10,
-    "a_psee": 0,
-    "alpha_dE": -0.4,
-    "calE_LAT_93": 1,
-    "calE_LAT_145": 1,
-    "calE_LAT_225": 1,
 }
 
 chi2s = {
@@ -93,7 +135,11 @@ class MFLikeTest(unittest.TestCase):
         # using camb low accuracy parameters for the test
         camb_cosmo = cosmo_params | {"lmax": 9001, "lens_potential_accuracy": 1}
         pars = camb.set_params(**camb_cosmo)
-        nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
+
+        nuisance_params = nuisance_params_common | TT_nuis_params | pol_nuis_params
+        fg_params = common_fg_params | TT_fg_params | TE_fg_params | EE_fg_params
+        nuis_params = nuisance_params | fg_params
+
         results = camb.get_results(pars)
         powers = results.get_cmb_power_spectra(pars, CMB_unit="muK")
         cl_dict = {k: powers["total"][:, v] for k, v in {"tt": 0, "ee": 1, "te": 3}.items()}
@@ -113,6 +159,7 @@ class MFLikeTest(unittest.TestCase):
                         },
                         "symmetrize": False,
                     },
+                    "params": nuisance_params,
                 }
             )
             fg = BandpowerForeground(my_mflike.get_fg_requirements())
@@ -122,18 +169,21 @@ class MFLikeTest(unittest.TestCase):
             self.assertAlmostEqual(-2 * (loglike - my_mflike.logp_const), chi2, 2)
 
     def test_cobaya_TT(self):
-        nuis_params = common_nuis_params | TT_nuis_params
-        nuis_params = {k: v for k, v in nuis_params.items() if "calE" not in k}
+        nuisance_params = nuisance_params_common | TT_nuis_params
+        fg_params = common_fg_params | TT_fg_params
+        nuis_params = nuisance_params | fg_params
+
         info = {
             "likelihood": {
                 "mflike.TT": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                    "params": nuisance_params,
                 },
             },
             "theory": {
                 "camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                "mflike.BandpowerForeground": {"requested_cls": ["tt"]},
+                "mflike.BandpowerForeground": {"requested_cls": ["tt"], "params": fg_params},
             },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
@@ -145,17 +195,21 @@ class MFLikeTest(unittest.TestCase):
         self.assertAlmostEqual(chi2, chi2s["tt"], 2)
 
     def test_cobaya_TE(self):
-        nuis_params = common_nuis_params | TE_nuis_params
+        nuisance_params = nuisance_params_common | TT_nuis_params | pol_nuis_params
+        fg_params = common_fg_params | TE_fg_params
+        nuis_params = nuisance_params | fg_params
+
         info = {
             "likelihood": {
                 "mflike.TE": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                    "params": nuisance_params,
                 },
             },
             "theory": {
                 "camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                "mflike.BandpowerForeground": {"requested_cls": ["te"]},
+                "mflike.BandpowerForeground": {"requested_cls": ["te"], "params": fg_params},
             },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
@@ -167,17 +221,21 @@ class MFLikeTest(unittest.TestCase):
         self.assertAlmostEqual(chi2, chi2s["te-et"], 2)
 
     def test_cobaya_EE(self):
-        nuis_params = common_nuis_params | EE_nuis_params
+        nuisance_params = nuisance_params_common | pol_nuis_params
+        fg_params = common_fg_params | EE_fg_params
+        nuis_params = nuisance_params | fg_params
+
         info = {
             "likelihood": {
                 "mflike.EE": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                    "params": nuisance_params,
                 },
             },
             "theory": {
                 "camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                "mflike.BandpowerForeground": {"requested_cls": ["ee"]},
+                "mflike.BandpowerForeground": {"requested_cls": ["ee"], "params": fg_params},
             },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
@@ -192,17 +250,21 @@ class MFLikeTest(unittest.TestCase):
             info["theory"]["mflike.EEForeground"] = None
 
     def test_cobaya_TT_EE(self):
-        nuis_params = common_nuis_params | TT_nuis_params | EE_nuis_params
+        nuisance_params = nuisance_params_common | TT_nuis_params | pol_nuis_params
+        fg_params = common_fg_params | TT_fg_params | EE_fg_params
+        nuis_params = nuisance_params | fg_params
+
         info = {
             "likelihood": {
                 "mflike.TTEE": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                    "params": nuisance_params,
                 },
             },
             "theory": {
                 "camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                "mflike.BandpowerForeground": {"requested_cls": ["tt", "ee"]},
+                "mflike.BandpowerForeground": {"requested_cls": ["tt", "ee"], "params": fg_params},
             },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
@@ -214,17 +276,21 @@ class MFLikeTest(unittest.TestCase):
         self.assertAlmostEqual(chi2, chi2s["tt-ee"], 2)
 
     def test_cobaya_TT_TE(self):
-        nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params
+        nuisance_params = nuisance_params_common | TT_nuis_params | pol_nuis_params
+        fg_params = common_fg_params | TT_fg_params | TE_fg_params
+        nuis_params = nuisance_params | fg_params
+
         info = {
             "likelihood": {
                 "mflike.TTTE": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                    "params": nuisance_params,
                 },
             },
             "theory": {
                 "camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                "mflike.BandpowerForeground": {"requested_cls": ["tt", "te"]},
+                "mflike.BandpowerForeground": {"requested_cls": ["tt", "te"], "params": fg_params},
             },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
@@ -236,17 +302,21 @@ class MFLikeTest(unittest.TestCase):
         self.assertAlmostEqual(chi2, chi2s["tt-te-et"], 2)
 
     def test_cobaya_TE_EE(self):
-        nuis_params = common_nuis_params | TE_nuis_params | EE_nuis_params
+        nuisance_params = nuisance_params_common | TT_nuis_params | pol_nuis_params
+        fg_params = common_fg_params | TE_fg_params | EE_fg_params
+        nuis_params = nuisance_params | fg_params
+
         info = {
             "likelihood": {
                 "mflike.TEEE": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                    "params": nuisance_params,
                 },
             },
             "theory": {
                 "camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                "mflike.BandpowerForeground": {"requested_cls": ["te", "ee"]},
+                "mflike.BandpowerForeground": {"requested_cls": ["te", "ee"], "params": fg_params},
             },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
@@ -258,17 +328,21 @@ class MFLikeTest(unittest.TestCase):
         self.assertAlmostEqual(chi2, chi2s["te-et-ee"], 2)
 
     def test_cobaya_TTTEEE(self):
-        nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
+        nuisance_params = nuisance_params_common | TT_nuis_params | pol_nuis_params
+        fg_params = common_fg_params | TT_fg_params | TE_fg_params | EE_fg_params
+        nuis_params = nuisance_params | fg_params
+
         info = {
             "likelihood": {
                 "mflike.TTTEEE": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                    "params": nuisance_params,
                 },
             },
             "theory": {
                 "camb": {"extra_args": {"lens_potential_accuracy": 1}},
-                "mflike.BandpowerForeground": None,
+                "mflike.BandpowerForeground": {"params": fg_params},
             },
             "params": cosmo_params | nuis_params,
             "packages_path": packages_path,
@@ -280,8 +354,10 @@ class MFLikeTest(unittest.TestCase):
         self.assertAlmostEqual(chi2, chi2s["tt-te-et-ee"], 2)
 
     def test_top_hat_bandpasses(self):
-        nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
-        # Let's vary values of bandint_shift parameters
+        nuisance_params = nuisance_params_common | TT_nuis_params | pol_nuis_params
+        fg_params = common_fg_params | TT_fg_params | TE_fg_params | EE_fg_params
+        nuis_params = nuisance_params | fg_params
+
         params = nuis_params | {
             k: {"prior": {"min": 0.9 * v, "max": 1.1 * v}}
             for k, v in nuis_params.items()
@@ -294,6 +370,7 @@ class MFLikeTest(unittest.TestCase):
                     "mflike.TTTEEE": {
                         "input_file": pre + "00000.fits",
                         "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                        "params": nuisance_params,
                     }
                 },
                 "theory": {
@@ -302,7 +379,8 @@ class MFLikeTest(unittest.TestCase):
                         "top_hat_band": {
                             "nsteps": nsteps,
                             "bandwidth": bandwidth,
-                        }
+                        },
+                        "params": fg_params,
                     },
                 },
                 "params": {**cosmo_params, **params},
@@ -336,7 +414,9 @@ class MFLikeTest(unittest.TestCase):
                 self.assertAlmostEqual(chi2_mflike, chi2[i], 1)
 
     def test_Gaussian_chromatic_beams(self):
-        nuis_params = common_nuis_params | TT_nuis_params | TE_nuis_params | EE_nuis_params
+        nuisance_params = nuisance_params_common | TT_nuis_params | pol_nuis_params
+        fg_params = common_fg_params | TT_fg_params | TE_fg_params | EE_fg_params
+        nuis_params = nuisance_params | fg_params
 
         # generating the data products needed
         test_path = os.path.dirname(__file__)
@@ -354,6 +434,7 @@ class MFLikeTest(unittest.TestCase):
                 "mflike.TTTEEE": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                    "params": nuisance_params,
                 },
             },
             "theory": {
@@ -362,6 +443,7 @@ class MFLikeTest(unittest.TestCase):
                     "beam_profile": {
                         "beam_from_file": packages_path + "/data/MFLike/v0.8/LAT_gauss_beams.yaml"
                     },
+                    "params": fg_params,
                 },
             },
             "params": cosmo_params | nuis_params,
@@ -394,6 +476,7 @@ class MFLikeTest(unittest.TestCase):
                 "mflike.TTTEEE": {
                     "input_file": pre + "00000.fits",
                     "cov_Bbl_file": "data_sacc_w_covar_and_Bbl.fits",
+                    "params": nuisance_params,
                 },
             },
             "theory": {
@@ -404,6 +487,7 @@ class MFLikeTest(unittest.TestCase):
                         "Bandpass_shifted_beams": packages_path
                         + "/data/MFLike/v0.8/LAT_beam_bandshift.yaml",
                     },
+                    "params": fg_params,
                 },
             },
             "params": cosmo_params | params,
@@ -423,3 +507,174 @@ class MFLikeTest(unittest.TestCase):
 
             chi2_mflike = -2 * (model.loglike(new_params, return_derived=False) - logp_const)
             self.assertAlmostEqual(chi2_mflike, chi2[i], 2)
+
+
+    def test_binned_mcm_TTTEEE(self):
+        nuisance_params = nuisance_params_common |  TT_nuis_params |  pol_nuis_params 
+        fg_params = common_fg_params | TT_fg_params | TE_fg_params | EE_fg_params | BB_fg_params
+        nuis_params = nuisance_params | fg_params
+        
+        info = {
+            "likelihood": {
+                "mflike.TTTEEE": {
+                    "input_file": "data_sacc_smooth_test.fits",
+                    "binned_mcm": True,
+                "params": nuisance_params, 
+                }, },
+                    "theory": {
+                        "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                        "mflike.BandpowerForeground": {"binned_mcm": True, "params": fg_params}, 
+                    },
+                    "params": cosmo_params | nuis_params,
+                    "packages_path": packages_path,
+                }
+
+
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.TTTEEE"]
+        chi2_mflike = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        self.assertAlmostEqual(chi2_mflike, 0., 2)
+
+    def test_binned_mcm_EE(self):
+        nuis_params = nuisance_params_common | pol_nuis_params
+        fg_params = common_fg_params | EE_fg_params | BB_fg_params
+        info = {
+            "likelihood": {
+                "mflike.EE": {
+                    "input_file": "data_sacc_smooth_test.fits",
+                    "binned_mcm": True,
+                    "params": nuis_params
+                },
+            },
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {"requested_cls": ["ee"], "binned_mcm": True},
+            },
+            "params": cosmo_params | nuis_params | fg_params,
+            "packages_path": packages_path,
+            "debug": True,
+        }
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.EE"]
+        chi2_mflike = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        self.assertAlmostEqual(chi2_mflike, 0., 2)
+
+    def test_binned_mcm_TE(self):
+        nuis_params = nuisance_params_common | pol_nuis_params
+        fg_params = common_fg_params | TE_fg_params 
+        info = {
+            "likelihood": {
+                "mflike.TE": {
+                    "input_file": "data_sacc_smooth_test.fits",
+                    "binned_mcm": True,
+                    "params": nuis_params
+                },
+            },
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {"requested_cls": ["te"], "binned_mcm": True},
+            },
+            "params": cosmo_params | nuis_params | fg_params,
+            "packages_path": packages_path,
+            "debug": True,
+        }
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.TE"]
+        chi2_mflike = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        self.assertAlmostEqual(chi2_mflike, 0., 2)
+
+    def test_binned_mcm_TT(self):
+        nuis_params = nuisance_params_common | TT_nuis_params
+        fg_params = common_fg_params | TT_fg_params 
+        info = {
+            "likelihood": {
+                "mflike.TT": {
+                    "input_file": "data_sacc_smooth_test.fits",
+                    "binned_mcm": True,
+                    "params": nuis_params
+                },
+            },
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {"requested_cls": ["tt"], "binned_mcm": True},
+            },
+            "params": cosmo_params | nuis_params | fg_params,
+            "packages_path": packages_path,
+            "debug": True,
+        }
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.TT"]
+        chi2_mflike = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        self.assertAlmostEqual(chi2_mflike, 0., 2)
+
+    def test_binned_mcm_TTEE(self):
+        nuis_params = nuisance_params_common | TT_nuis_params | pol_nuis_params
+        fg_params = common_fg_params | TT_fg_params | EE_fg_params | BB_fg_params
+        info = {
+            "likelihood": {
+                "mflike.TTEE": {
+                    "input_file": "data_sacc_smooth_test.fits",
+                    "binned_mcm": True,
+                    "params": nuis_params
+                },
+            },
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {"requested_cls": ["tt", "ee"], "binned_mcm": True},
+            },
+            "params": cosmo_params | nuis_params | fg_params,
+            "packages_path": packages_path,
+            "debug": True,
+        }
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.TTEE"]
+        chi2_mflike = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        self.assertAlmostEqual(chi2_mflike, 0., 2)
+
+    def test_binned_mcm_TTTE(self):
+        nuis_params = nuisance_params_common | TT_nuis_params | pol_nuis_params
+        fg_params = common_fg_params | TT_fg_params | TE_fg_params
+        info = {
+            "likelihood": {
+                "mflike.TTTE": {
+                    "input_file": "data_sacc_smooth_test.fits",
+                    "binned_mcm": True,
+                    "params": nuis_params
+                },
+            },
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {"requested_cls": ["tt", "te"], "binned_mcm": True},
+            },
+            "params": cosmo_params | nuis_params | fg_params,
+            "packages_path": packages_path,
+            "debug": True,
+        }
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.TTTE"]
+        chi2_mflike = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        self.assertAlmostEqual(chi2_mflike, 0., 2)
+
+    def test_binned_mcm_TEEE(self):
+        nuis_params = nuisance_params_common | TT_nuis_params | pol_nuis_params
+        fg_params = common_fg_params | TE_fg_params | EE_fg_params | BB_fg_params
+        info = {
+            "likelihood": {
+                "mflike.TEEE": {
+                    "input_file": "data_sacc_smooth_test.fits",
+                    "binned_mcm": True,
+                    "params": nuis_params
+                },
+            },
+            "theory": {
+                "camb": {"extra_args": {"lens_potential_accuracy": 1}},
+                "mflike.BandpowerForeground": {"requested_cls": ["te", "ee"], "binned_mcm": True},
+            },
+            "params": cosmo_params | nuis_params | fg_params,
+            "packages_path": packages_path,
+            "debug": True,
+        }
+        model = get_model(info)
+        my_mflike = model.likelihood["mflike.TEEE"]
+        chi2_mflike = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
+        self.assertAlmostEqual(chi2_mflike, 0., 2)

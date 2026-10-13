@@ -45,7 +45,7 @@ jobs:
         uv python install ${{ matrix.python-version }}
         uv python pin ${{ matrix.python-version }}
         uv sync --locked --extra all
-        uv run cobaya-install mflike.TTTEEE --no-set-global
+        uv run cobaya-install mflike.TTTEEE --packages-path=${{ env.COBAYA_PACKAGES_PATH }} --no-set-global
 
     - name: Unit tests
       run: |
