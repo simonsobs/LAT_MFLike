@@ -1,0 +1,9 @@
+poleff_LAT_93:
+  value: 1
+  latex: \mathrm{\rm p}^{93}
+poleff_LAT_145:
+  value: 1
+  latex: \mathrm{\rm p}^{145}
+poleff_LAT_225:
+  value: 1
+  latex: \mathrm{\rm p}^{225}

@@ -13,5 +13,5 @@ defaults:
   # instead of TE and ET separately.
   symmetrize: false
 
-params: !defaults [ mflike_common, calib_T, calib_E ]
+params: !defaults [ mflike_common, calib_T, calib_P ]
 

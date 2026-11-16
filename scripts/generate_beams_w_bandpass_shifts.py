@@ -69,9 +69,9 @@ nuis_params = {
     "alpha_dE": -0.4,
     "a_gee": 0.10,
     "a_psee": 0,
-    "calE_LAT_93": 1,
-    "calE_LAT_145": 1,
-    "calE_LAT_225": 1,
+    "poleff_LAT_93": 1,
+    "poleff_LAT_145": 1,
+    "poleff_LAT_225": 1,
 }
 
 info = {
