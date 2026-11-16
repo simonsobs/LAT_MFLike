@@ -9,5 +9,5 @@ defaults:
     TT: [ 30, 9000 ]
     EE: [ 30, 9000 ]
 
-params: !defaults [ mflike_common, calib_T, calib_E ]
+params: !defaults [ mflike_common, calib_T, calib_P ]
 

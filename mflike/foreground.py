@@ -11,7 +11,7 @@ when initializing ``BandpowerForeground``.
 
 The default values of the systematic parameters are set in the
 ``TTTEEE/TEEE/TT/EE/TE/etc.yaml`` files.  They have to be named as
-``cal/calT/calE/alpha`` + ``_`` + experiment_channel string (e.g.
+``cal/calT/poleff/alpha`` + ``_`` + experiment_channel string (e.g.
 ``LAT_93/dr6_pa4_f150``).
 The default values of the foreground parameters are set in the ``fg_TT/TE/EE.yaml`` files.
 If you want to set different parameters settings, do that in the ``params`` block of
