@@ -15,7 +15,7 @@ theory:
       k_per_logint: 130
       nonlinear: True
       lens_potential_accuracy: 8
-      lens_margin: 2050
+      lens_output_margin: 2050
       AccuracyBoost: 2.0
       lSampleBoost: 2.0
       lAccuracyBoost: 2.0
