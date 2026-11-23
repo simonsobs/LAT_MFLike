@@ -27,11 +27,10 @@ dependencies = [
   "syslibrary>=0.2.0",
   "cobaya>=3.5.4",
   "sacc>=0.9.0",
-  "camb>=2.0.0"
 ]
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov", "nbval", "camb", "healpy", "ruff", "pre-commit"]
+test = ["pytest", "pytest-cov", "nbval", "camb>=2.0.0", "healpy", "ruff", "pre-commit"]
 notebook = ["jupyter", "camb", "seaborn", "latex2mathml"]
 all = ["mflike[test]", "mflike[notebook]"]
 
