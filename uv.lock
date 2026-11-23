@@ -244,7 +244,7 @@ css = [
 
 [[package]]
 name = "camb"
-version = "1.6.2"
+version = "2.0.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -254,13 +254,14 @@ dependencies = [
     { name = "scipy", version = "1.16.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "sympy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0c/15/5ac8f90aa9511313f85dc83f3dbe27f21bd2b900f760e7bb23698c201534/camb-1.6.2.tar.gz", hash = "sha256:05bf5c46fab225e3a107121ed2de533cb4c84219fa6d7d39447d9330b56b3fc1", size = 762170, upload-time = "2025-07-09T22:07:36.513Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e7/79/6c8bd6e12ee52f61a5cfe6521feb3a5cd30060a32fde55f57245c97eddc5/camb-2.0.5.tar.gz", hash = "sha256:9faae0e22d35f7b9e8cd93364ea238681a86e643bc68deb720a3745680e515a5", size = 930482, upload-time = "2026-10-14T09:14:41.028Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/05/4f642aff8cfc0307938b1194b9fe563b238f7d0e18d645300ec312db97ee/camb-1.6.2-py3-none-macosx_13_0_arm64.whl", hash = "sha256:6954b1d0b70947c25a4c59920b9ecac65535aabe439534e658c39715cc511921", size = 1291783, upload-time = "2025-07-09T22:07:21.258Z" },
-    { url = "https://files.pythonhosted.org/packages/b4/78/5fe819ab13f3aa3defd2b2b54621f4753672a79306564e3883e3e61838bf/camb-1.6.2-py3-none-macosx_13_0_x86_64.whl", hash = "sha256:3e39076b22d7ae223921a62b2a12a26bdbd44a68d34e7204de2d34bdebffa74d", size = 1337643, upload-time = "2025-07-09T22:07:23.396Z" },
-    { url = "https://files.pythonhosted.org/packages/33/d6/f895ab7e368eb5c92f9c3a92a77e9310fec10bf49c3c12907ce23b011d39/camb-1.6.2-py3-none-macosx_14_0_arm64.whl", hash = "sha256:50e7fbbc1ba846ebd4eee9b69fce4256ab37e3dcbc908efe5581cc5bb5615439", size = 1291660, upload-time = "2025-07-09T22:07:25.165Z" },
-    { url = "https://files.pythonhosted.org/packages/4a/4d/b100648fa8473363d01721b76c34903b5934ddc6dd45f7f0dfa9db7184e6/camb-1.6.2-py3-none-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:f460a7110052d21310afd80fb80bf5dfdb2a9249da07bfd4c6416f2fd6509c8d", size = 2315026, upload-time = "2025-07-09T22:07:26.771Z" },
-    { url = "https://files.pythonhosted.org/packages/ee/08/915d61895e110598b968998f5d66b92bbc3345bdc9a57a657646546967b2/camb-1.6.2-py3-none-win_amd64.whl", hash = "sha256:e16db53ef5467b8af8bd455f3a3ef94a18daf5d10dbb823a2c4cf439686db67c", size = 1394047, upload-time = "2025-07-09T22:07:28.639Z" },
+    { url = "https://files.pythonhosted.org/packages/af/02/9bc38aa80a3903ad5e4714362330f63014c29518c269dd82a35776a3fb5a/camb-2.0.5-py3-none-macosx_14_0_arm64.whl", hash = "sha256:344dd13429affd3adba4c3bed4f0390b318e5681d2c75c84c1f2349003ef3bfb", size = 1505703, upload-time = "2026-10-14T09:14:23.488Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/05/fb87b538a76a2ca386c5a6fbc48c3786210789c451a702a1d2c3459e6a75/camb-2.0.5-py3-none-macosx_14_0_x86_64.whl", hash = "sha256:d66d4ab6d1decc6f111db1b2ceecdf3d2672b67b45ad689d499fa7c63bc8b6e9", size = 1557766, upload-time = "2026-10-14T09:14:25.522Z" },
+    { url = "https://files.pythonhosted.org/packages/2d/29/4642146e1bde5f3d95e590c34d693cca8279de0dcb7436334adc6d8aa2ab/camb-2.0.5-py3-none-macosx_15_0_arm64.whl", hash = "sha256:a667933a08ecede46e96fbc72af4f49050d03af39205e9c0608401889d80bfc3", size = 1505830, upload-time = "2026-10-14T09:14:27.17Z" },
+    { url = "https://files.pythonhosted.org/packages/2c/a4/332674318ab85aca5c15c4bd9276c295ea1363bdd6604186ef3c5df73c59/camb-2.0.5-py3-none-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:a43402c6206c779e206893f06b79c19d9ebe1e76e5f54f05b36ebc15e0a5c56f", size = 1771415, upload-time = "2026-10-14T09:14:28.98Z" },
+    { url = "https://files.pythonhosted.org/packages/45/cb/142f65708efde1a7b519ba41e7dfe2035b865daaee4a6ec1c8465493f627/camb-2.0.5-py3-none-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:17ae2f94dd17303fd29aa804e72558e02346ce44b8928aaae8642c10a7d985fe", size = 2413573, upload-time = "2026-10-14T09:14:30.992Z" },
+    { url = "https://files.pythonhosted.org/packages/4b/6a/3847b321a526f0a17c2517b238b2c851c8cd5b599fbe999daedafdb261a9/camb-2.0.5-py3-none-win_amd64.whl", hash = "sha256:22886f6c217c55cadeba30a81159f1e33bc3927f25534f54a6e31c88b2366c03", size = 1672978, upload-time = "2026-10-14T09:14:32.863Z" },
 ]
 
 [[package]]
@@ -1579,7 +1580,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "camb", marker = "extra == 'notebook'" },
-    { name = "camb", marker = "extra == 'test'" },
+    { name = "camb", marker = "extra == 'test'", specifier = ">=2.0.0" },
     { name = "cobaya", specifier = ">=3.5.4" },
     { name = "fgspectra", specifier = ">=1.3.0" },
     { name = "healpy", marker = "extra == 'test'" },

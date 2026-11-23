@@ -112,13 +112,13 @@ common_nuis_params = {
 }
 
 chi2s = {
-    "tt": 920.2630056646808,
-    "te-et": 1375.0253752060808,
-    "ee": 850.9616194876838,
-    "tt-ee": 1770.2453437088866,
-    "tt-te-et": 2289.876148743457,
-    "te-et-ee": 2221.3950392195356,
-    "tt-te-et-ee": 3137.874002938912,
+    "tt": 921.1256421299067,
+    "te-et": 1376.4480614412976,
+    "ee": 850.1794018596831,
+    "tt-ee": 1770.41227921693,
+    "tt-te-et": 2292.16611660792,
+    "te-et-ee": 2222.2210143237116,
+    "tt-te-et-ee": 3139.5029015400432,
 }
 pre = "LAT_simu_sacc_"
 
@@ -398,8 +398,8 @@ class MFLikeTest(unittest.TestCase):
 
         # chi2 reference results for the different models and different bandshifts
         chi2s = {
-            "model1": [4614.10014353, 4929.98648522, 92894.01666485],
-            "model2": [3734.34320513, 6034.08286905, 103597.03300165],
+            "model1": [4611.78377704, 4926.77456610, 92890.750084767],
+            "model2": [3733.05539435, 6031.92699912, 103594.93894166],
         }
 
         for model, chi2 in chi2s.items():
@@ -454,7 +454,7 @@ class MFLikeTest(unittest.TestCase):
         model = get_model(info)
         my_mflike = model.likelihood["mflike.TTTEEE"]
         chi2 = -2 * (model.loglike(nuis_params, return_derived=False) - my_mflike.logp_const)
-        chi2s_beam = {"tt-te-et-ee": 4272.842504438564}
+        chi2s_beam = {"tt-te-et-ee": 4273.1640735815745}
         self.assertAlmostEqual(chi2, chi2s_beam["tt-te-et-ee"], 2)
 
         model.close()
@@ -497,7 +497,7 @@ class MFLikeTest(unittest.TestCase):
         model = get_model(info)
         logp_const = model.likelihood["mflike.TTTEEE"].logp_const
 
-        chi2 = [4272.84250444, 10987.36734122, 127166.75296958]
+        chi2 = [4273.1640736, 10987.12867821, 127167.6944060]
 
         for i, bandshift in enumerate([0.0, 1.0, 5.0]):
             new_params = {

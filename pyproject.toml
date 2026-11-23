@@ -30,7 +30,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov", "nbval", "camb", "healpy", "ruff", "pre-commit"]
+test = ["pytest", "pytest-cov", "nbval", "camb>=2.0.0", "healpy", "ruff", "pre-commit"]
 notebook = ["jupyter", "camb", "seaborn", "latex2mathml"]
 all = ["mflike[test]", "mflike[notebook]"]
 
