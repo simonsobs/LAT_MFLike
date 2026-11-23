@@ -1542,7 +1542,6 @@ wheels = [
 name = "mflike"
 source = { editable = "." }
 dependencies = [
-    { name = "camb" },
     { name = "cobaya" },
     { name = "fgspectra" },
     { name = "sacc" },
@@ -1580,9 +1579,8 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "camb", specifier = ">=2.0.0" },
     { name = "camb", marker = "extra == 'notebook'" },
-    { name = "camb", marker = "extra == 'test'" },
+    { name = "camb", marker = "extra == 'test'", specifier = ">=2.0.0" },
     { name = "cobaya", specifier = ">=3.5.4" },
     { name = "fgspectra", specifier = ">=1.3.0" },
     { name = "healpy", marker = "extra == 'test'" },
