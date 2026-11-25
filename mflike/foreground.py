@@ -269,9 +269,9 @@ class Foreground(Theory):
             cibxtsz_file = os.path.join(template_path, "cl_sz_x_cib.dat")
 
             # We don't seem to be using this
-            # cirrus = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
+            # cirrus = fgc.FactorizedCrossSpectrum(fgf.PowerLawSED(), fgp.PowerLaw())
             self.ksz = fgc.FactorizedCrossSpectrum(fgf.ConstantSED(), fgp.kSZ_bat())
-            self.cibp = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
+            self.cibp = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.Poisson())
             self.tsz = fgc.FactorizedCrossSpectrum(
                 fgf.ThermalSZ(), fgp.PowerLawRescaledTemplate(tsz_file)
             )
@@ -289,13 +289,13 @@ class Foreground(Theory):
 
         if "te" in self.requested_cls or "tb" in self.requested_cls:
             self.radioTE = fgc.FactorizedCrossSpectrumTE(
-                fgf.PowerLaw(), fgf.PowerLaw(), fgp.PowerLaw()
+                fgf.PowerLawSED(), fgf.PowerLawSED(), fgp.Poisson()
             )
             self.dustTE = fgc.FactorizedCrossSpectrumTE(
                 fgf.ModifiedBlackBody(), fgf.ModifiedBlackBody(), fgp.PowerLaw()
             )
 
-        self.radio = fgc.FactorizedCrossSpectrum(fgf.PowerLaw(), fgp.PowerLaw())
+        self.radio = fgc.FactorizedCrossSpectrum(fgf.PowerLawSED(), fgp.Poisson())
         self.dust = fgc.FactorizedCrossSpectrum(fgf.ModifiedBlackBody(), fgp.PowerLaw())
 
         if self.ells is None:
@@ -321,49 +321,70 @@ class Foreground(Theory):
         ell_0 = self.fg_ell_0
         nu_0 = self.fg_nu_0
 
-        # Normalisation of radio sources
-        ell_clp = ell * (ell + 1.0)
-        ell_0clp = ell_0 * (ell_0 + 1.0)
-
         model = {}
         if "tt" in self.requested_cls:
-            model["tt", "kSZ"] = fg_params["a_kSZ"] * self.ksz(
-                {"nu": self.bandint_freqs_T}, {"ell": ell, "ell_0": ell_0}
+            model["tt", "kSZ"] = self.ksz(
+                {"nu": self.bandint_freqs_T},
+                {
+                    "amp": fg_params["a_kSZ"],
+                    "ell": ell,
+                    "ell_0": ell_0
+                }
             )
-            model["tt", "cibp"] = fg_params["a_p"] * self.cibp(
+            model["tt", "cibp"] = self.cibp(
                 {
                     "nu": self.bandint_freqs_T,
                     "nu_0": nu_0,
                     "temp": fg_params["T_d"],
                     "beta": fg_params["beta_p"],
                 },
-                {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_p"]},
+                {
+                    "amp": fg_params["a_p"],
+                    "ell": ell,
+                    "ell_0": ell_0,
+                    "alpha": fg_params["alpha_p"]
+                },
             )
-            model["tt", "radio"] = fg_params["a_s"] * self.radio(
+            model["tt", "radio"] = self.radio(
                 {"nu": self.bandint_freqs_T, "nu_0": nu_0, "beta": fg_params["beta_s"]},
-                {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
+                {
+                    "amp": fg_params["a_s"],
+                    "ell": ell,
+                    "ell_0": ell_0,
+                    "alpha": fg_params["alpha_s"]
+                },
             )
-            model["tt", "tSZ"] = fg_params["a_tSZ"] * self.tsz(
+            model["tt", "tSZ"] = self.tsz(
                 {"nu": self.bandint_freqs_T, "nu_0": nu_0},
-                {"ell": ell, "ell_0": ell_0, "alpha": fg_params["alpha_tSZ"]},
+                {
+                    "amp": fg_params["a_tSZ"],
+                    "ell": ell,
+                    "ell_0": ell_0,
+                    "alpha": fg_params["alpha_tSZ"]
+                },
             )
-            model["tt", "cibc"] = fg_params["a_c"] * self.cibc(
+            model["tt", "cibc"] = self.cibc(
                 {
                     "nu": self.bandint_freqs_T,
                     "nu_0": nu_0,
                     "temp": fg_params["T_d"],
                     "beta": fg_params["beta_c"],
                 },
-                {"ell": ell, "ell_0": ell_0},
+                {"amp": fg_params["a_c"], "ell": ell, "ell_0": ell_0},
             )
-            model["tt", "dust"] = fg_params["a_gtt"] * self.dust(
+            model["tt", "dust"] = self.dust(
                 {
                     "nu": self.bandint_freqs_T,
                     "nu_0": nu_0,
                     "temp": fg_params["T_effd"],
                     "beta": fg_params["beta_d"],
                 },
-                {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dT"]},
+                {
+                    "amp": fg_params["a_gtt"],
+                    "ell": ell,
+                    "ell_0": 500.0,
+                    "alpha": fg_params["alpha_dT"]
+                },
             )
             model["tt", "tSZ_and_CIB"] = self.tSZ_and_CIB(
                 {
@@ -397,27 +418,42 @@ class Foreground(Theory):
             )
 
         if "ee" in self.requested_cls:
-            model["ee", "radio"] = fg_params["a_psee"] * self.radio(
+            model["ee", "radio"] = self.radio(
                 {"nu": self.bandint_freqs_P, "nu_0": nu_0, "beta": fg_params["beta_s"]},
-                {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
+                {
+                    "amp": fg_params["a_psee"],
+                    "ell": ell,
+                    "ell_0": ell_0,
+                    "alpha": fg_params["alpha_s"]
+                },
             )
-            model["ee", "dust"] = fg_params["a_gee"] * self.dust(
+            model["ee", "dust"] = self.dust(
                 {
                     "nu": self.bandint_freqs_P,
                     "nu_0": nu_0,
                     "temp": fg_params["T_effd"],
                     "beta": fg_params["beta_d"],
                 },
-                {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
+                {
+                    "amp": fg_params["a_gee"],
+                    "ell": ell,
+                    "ell_0": 500.0,
+                    "alpha": fg_params["alpha_dE"]
+                },
             )
 
         if "te" in self.requested_cls:
-            model["te", "radio"] = fg_params["a_pste"] * self.radioTE(
+            model["te", "radio"] = self.radioTE(
                 {"nu": self.bandint_freqs_T, "nu_0": nu_0, "beta": fg_params["beta_s"]},
                 {"nu": self.bandint_freqs_P, "nu_0": nu_0, "beta": fg_params["beta_s"]},
-                {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
+                {
+                    "amp": fg_params["a_pste"],
+                    "ell": ell,
+                    "ell_0": ell_0,
+                    "alpha": fg_params["alpha_s"]
+                },
             )
-            model["te", "dust"] = fg_params["a_gte"] * self.dustTE(
+            model["te", "dust"] = self.dustTE(
                 {
                     "nu": self.bandint_freqs_T,
                     "nu_0": nu_0,
@@ -430,33 +466,53 @@ class Foreground(Theory):
                     "temp": fg_params["T_effd"],
                     "beta": fg_params["beta_d"],
                 },
-                {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dE"]},
+                {
+                    "amp": fg_params["a_gte"],
+                    "ell": ell,
+                    "ell_0": 500.0,
+                    "alpha": fg_params["alpha_dE"]
+                },
             )
 
         if "bb" in self.requested_cls:
-            model["bb", "radio"] = fg_params["a_psbb"] * self.radio(
+            model["bb", "radio"] = self.radio(
                 {"nu": self.bandint_freqs_P, "nu_0": nu_0, "beta": fg_params["beta_s"]},
-                {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
+                {
+                    "amp": fg_params["a_psbb"],
+                    "ell": ell,
+                    "ell_0": ell_0,
+                    "alpha": fg_params["alpha_s"]
+                },
             )
 
-            model["bb", "dust"] = fg_params["a_gbb"] * self.dust(
+            model["bb", "dust"] = self.dust(
                 {
                     "nu": self.bandint_freqs_P,
                     "nu_0": nu_0,
                     "temp": fg_params["T_effd"],
                     "beta": fg_params["beta_d"],
                 },
-                {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dB"]},
+                {
+                    "amp": fg_params["a_gbb"],
+                    "ell": ell,
+                    "ell_0": 500.0,
+                    "alpha": fg_params["alpha_dB"]
+                },
             )
 
         if "tb" in self.requested_cls:
-            model["tb", "radio"] = fg_params["a_pstb"] * self.radioTE(
+            model["tb", "radio"] = self.radioTE(
                 {"nu": self.bandint_freqs_T, "nu_0": nu_0, "beta": fg_params["beta_s"]},
                 {"nu": self.bandint_freqs_P, "nu_0": nu_0, "beta": fg_params["beta_s"]},
-                {"ell": ell_clp, "ell_0": ell_0clp, "alpha": fg_params["alpha_s"]},
+                {
+                    "amp": fg_params["a_pstb"],
+                    "ell": ell,
+                    "ell_0": ell_0,
+                    "alpha": fg_params["alpha_s"]
+                },
             )
 
-            model["tb", "dust"] = fg_params["a_gtb"] * self.dustTE(
+            model["tb", "dust"] = self.dustTE(
                 {
                     "nu": self.bandint_freqs_T,
                     "nu_0": nu_0,
@@ -469,7 +525,12 @@ class Foreground(Theory):
                     "temp": fg_params["T_effd"],
                     "beta": fg_params["beta_d"],
                 },
-                {"ell": ell, "ell_0": 500.0, "alpha": fg_params["alpha_dB"]},
+                {
+                    "amp": fg_params["a_gtb"],
+                    "ell": ell,
+                    "ell_0": 500.0,
+                    "alpha": fg_params["alpha_dB"]
+                },
             )
 
         # if "eb" in self.requested_cls:
