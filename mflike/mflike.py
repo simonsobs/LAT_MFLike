@@ -147,6 +147,13 @@ class _MFLike(InstallableLikelihood):
                 "Cl": {k: max(c, self.lmax_theory + 1) for k, c in self.lcuts.items()},
             }
 
+    def get_can_support_params(self) -> list[str]:
+        """Nuisance parameters read for the experiments of the data, whatever their names."""
+        names = ["calG_all"]
+        for exp in self.experiments:
+            names += [f"cal_{exp}", f"calT_{exp}", f"poleff_{exp}", f"alpha_{exp}"]
+        return names
+
     def logp(self, **params_values) -> float:
         cl = self.provider.get_Cl(ell_factor=True)
         fg_totals = self.provider.get_fg_totals()
